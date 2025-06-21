@@ -2,7 +2,7 @@
 
 import { db } from "./firebase";
 import { collection, getDocs, doc, getDoc, query, where } from "firebase/firestore";
-import type { Channel, Match } from "@/types";
+import type { Channel, Match, ChannelOption } from "@/types";
 import { placeholderChannels, placeholderMatches } from "./placeholder-data";
 
 // Helper function to use placeholder data as a fallback
@@ -77,20 +77,41 @@ export async function getTodaysMatches(): Promise<Match[]> {
   const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
 
   try {
-    const matchesCollection = collection(db, "mdc25");
-    const q = query(matchesCollection, where("date", "==", today));
-    const matchSnapshot = await getDocs(q);
+    const [allChannels, matchSnapshot] = await Promise.all([
+      getChannels(),
+      getDocs(query(collection(db, "mdc25"), where("date", "==", today)))
+    ]);
     
     if (matchSnapshot.empty) {
       console.log("No hay partidos para hoy en Firebase. Usando datos de demostración.");
       return placeholderMatches.filter(match => match.date === today)
         .sort((a, b) => a.time.localeCompare(b.time));
     }
+
+    const channelsMap = new Map(allChannels.map(c => [c.id, c.name]));
     
-    const matches = matchSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Match)).sort((a, b) => a.time.localeCompare(b.time));
+    const matches = matchSnapshot.docs.map(doc => {
+      const data = doc.data();
+      const channelIds = (data.channels || []) as string[];
+      
+      const channels: ChannelOption[] = channelIds
+        .map(id => ({
+          id: id,
+          name: channelsMap.get(id) || ''
+        }))
+        .filter(channel => channel.name);
+
+      return {
+        id: doc.id,
+        team1: data.team1,
+        team1Logo: data.team1Logo,
+        team2: data.team2,
+        team2Logo: data.team2Logo,
+        time: data.time,
+        date: data.date,
+        channels: channels,
+      } as Match;
+    }).sort((a, b) => a.time.localeCompare(b.time));
     
     return matches;
   } catch (error) {
