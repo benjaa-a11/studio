@@ -13,7 +13,6 @@ import { useChannelFilters } from "@/hooks/use-channel-filters";
 const Logo = () => (
    <div className="flex items-center gap-2 font-sans">
       <Tv2 className="h-7 w-7 text-primary" />
-      <span className="font-bold text-xl tracking-tight">Plan B</span>
     </div>
 );
 
@@ -41,11 +40,11 @@ function Filters() {
         </div>
         
         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="h-10 w-full md:w-[200px] bg-muted border-transparent focus:bg-background focus:border-input" aria-label="Filtrar por categoría">
-                <div className="flex items-center gap-2">
-                  <ListFilter className="h-5 w-5 text-muted-foreground" />
-                  <SelectValue placeholder="Categoría" />
-                </div>
+            <SelectTrigger
+              className="h-10 w-10 shrink-0 p-0 flex items-center justify-center bg-muted border-transparent focus:bg-background focus:border-input"
+              aria-label="Filtrar por categoría"
+            >
+                <ListFilter className="h-5 w-5 text-muted-foreground" />
             </SelectTrigger>
             <SelectContent>
                 {allCategories.map((category) => (
