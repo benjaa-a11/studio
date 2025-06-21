@@ -19,6 +19,5 @@ export type Match = {
   team2: string;
   team2Logo: string;
   time: string;
-  date: string; // YYYY-MM-DD
   channels: ChannelOption[];
 };

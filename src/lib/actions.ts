@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "./firebase";
-import { collection, getDocs, doc, getDoc, query, where } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, query, where, Timestamp } from "firebase/firestore";
 import type { Channel, Match, ChannelOption } from "@/types";
 import { placeholderChannels, placeholderMatches } from "./placeholder-data";
 
@@ -74,49 +74,68 @@ export async function getChannelsByCategory(category: string, excludeId?: string
 }
 
 export async function getTodaysMatches(): Promise<Match[]> {
-  const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
+  const now = new Date();
+  // Matches that started up to 3 hours ago are still relevant.
+  const lowerBound = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+  
+  // We only want matches that start today.
+  const endOfDay = new Date();
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const processMatches = (matchDocs: any[], channelsMap: Map<string, string>): Match[] => {
+      return matchDocs
+          .map(matchData => {
+              const matchTimestamp = matchData.matchTimestamp?.toDate ? matchData.matchTimestamp.toDate() : new Date(matchData.matchTimestamp);
+              
+              if (matchTimestamp < lowerBound || matchTimestamp > endOfDay) return null;
+
+              const channelIds: string[] = Array.isArray(matchData.channels) ? matchData.channels : [];
+              const channelOptions: ChannelOption[] = channelIds
+                  .map(id => ({ id, name: channelsMap.get(id) }))
+                  .filter(c => c.name) as ChannelOption[];
+
+              return {
+                  id: matchData.id,
+                  team1: matchData.team1,
+                  team1Logo: matchData.team1Logo,
+                  team2: matchData.team2,
+                  team2Logo: matchData.team2Logo,
+                  time: matchTimestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+                  channels: channelOptions,
+              } as Match;
+          })
+          .filter((match): match is Match => match !== null)
+          .sort((a, b) => a.time.localeCompare(b.time));
+  };
 
   try {
-    // First, get all available channels to map IDs to names later.
     const allChannels = await getChannels();
     const channelsMap = new Map(allChannels.map(c => [c.id, c.name]));
 
-    const q = query(collection(db, "mdc25"), where("date", "==", today));
+    const q = query(
+      collection(db, "mdc25"), 
+      where("matchTimestamp", ">=", lowerBound),
+      where("matchTimestamp", "<=", endOfDay)
+    );
     const matchSnapshot = await getDocs(q);
     
     if (matchSnapshot.empty) {
-      console.log("No hay partidos para hoy en Firebase. Usando datos de demostración.");
-      return placeholderMatches.filter(match => match.date === today)
-        .sort((a, b) => a.time.localeCompare(b.time));
+      console.log("No hay partidos para el rango de tiempo actual en Firebase. Usando datos de demostración.");
+      return processMatches(placeholderMatches, channelsMap);
     }
 
-    const matches = matchSnapshot.docs.map(doc => {
-      const data = doc.data();
-      // Expect `channels` to be an array of strings (channel IDs).
-      const channelIds: string[] = Array.isArray(data.channels) ? data.channels : [];
-      
-      // Transform the array of IDs into an array of {id, name} objects.
-      const channelOptions: ChannelOption[] = channelIds
-        .map(id => ({ id, name: channelsMap.get(id) }))
-        .filter(c => c.name) as ChannelOption[]; // Filter out any channels not found
+    const matchesData = matchSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
 
-      return {
-          id: doc.id,
-          team1: data.team1,
-          team1Logo: data.team1Logo,
-          team2: data.team2,
-          team2Logo: data.team2Logo,
-          time: data.time,
-          date: data.date,
-          channels: channelOptions, // Use the transformed array
-      } as Match
-    }).sort((a, b) => a.time.localeCompare(b.time));
+    return processMatches(matchesData, channelsMap);
     
-    return matches;
   } catch (error) {
     console.error("Error al obtener partidos de Firebase:", error);
     console.warn("Usando datos de demostración para los partidos.");
-    return placeholderMatches.filter(match => match.date === today)
-      .sort((a, b) => a.time.localeCompare(b.time));
+    const allChannels = await getChannels();
+    const channelsMap = new Map(allChannels.map(c => [c.id, c.name]));
+    return processMatches(placeholderMatches, channelsMap);
   }
 }

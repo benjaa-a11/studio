@@ -42,26 +42,24 @@ This application is configured to connect to a Firebase project.
         "team1Logo": "https://...",
         "team2": "Team B Name",
         "team2Logo": "https://...",
-        "date": "YYYY-MM-DD",
-        "time": "HH:MM",
+        "matchTimestamp": "June 20, 2025 at 4:00:00 PM UTC-3",
         "channels": ["dsports", "telefe"]
     }
     ```
-    **Importante:** El campo `channels` debe ser de tipo **array** y contener una lista de IDs (en formato texto). Cada ID debe coincidir con el ID de un documento en tu colección `channels`. La aplicación se encargará de buscar el nombre del canal automáticamente.
+    - **`matchTimestamp`**: Este es el campo más importante. Debe ser de tipo **`timestamp`** en Firestore y determina cuándo se muestra el partido. Los partidos aparecerán en la página de inicio si su hora de comienzo es hoy y desaparecerán 3 horas después de haber comenzado.
+    - **`channels`**: Debe ser un **`array`** de **`strings`** (texto). Cada string debe ser el ID de un documento de tu colección `channels`. La aplicación buscará el nombre del canal automáticamente.
 
-    ### ¿Cómo agregar la lista de canales en Firebase?
+
+    ### ¿Cómo agregar un partido con Timestamp?
 
     1.  Ve a tu **Colección `mdc25`** en Firestore.
-    2.  Selecciona el partido que quieres editar o crea uno nuevo.
-    3.  Busca el campo `channels`. Si no existe, haz clic en **"Añadir campo"**.
-    4.  **Nombre del campo:** `channels`
-    5.  **Tipo:** Selecciona **`array`** en el menú desplegable.
-    6.  Ahora podrás agregar los valores a la lista:
-        *   En `valor 0` (tipo `string`), escribe el ID del primer canal (ej: `dsports`).
-        *   Haz clic en el botón `+` para añadir otro campo a la lista.
-        *   En `valor 1` (tipo `string`), escribe el ID del segundo canal (ej: `telefe`).
-        *   Repite para todos los canales disponibles para ese partido.
-    7.  Haz clic en **"Actualizar"** para guardar los cambios.
+    2.  Crea un nuevo documento para tu partido.
+    3.  Añade los campos de los equipos y logos como de costumbre.
+    4.  Haz clic en **"Añadir campo"** y escribe `matchTimestamp` como nombre.
+    5.  En **Tipo**, selecciona **`timestamp`** en el menú desplegable.
+    6.  Aparecerá un selector de fecha y hora. Elige el día y la hora exactos de inicio del partido.
+    7.  Añade el campo `channels` como un `array` de strings.
+    8.  Haz clic en **"Guardar"**.
 
 5.  **Security Rules**: For production, ensure your Firestore security rules are properly configured to allow read access to the collections. A basic rule for public read access would be:
     ```

@@ -1,20 +1,23 @@
 import type { Channel, Match } from "@/types";
 
-const todayDateString = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
+// Helper to create timestamps for today for placeholder data
+const createTimestamp = (hour: number, minute: number = 0) => {
+  const date = new Date();
+  date.setHours(hour, minute, 0, 0);
+  return date;
+};
 
-export const placeholderMatches: Match[] = [
+// Placeholder data uses a structure similar to what Firestore would return.
+// The `getTodaysMatches` function will process this into the `Match` type.
+export const placeholderMatches: any[] = [
   {
     id: "mdc-1",
     team1: "River Plate",
     team1Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/Escudo_del_C._A._River_Plate.svg/240px-Escudo_del_C._A._River_Plate.svg.png",
     team2: "Man City",
     team2Logo: "https://upload.wikimedia.org/wikipedia/en/thumb/e/eb/Manchester_City_FC_badge.svg/240px-Manchester_City_FC_badge.svg.png",
-    date: todayDateString,
-    time: "16:00",
-    channels: [
-      { id: "deportes-1", name: "DSports" },
-      { id: "deportes-2", name: "Fox Sports" },
-    ],
+    matchTimestamp: createTimestamp(16, 0), // Match at 4:00 PM today
+    channels: ["deportes-1", "deportes-2"],
   },
   {
     id: "mdc-2",
@@ -22,9 +25,8 @@ export const placeholderMatches: Match[] = [
     team1Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Boca_Juniors_logo18.svg/240px-Boca_Juniors_logo18.svg.png",
     team2: "Real Madrid",
     team2Logo: "https://upload.wikimedia.org/wikipedia/en/thumb/5/56/Real_Madrid_CF.svg/240px-Real_Madrid_CF.svg.png",
-    date: todayDateString,
-    time: "20:00",
-    channels: [{ id: "deportes-2", name: "Fox Sports" }],
+    matchTimestamp: createTimestamp(20, 0), // Match at 8:00 PM today
+    channels: ["deportes-2"],
   },
   {
     id: "mdc-3",
@@ -32,9 +34,28 @@ export const placeholderMatches: Match[] = [
     team1Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Palmeiras_logo.svg/240px-Palmeiras_logo.svg.png",
     team2: "Chelsea",
     team2Logo: "https://upload.wikimedia.org/wikipedia/en/thumb/c/cc/Chelsea_FC.svg/240px-Chelsea_FC.svg.png",
-    date: "2025-07-01", // A future match to ensure it's filtered out
-    time: "18:00",
-    channels: [{ id: "deportes-1", name: "DSports" }],
+    matchTimestamp: new Date(new Date().setDate(new Date().getDate() + 1)), // A future match to ensure it's filtered out
+    channels: ["deportes-1"],
+  },
+  {
+    id: "mdc-4",
+    team1: "Flamengo",
+    team1Logo: "https://upload.wikimedia.org/wikipedia/commons/2/2e/Flamengo_logo.svg",
+    team2: "FC Bayern",
+    team2Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/FC_Bayern_M%C3%BCnchen_logo_%282017%29.svg/240px-FC_Bayern_M%C3%BCnchen_logo_%282017%29.svg.png",
+    // Match that started 2 hours ago, should still be visible.
+    matchTimestamp: createTimestamp(new Date().getHours() - 2),
+    channels: ["deportes-1"],
+  },
+   {
+    id: "mdc-5",
+    team1: "Inter Milan",
+    team1Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/FC_Internazionale_Milano_2021.svg/240px-FC_Internazionale_Milano_2021.svg.png",
+    team2: "Al-Ahly",
+    team2Logo: "https://upload.wikimedia.org/wikipedia/en/thumb/a/a4/Al_Ahly_SC_logo.svg/240px-Al_Ahly_SC_logo.svg.png",
+    // Match that started 4 hours ago, should be hidden.
+    matchTimestamp: createTimestamp(new Date().getHours() - 4),
+    channels: ["deportes-2"],
   },
 ];
 

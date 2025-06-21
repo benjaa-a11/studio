@@ -42,26 +42,23 @@ This application is configured to connect to a Firebase project.
         "team1Logo": "https://...",
         "team2": "Team B Name",
         "team2Logo": "https://...",
-        "date": "YYYY-MM-DD",
-        "time": "HH:MM",
+        "matchTimestamp": "June 20, 2025 at 4:00:00 PM UTC-3",
         "channels": ["channel_id_1", "channel_id_2"]
     }
     ```
-    The `channels` field must be an array of **strings**. Each string should be the document ID of a channel from your `channels` collection. The app will automatically fetch the channel name.
+    - **`matchTimestamp`**: This is the most important field. It must be of type **`timestamp`** in Firestore. It determines when the match is shown. Matches will appear on the homepage if their start time is today and will disappear 3 hours after they have started.
+    - **`channels`**: This must be an array of **strings**. Each string should be the document ID of a channel from your `channels` collection. The app will automatically fetch the channel name.
 
-    ### How to Add the Channel List in Firebase?
+    ### How to Add a Match with a Timestamp
 
     1.  Go to your **`mdc25` Collection** in Firestore.
-    2.  Select the match you want to edit or create a new one.
-    3.  Find the `channels` field. If it doesn't exist, click **"Add field"**.
-    4.  **Field name:** `channels`
-    5.  **Type:** Select **`array`** from the dropdown menu.
-    6.  Now you can add the values to the list:
-        *   For `value 0` (type `string`), enter the ID of the first channel (e.g., `dsports`).
-        *   Click the `+` button to add another item to the list.
-        *   For `value 1` (type `string`), enter the ID of the second channel (e.g., `telefe`).
-        *   Repeat for all available channels for that match.
-    7.  Click **"Update"** to save the changes.
+    2.  Create a new document for your match.
+    3.  Add the team and logo fields as usual.
+    4.  Click **"Add field"** and enter `matchTimestamp` as the field name.
+    5.  For **Type**, select **`timestamp`** from the dropdown menu.
+    6.  A date and time picker will appear. Select the exact date and start time for the match.
+    7.  Add the `channels` field as an `array` of strings.
+    8.  Click **"Save"**.
 
 5.  **Security Rules**: For production, ensure your Firestore security rules are properly configured to allow read access to the collections. A basic rule for public read access would be:
     ```
