@@ -5,9 +5,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tv2, Search, ListFilter } from "lucide-react";
-import { AboutDialog } from "./about-dialog";
-import { useState } from "react";
+import { Tv2, Search, ListFilter, Settings } from "lucide-react";
 import { useChannelFilters } from "@/hooks/use-channel-filters";
 
 const Logo = () => (
@@ -59,12 +57,10 @@ function Filters() {
 }
 
 export default function Header() {
-  const [isAboutOpen, setAboutOpen] = useState(false);
   const pathname = usePathname();
   const showFilters = pathname === '/';
 
   return (
-    <>
       <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm">
         <div className="container flex h-16 items-center justify-between gap-4">
           <Link href="/" className="flex items-center" aria-label="Volver a la página de inicio">
@@ -77,8 +73,11 @@ export default function Header() {
 
           <div className="flex items-center">
             <nav className="hidden items-center space-x-1 md:flex">
-              <Button variant="ghost" onClick={() => setAboutOpen(true)}>
-                Acerca de
+              <Button asChild variant="ghost">
+                <Link href="/ajustes">
+                  <Settings className="h-5 w-5 mr-2" />
+                  Ajustes
+                </Link>
               </Button>
             </nav>
           </div>
@@ -89,7 +88,5 @@ export default function Header() {
           </div>
         )}
       </header>
-      <AboutDialog open={isAboutOpen} onOpenChange={setAboutOpen} />
-    </>
   );
 }
