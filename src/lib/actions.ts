@@ -91,7 +91,7 @@ export async function getTodaysMatches(): Promise<Match[]> {
 
               const channelIds: string[] = Array.isArray(matchData.channels) ? matchData.channels : [];
               const channelOptions: ChannelOption[] = channelIds
-                  .map(id => ({ id, name: channelsMap.get(id) }))
+                  .map(id => ({ id: id, name: channelsMap.get(id) }))
                   .filter(c => c.name) as ChannelOption[];
 
               return {
@@ -100,7 +100,7 @@ export async function getTodaysMatches(): Promise<Match[]> {
                   team1Logo: matchData.team1Logo,
                   team2: matchData.team2,
                   team2Logo: matchData.team2Logo,
-                  time: matchTimestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' }),
+                  time: matchTimestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires', hour12: false }),
                   channels: channelOptions,
               } as Match;
           })
