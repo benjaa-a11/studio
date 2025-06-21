@@ -4,9 +4,8 @@ import { useState, useMemo } from "react";
 import type { Channel } from "@/types";
 import { Input } from "@/components/ui/input";
 import ChannelCard from "./channel-card";
-import { Search, Film } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Search, Film, ListFilter } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type ChannelBrowserProps = {
   channels: Channel[];
@@ -35,30 +34,36 @@ export default function ChannelBrowser({
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-6">
-        <div className="relative w-full">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+      <div id="search-section" className="flex scroll-mt-20 flex-col gap-4 md:flex-row md:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Buscar por nombre o descripción del canal..."
-            className="pl-12 h-12 text-base md:text-lg"
+            placeholder="Buscar por nombre o descripción..."
+            className="pl-10 h-11 text-base w-full"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            aria-label="Buscar canal"
           />
         </div>
         
-        <Tabs defaultValue={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
-          <ScrollArea>
-            <TabsList>
-              {allCategories.map((category) => (
-                <TabsTrigger key={category} value={category}>
-                  {category}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-        </Tabs>
+        <div className="flex items-center gap-2">
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="h-11 w-full md:w-[200px]" aria-label="Filtrar por categoría">
+                    <div className="flex items-center gap-2">
+                      <ListFilter className="h-5 w-5 text-muted-foreground" />
+                      <SelectValue placeholder="Filtrar por categoría" />
+                    </div>
+                </SelectTrigger>
+                <SelectContent>
+                    {allCategories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                            {category}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
       </div>
 
       {filteredChannels.length > 0 ? (

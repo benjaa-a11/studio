@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
 import Header from "@/components/header";
+import BottomNav from "@/components/bottom-nav";
 
 const fontSans = Inter({
   subsets: ['latin'],
@@ -24,12 +25,13 @@ export default function RootLayout({
     <html lang="es" className="dark">
       <body
         className={cn(
-          "min-h-screen font-sans antialiased",
+          "min-h-screen bg-background font-sans antialiased",
           fontSans.variable
         )}
       >
         <Header />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 pb-20 md:pb-0">{children}</main>
+        <BottomNav />
         <Toaster />
       </body>
     </html>
