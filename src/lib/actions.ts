@@ -1,9 +1,9 @@
 "use server";
 
 import { db } from "./firebase";
-import { collection, getDocs, doc, getDoc } from "firebase/firestore";
-import type { Channel } from "@/types";
-import { placeholderChannels } from "./placeholder-data";
+import { collection, getDocs, doc, getDoc, query, where } from "firebase/firestore";
+import type { Channel, Match } from "@/types";
+import { placeholderChannels, placeholderMatches } from "./placeholder-data";
 
 // Helper function to use placeholder data as a fallback
 const useFallbackData = () => {
@@ -71,4 +71,32 @@ export async function getChannelsByCategory(category: string, excludeId?: string
     const isNotExcluded = excludeId ? channel.id !== excludeId : true;
     return isSameCategory && isNotExcluded;
   }).slice(0, 5); // Return a max of 5 related channels
+}
+
+export async function getTodaysMatches(): Promise<Match[]> {
+  const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
+
+  try {
+    const matchesCollection = collection(db, "mdc25");
+    const q = query(matchesCollection, where("date", "==", today));
+    const matchSnapshot = await getDocs(q);
+    
+    if (matchSnapshot.empty) {
+      console.log("No hay partidos para hoy en Firebase. Usando datos de demostración.");
+      return placeholderMatches.filter(match => match.date === today)
+        .sort((a, b) => a.time.localeCompare(b.time));
+    }
+    
+    const matches = matchSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    } as Match)).sort((a, b) => a.time.localeCompare(b.time));
+    
+    return matches;
+  } catch (error) {
+    console.error("Error al obtener partidos de Firebase:", error);
+    console.warn("Usando datos de demostración para los partidos.");
+    return placeholderMatches.filter(match => match.date === today)
+      .sort((a, b) => a.time.localeCompare(b.time));
+  }
 }

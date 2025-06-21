@@ -6,3 +6,15 @@ export type Channel = {
   category: string;
   description: string;
 };
+
+export type Match = {
+  id: string;
+  team1: string;
+  team1Logo: string;
+  team2: string;
+  team2Logo: string;
+  time: string;
+  date: string; // YYYY-MM-DD
+  channelId: string;
+  channelName: string;
+};

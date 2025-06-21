@@ -1,4 +1,43 @@
-import type { Channel } from "@/types";
+import type { Channel, Match } from "@/types";
+
+const todayDateString = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
+
+export const placeholderMatches: Match[] = [
+  {
+    id: "mdc-1",
+    team1: "River Plate",
+    team1Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/Escudo_del_C._A._River_Plate.svg/240px-Escudo_del_C._A._River_Plate.svg.png",
+    team2: "Man City",
+    team2Logo: "https://upload.wikimedia.org/wikipedia/en/thumb/e/eb/Manchester_City_FC_badge.svg/240px-Manchester_City_FC_badge.svg.png",
+    date: todayDateString,
+    time: "16:00",
+    channelId: "deportes-1",
+    channelName: "DSports",
+  },
+  {
+    id: "mdc-2",
+    team1: "Boca Juniors",
+    team1Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Boca_Juniors_logo18.svg/240px-Boca_Juniors_logo18.svg.png",
+    team2: "Real Madrid",
+    team2Logo: "https://upload.wikimedia.org/wikipedia/en/thumb/5/56/Real_Madrid_CF.svg/240px-Real_Madrid_CF.svg.png",
+    date: todayDateString,
+    time: "20:00",
+    channelId: "deportes-2",
+    channelName: "Fox Sports",
+  },
+  {
+    id: "mdc-3",
+    team1: "Palmeiras",
+    team1Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Palmeiras_logo.svg/240px-Palmeiras_logo.svg.png",
+    team2: "Chelsea",
+    team2Logo: "https://upload.wikimedia.org/wikipedia/en/thumb/c/cc/Chelsea_FC.svg/240px-Chelsea_FC.svg.png",
+    date: "2025-07-01", // A future match to ensure it's filtered out
+    time: "18:00",
+    channelId: "deportes-1",
+    channelName: "DSports",
+  },
+];
+
 
 export const placeholderChannels: Channel[] = [
   {

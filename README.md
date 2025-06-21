@@ -22,7 +22,7 @@ This application is configured to connect to a Firebase project.
 
 1.  **Firebase Configuration**: The Firebase configuration is located in `src/lib/firebase.ts`. The placeholder values from the proposal have been used.
 
-2.  **Firestore Database**: The application expects a Firestore database with a collection named `channels`.
+2.  **Firestore Database**: The application expects a Firestore database with two collections: `channels` and `mdc25`.
 
 3.  **Data Structure**: Each document in the `channels` collection should have the following structure:
     ```json
@@ -35,12 +35,30 @@ This application is configured to connect to a Firebase project.
     }
     ```
 
-4.  **Security Rules**: For production, ensure your Firestore security rules are properly configured to allow read access to the `channels` collection. A basic rule for public read access would be:
+4.  **Mundial de Clubes 2025**: The hero section on the homepage fetches matches from the `mdc25` collection. Each document should have the following structure:
+    ```json
+    {
+        "team1": "Team A Name",
+        "team1Logo": "https://...",
+        "team2": "Team B Name",
+        "team2Logo": "https://...",
+        "date": "YYYY-MM-DD",
+        "time": "HH:MM",
+        "channelId": "channel_id_from_channels_collection",
+        "channelName": "Channel Name"
+    }
+    ```
+
+5.  **Security Rules**: For production, ensure your Firestore security rules are properly configured to allow read access to the collections. A basic rule for public read access would be:
     ```
     rules_version = '2';
     service cloud.firestore {
       match /databases/{database}/documents {
         match /channels/{channelId} {
+          allow read: if true;
+          allow write: if false; // Or your admin logic
+        }
+        match /mdc25/{matchId} {
           allow read: if true;
           allow write: if false; // Or your admin logic
         }
