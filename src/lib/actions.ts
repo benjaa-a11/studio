@@ -61,5 +61,14 @@ export async function getChannelById(id: string): Promise<Channel | null> {
 export async function getCategories(): Promise<string[]> {
   const channels = await getChannels();
   const categories = new Set(channels.map(channel => channel.category));
-  return Array.from(categories);
+  return Array.from(categories).sort();
+}
+
+export async function getChannelsByCategory(category: string, excludeId?: string): Promise<Channel[]> {
+  const allChannels = await getChannels();
+  return allChannels.filter(channel => {
+    const isSameCategory = channel.category === category;
+    const isNotExcluded = excludeId ? channel.id !== excludeId : true;
+    return isSameCategory && isNotExcluded;
+  }).slice(0, 5); // Return a max of 5 related channels
 }
