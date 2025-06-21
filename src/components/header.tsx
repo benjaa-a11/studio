@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tv2, Search, ListFilter, Settings } from "lucide-react";
+import { Tv2, Search, ListFilter, Settings, Heart } from "lucide-react";
 import { useChannelFilters } from "@/hooks/use-channel-filters";
 import { useState, useEffect } from "react";
 
@@ -67,6 +67,31 @@ function Filters() {
   );
 }
 
+const HeaderContent = () => {
+  const pathname = usePathname();
+
+  if (pathname === "/") {
+    return <Filters />;
+  }
+  if (pathname.startsWith('/favoritos')) {
+    return (
+      <div className="flex items-center gap-3 w-full justify-center md:justify-start">
+        <Heart className="h-6 w-6 text-primary" />
+        <h1 className="text-xl font-semibold tracking-tight">Mis Favoritos</h1>
+      </div>
+    );
+  }
+  if (pathname.startsWith('/ajustes')) {
+    return (
+      <div className="flex items-center gap-3 w-full justify-center md:justify-start">
+        <Settings className="h-6 w-6 text-primary" />
+        <h1 className="text-xl font-semibold tracking-tight">Ajustes</h1>
+      </div>
+    );
+  }
+  return null;
+}
+
 export default function Header() {
   const pathname = usePathname();
   const [isClient, setIsClient] = useState(false);
@@ -75,7 +100,9 @@ export default function Header() {
     setIsClient(true);
   }, []);
 
-  const showFilters = isClient && pathname === "/";
+  if (!isClient) {
+    return <header className="sticky top-0 z-40 w-full h-16 border-b border-border/40 bg-background/95 backdrop-blur-sm" />;
+  }
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm">
@@ -85,12 +112,18 @@ export default function Header() {
         </div>
 
         <div className="flex flex-1 items-center">
-            {showFilters && <Filters />}
+          <HeaderContent />
         </div>
         
         <div className="flex-none">
             <nav className="hidden items-center md:flex">
-              <Button asChild variant="ghost">
+              <Button asChild variant={pathname.startsWith('/favoritos') ? "secondary" : "ghost"}>
+                <Link href="/favoritos">
+                  <Heart className="h-5 w-5 mr-2" />
+                  Favoritos
+                </Link>
+              </Button>
+              <Button asChild variant={pathname.startsWith('/ajustes') ? "secondary" : "ghost"}>
                 <Link href="/ajustes">
                   <Settings className="h-5 w-5 mr-2" />
                   Ajustes

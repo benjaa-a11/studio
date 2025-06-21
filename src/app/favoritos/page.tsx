@@ -5,7 +5,7 @@ import { useFavorites } from '@/hooks/use-favorites';
 import { getChannels } from '@/lib/actions';
 import type { Channel } from '@/types';
 import ChannelCard from '@/components/channel-card';
-import { HeartOff, Tv2 } from 'lucide-react';
+import { HeartOff } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 function FavoritesLoading() {
@@ -64,11 +64,6 @@ export default function FavoritesPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <div className="flex items-center gap-3 mb-8">
-        <Tv2 className="h-8 w-8 text-primary" />
-        <h1 className="text-3xl font-bold tracking-tight">Mis Canales Favoritos</h1>
-      </div>
-
       {favoriteChannels.length > 0 ? (
         <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {favoriteChannels.map((channel, index) => (
