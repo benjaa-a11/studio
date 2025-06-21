@@ -5,7 +5,7 @@ import type { Channel } from "@/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import ChannelCard from "./channel-card";
-import { Search } from "lucide-react";
+import { Search, Clapperboard } from "lucide-react";
 
 type ChannelBrowserProps = {
   channels: Channel[];
@@ -40,18 +40,18 @@ export default function ChannelBrowser({
           <Input
             type="search"
             placeholder="Buscar canales..."
-            className="pl-10"
+            className="pl-10 h-11"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex-1 flex justify-center flex-wrap gap-2">
           {allCategories.map((category) => (
             <Button
               key={category}
-              variant={selectedCategory === category ? "default" : "outline"}
+              variant={selectedCategory === category ? "default" : "secondary"}
               onClick={() => setSelectedCategory(category)}
-              className="font-headline"
+              className="font-headline rounded-full"
             >
               {category}
             </Button>
@@ -60,18 +60,19 @@ export default function ChannelBrowser({
       </div>
 
       {filteredChannels.length > 0 ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {filteredChannels.map((channel) => (
             <ChannelCard key={channel.id} channel={channel} />
           ))}
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 py-20 text-center">
-          <h3 className="font-headline text-xl font-semibold text-muted-foreground">
+            <Clapperboard className="w-16 h-16 text-muted-foreground/80 mb-4" />
+          <h3 className="font-headline text-2xl font-semibold text-foreground">
             No se encontraron canales
           </h3>
-          <p className="mt-2 text-muted-foreground">
-            Intenta cambiar los filtros o el término de búsqueda.
+          <p className="mt-2 text-muted-foreground max-w-sm">
+            Prueba a cambiar la categoría, o utiliza un término de búsqueda diferente para encontrar lo que buscas.
           </p>
         </div>
       )}

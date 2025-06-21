@@ -19,10 +19,10 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-lg">
         <div className="container flex h-16 items-center">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <PlanBLogo className="h-6 w-auto" />
+            <PlanBLogo className="h-7 w-auto" />
           </Link>
 
           <nav className="hidden items-center space-x-6 text-sm font-medium md:flex">
@@ -54,7 +54,7 @@ export default function Header() {
               <SheetContent side="right">
                 <div className="p-4">
                   <div className="mb-6">
-                    <PlanBLogo className="h-6 w-auto" />
+                    <PlanBLogo className="h-7 w-auto" />
                   </div>
                   <div className="flex flex-col space-y-2">
                     {navLinks.map((link) => (

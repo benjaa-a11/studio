@@ -4,5 +4,5 @@ export default function ChannelPlaybackLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <div className="dark">{children}</div>;
+  return <>{children}</>;
 }
