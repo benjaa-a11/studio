@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Tv2, Search, ListFilter, Settings } from "lucide-react";
 import { useChannelFilters } from "@/hooks/use-channel-filters";
+import { useState, useEffect } from "react";
 
 const Logo = () => (
   <Link
@@ -68,7 +69,13 @@ function Filters() {
 
 export default function Header() {
   const pathname = usePathname();
-  const showFilters = pathname === "/";
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const showFilters = isClient && pathname === "/";
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm">
