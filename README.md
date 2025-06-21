@@ -49,6 +49,20 @@ This application is configured to connect to a Firebase project.
     ```
     The `channels` field must be an array of **strings**. Each string should be the document ID of a channel from your `channels` collection. The app will automatically fetch the channel name.
 
+    ### How to Add the Channel List in Firebase?
+
+    1.  Go to your **`mdc25` Collection** in Firestore.
+    2.  Select the match you want to edit or create a new one.
+    3.  Find the `channels` field. If it doesn't exist, click **"Add field"**.
+    4.  **Field name:** `channels`
+    5.  **Type:** Select **`array`** from the dropdown menu.
+    6.  Now you can add the values to the list:
+        *   For `value 0` (type `string`), enter the ID of the first channel (e.g., `dsports`).
+        *   Click the `+` button to add another item to the list.
+        *   For `value 1` (type `string`), enter the ID of the second channel (e.g., `telefe`).
+        *   Repeat for all available channels for that match.
+    7.  Click **"Update"** to save the changes.
+
 5.  **Security Rules**: For production, ensure your Firestore security rules are properly configured to allow read access to the collections. A basic rule for public read access would be:
     ```
     rules_version = '2';

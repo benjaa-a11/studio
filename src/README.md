@@ -49,6 +49,20 @@ This application is configured to connect to a Firebase project.
     ```
     **Importante:** El campo `channels` debe ser de tipo **array** y contener una lista de IDs (en formato texto). Cada ID debe coincidir con el ID de un documento en tu colección `channels`. La aplicación se encargará de buscar el nombre del canal automáticamente.
 
+    ### ¿Cómo agregar la lista de canales en Firebase?
+
+    1.  Ve a tu **Colección `mdc25`** en Firestore.
+    2.  Selecciona el partido que quieres editar o crea uno nuevo.
+    3.  Busca el campo `channels`. Si no existe, haz clic en **"Añadir campo"**.
+    4.  **Nombre del campo:** `channels`
+    5.  **Tipo:** Selecciona **`array`** en el menú desplegable.
+    6.  Ahora podrás agregar los valores a la lista:
+        *   En `valor 0` (tipo `string`), escribe el ID del primer canal (ej: `dsports`).
+        *   Haz clic en el botón `+` para añadir otro campo a la lista.
+        *   En `valor 1` (tipo `string`), escribe el ID del segundo canal (ej: `telefe`).
+        *   Repite para todos los canales disponibles para ese partido.
+    7.  Haz clic en **"Actualizar"** para guardar los cambios.
+
 5.  **Security Rules**: For production, ensure your Firestore security rules are properly configured to allow read access to the collections. A basic rule for public read access would be:
     ```
     rules_version = '2';
