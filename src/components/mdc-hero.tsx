@@ -3,7 +3,7 @@ import type { Match } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { Clock, Tv, VideoOff } from "lucide-react";
+import { Clock, Tv, VideoOff, Clapperboard } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import {
@@ -33,7 +33,7 @@ export default function MdcHero({ matches }: MdcHeroProps) {
             <ScrollArea className="w-full whitespace-nowrap rounded-lg">
                 <div className="flex w-max space-x-4 pb-4">
                     {matches.map((match) => (
-                        <Card key={match.id} className="w-[340px] sm:w-[380px] overflow-hidden shadow-lg transition-transform hover:scale-[1.02] duration-300">
+                        <Card key={match.id} className="w-[340px] sm:w-[380px] overflow-hidden shadow-lg">
                             <CardContent className="p-6 flex flex-col items-center justify-center">
                                 <div className="flex items-center justify-between w-full">
                                     <div className="flex flex-col items-center gap-2 text-center w-[100px]">
@@ -82,7 +82,25 @@ export default function MdcHero({ matches }: MdcHeroProps) {
                                                 <DropdownMenuSeparator />
                                                 {match.channels.map((channel) => (
                                                     <DropdownMenuItem key={channel.id} asChild>
-                                                        <Link href={`/canal/${channel.id}`}>{channel.name}</Link>
+                                                        <Link href={`/canal/${channel.id}`} className="flex items-center gap-3 w-full">
+                                                          <div className="relative h-6 w-10 flex-shrink-0">
+                                                              {channel.logoUrl ? (
+                                                                  <Image
+                                                                      src={channel.logoUrl}
+                                                                      alt={`Logo de ${channel.name}`}
+                                                                      fill
+                                                                      sizes="40px"
+                                                                      className="object-contain"
+                                                                      data-ai-hint="channel logo"
+                                                                  />
+                                                              ) : (
+                                                                  <div className="flex h-full w-full items-center justify-center rounded-sm bg-muted">
+                                                                      <Clapperboard className="h-4 w-4 text-muted-foreground" />
+                                                                  </div>
+                                                              )}
+                                                          </div>
+                                                          <span className="flex-grow">{channel.name}</span>
+                                                        </Link>
                                                     </DropdownMenuItem>
                                                 ))}
                                             </DropdownMenuContent>

@@ -82,7 +82,7 @@ export async function getTodaysMatches(): Promise<Match[]> {
   const endOfDay = new Date();
   endOfDay.setHours(23, 59, 59, 999);
 
-  const processMatches = (matchDocs: any[], channelsMap: Map<string, string>): Match[] => {
+  const processMatches = (matchDocs: any[], channelsMap: Map<string, Channel>): Match[] => {
       return matchDocs
           .map(matchData => {
               const matchTimestamp = matchData.matchTimestamp?.toDate ? matchData.matchTimestamp.toDate() : new Date(matchData.matchTimestamp);
@@ -91,8 +91,12 @@ export async function getTodaysMatches(): Promise<Match[]> {
 
               const channelIds: string[] = Array.isArray(matchData.channels) ? matchData.channels : [];
               const channelOptions: ChannelOption[] = channelIds
-                  .map(id => ({ id: id, name: channelsMap.get(id) }))
-                  .filter(c => c.name) as ChannelOption[];
+                  .map(id => {
+                      const channel = channelsMap.get(id);
+                      if (!channel) return null;
+                      return { id: channel.id, name: channel.name, logoUrl: channel.logoUrl };
+                  })
+                  .filter((c): c is ChannelOption => c !== null);
 
               return {
                   id: matchData.id,
@@ -110,7 +114,7 @@ export async function getTodaysMatches(): Promise<Match[]> {
 
   try {
     const allChannels = await getChannels();
-    const channelsMap = new Map(allChannels.map(c => [c.id, c.name]));
+    const channelsMap = new Map(allChannels.map(c => [c.id, c]));
 
     const q = query(
       collection(db, "mdc25"), 
@@ -135,7 +139,7 @@ export async function getTodaysMatches(): Promise<Match[]> {
     console.error("Error al obtener partidos de Firebase:", error);
     console.warn("Usando datos de demostración para los partidos.");
     const allChannels = await getChannels();
-    const channelsMap = new Map(allChannels.map(c => [c.id, c.name]));
+    const channelsMap = new Map(allChannels.map(c => [c.id, c]));
     return processMatches(placeholderMatches, channelsMap);
   }
 }

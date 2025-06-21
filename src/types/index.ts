@@ -10,6 +10,7 @@ export type Channel = {
 export type ChannelOption = {
   id: string;
   name: string;
+  logoUrl?: string;
 };
 
 export type Match = {
