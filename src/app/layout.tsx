@@ -4,6 +4,8 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
 import LayoutWrapper from "@/components/layout-wrapper";
+import { getCategories } from "@/lib/actions";
+import { FilterProvider } from "@/hooks/use-channel-filters";
 
 const fontSans = Inter({
   subsets: ['latin'],
@@ -15,11 +17,13 @@ export const metadata: Metadata = {
   description: "Tu alternativa para ver televisión en vivo.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const categories = await getCategories();
+
   return (
     <html lang="es" className="dark">
       <body
@@ -28,8 +32,10 @@ export default function RootLayout({
           fontSans.variable
         )}
       >
-        <LayoutWrapper>{children}</LayoutWrapper>
-        <Toaster />
+        <FilterProvider initialCategories={categories}>
+          <LayoutWrapper>{children}</LayoutWrapper>
+          <Toaster />
+        </FilterProvider>
       </body>
     </html>
   );
