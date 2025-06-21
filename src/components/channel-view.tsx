@@ -78,7 +78,7 @@ export default function ChannelView({ channel, relatedChannels }: ChannelViewPro
                     className="h-full w-full border-0"
                     src={channel.streamUrl}
                     title={channel.name}
-                    sandbox="allow-scripts allow-same-origin"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                   ></iframe>
