@@ -42,7 +42,7 @@ export default function MdcHero({ matches }: MdcHeroProps) {
                                     </div>
                                     <div className="flex-shrink-0">
                                         <Image
-                                            src="https://upload.wikimedia.org/wikipedia/en/thumb/2/23/2025_FIFA_Club_World_Cup_logo.svg/320px-2025_FIFA_Club_World_Cup_logo.svg.png"
+                                            src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgncCRI6MuG41vT_fctpMHh4__yYc2efUPB7jpjV9Ro8unR17c9EMBQcaIYmjPShAnnLG1Q1m-9KbNmZoK2SJnWV9bwJ1FN4OMzgcBcy7inf6c9JCSKFz1uV31aC6B1u4EeGxDwQE4z24d7sVZOJzpFjBAG0KECpsJltnqNyH9_iaTnGukhT4gWGeGj_FQ/s16000/Copa%20Mundial%20de%20Clubes.png"
                                             alt="Mundial de Clubes 2025 Logo"
                                             width={48}
                                             height={48}

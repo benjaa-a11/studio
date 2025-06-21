@@ -44,10 +44,13 @@ This application is configured to connect to a Firebase project.
         "team2Logo": "https://...",
         "date": "YYYY-MM-DD",
         "time": "HH:MM",
-        "channels": [ "channel_id_1", "channel_id_2" ]
+        "channels": [
+            { "id": "channel_id_1", "name": "Channel Name 1" },
+            { "id": "channel_id_2", "name": "Channel Name 2" }
+        ]
     }
     ```
-    The `channels` field must be an array of **strings**. Each string is the ID of a channel document from your `channels` collection. The app will automatically look up the channel name for you.
+    The `channels` field must be an array of **objects**. Each object should have an `id` (the document ID from the `channels` collection) and a `name` for the channel.
 
 5.  **Security Rules**: For production, ensure your Firestore security rules are properly configured to allow read access to the collections. A basic rule for public read access would be:
     ```

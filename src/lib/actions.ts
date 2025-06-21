@@ -77,10 +77,8 @@ export async function getTodaysMatches(): Promise<Match[]> {
   const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
 
   try {
-    const [allChannels, matchSnapshot] = await Promise.all([
-      getChannels(),
-      getDocs(query(collection(db, "mdc25"), where("date", "==", today)))
-    ]);
+    const q = query(collection(db, "mdc25"), where("date", "==", today));
+    const matchSnapshot = await getDocs(q);
     
     if (matchSnapshot.empty) {
       console.log("No hay partidos para hoy en Firebase. Usando datos de demostración.");
@@ -88,29 +86,18 @@ export async function getTodaysMatches(): Promise<Match[]> {
         .sort((a, b) => a.time.localeCompare(b.time));
     }
 
-    const channelsMap = new Map(allChannels.map(c => [c.id, c.name]));
-    
     const matches = matchSnapshot.docs.map(doc => {
-      const data = doc.data();
-      const channelIds = (data.channels || []) as string[];
-      
-      const channels: ChannelOption[] = channelIds
-        .map(id => ({
-          id: id,
-          name: channelsMap.get(id) || ''
-        }))
-        .filter(channel => channel.name);
-
-      return {
-        id: doc.id,
-        team1: data.team1,
-        team1Logo: data.team1Logo,
-        team2: data.team2,
-        team2Logo: data.team2Logo,
-        time: data.time,
-        date: data.date,
-        channels: channels,
-      } as Match;
+        const data = doc.data();
+        return {
+            id: doc.id,
+            team1: data.team1,
+            team1Logo: data.team1Logo,
+            team2: data.team2,
+            team2Logo: data.team2Logo,
+            time: data.time,
+            date: data.date,
+            channels: data.channels || [],
+        } as Match
     }).sort((a, b) => a.time.localeCompare(b.time));
     
     return matches;
