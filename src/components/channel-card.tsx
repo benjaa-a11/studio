@@ -5,11 +5,17 @@ import { Clapperboard, PlayCircle } from "lucide-react";
 
 type ChannelCardProps = {
   channel: Channel;
+  index: number;
 };
 
-export default function ChannelCard({ channel }: ChannelCardProps) {
+export default function ChannelCard({ channel, index }: ChannelCardProps) {
   return (
-    <Link href={`/canal/${channel.id}`} className="group block space-y-3 outline-none" title={channel.name}>
+    <Link 
+      href={`/canal/${channel.id}`} 
+      className="group block space-y-3 outline-none opacity-0 animate-fade-in-up"
+      title={channel.name}
+      style={{ animationDelay: `${index * 50}ms` }}
+    >
       <div className="overflow-hidden rounded-lg transition-all duration-300 group-hover:shadow-primary/30 group-hover:shadow-2xl group-focus-visible:ring-2 group-focus-visible:ring-primary group-focus-visible:ring-offset-2 group-focus-visible:ring-offset-background">
         <div className="aspect-video w-full relative bg-card flex items-center justify-center">
           

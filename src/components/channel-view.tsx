@@ -103,7 +103,7 @@ export default function ChannelView({ channel, relatedChannels }: ChannelViewPro
                <aside className="mt-12">
                   <h2 className="text-2xl font-bold tracking-tight">Más en {channel.category}</h2>
                   <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                      {relatedChannels.map((c) => <ChannelCard key={c.id} channel={c} />)}
+                      {relatedChannels.map((c, index) => <ChannelCard key={c.id} channel={c} index={index} />)}
                   </div>
               </aside>
             )}
