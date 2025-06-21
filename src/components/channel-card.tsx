@@ -12,12 +12,11 @@ export default function ChannelCard({ channel, index }: ChannelCardProps) {
   return (
     <Link 
       href={`/canal/${channel.id}`} 
-      className="group block space-y-3 outline-none opacity-0 animate-fade-in-up"
+      className="group block outline-none opacity-0 animate-fade-in-up rounded-lg overflow-hidden transition-all duration-300 bg-card border hover:shadow-primary/30 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       title={channel.name}
       style={{ animationDelay: `${index * 50}ms` }}
     >
-      <div className="overflow-hidden rounded-lg transition-all duration-300 group-hover:shadow-primary/30 group-hover:shadow-2xl group-focus-visible:ring-2 group-focus-visible:ring-primary group-focus-visible:ring-offset-2 group-focus-visible:ring-offset-background">
-        <div className="aspect-video w-full relative bg-card flex items-center justify-center">
+        <div className="aspect-video w-full relative bg-muted/50 flex items-center justify-center">
           
           <div className="absolute inset-0 z-10 bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex items-center justify-center">
             <PlayCircle className="h-12 w-12 text-white/80 transform transition-transform duration-300 group-hover:scale-110" />
@@ -36,8 +35,8 @@ export default function ChannelCard({ channel, index }: ChannelCardProps) {
             <Clapperboard className="h-10 w-10 text-muted-foreground/60" />
           )}
         </div>
-      </div>
-      <div className="px-1">
+      
+      <div className="p-3">
         <h3 className="font-semibold text-foreground truncate">
           {channel.name}
         </h3>

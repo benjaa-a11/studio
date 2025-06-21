@@ -27,7 +27,7 @@ export default function MdcHero({ matches }: MdcHeroProps) {
     return (
         <div className="mb-12 font-fifa">
             <div className="mb-4">
-                <h1 className="text-3xl font-bold tracking-tight">Mundial de Clubes 2025</h1>
+                <h1 className="text-3xl font-bold tracking-tight">Mundial de Clubes FIFA 2025™</h1>
                 <p className="text-muted-foreground">Partidos de Hoy</p>
             </div>
             <ScrollArea className="w-full whitespace-nowrap rounded-lg">
