@@ -44,10 +44,13 @@ This application is configured to connect to a Firebase project.
         "team2Logo": "https://...",
         "date": "YYYY-MM-DD",
         "time": "HH:MM",
-        "channelId": "channel_id_from_channels_collection",
-        "channelName": "Channel Name"
+        "channels": [
+          { "id": "channel_id_from_channels_collection", "name": "Channel Name" },
+          { "id": "another_channel_id", "name": "Another Channel" }
+        ]
     }
     ```
+    The `channels` field must be an array of maps (or objects), where each map represents a broadcast option.
 
 5.  **Security Rules**: For production, ensure your Firestore security rules are properly configured to allow read access to the collections. A basic rule for public read access would be:
     ```

@@ -11,8 +11,10 @@ export const placeholderMatches: Match[] = [
     team2Logo: "https://upload.wikimedia.org/wikipedia/en/thumb/e/eb/Manchester_City_FC_badge.svg/240px-Manchester_City_FC_badge.svg.png",
     date: todayDateString,
     time: "16:00",
-    channelId: "deportes-1",
-    channelName: "DSports",
+    channels: [
+      { id: "deportes-1", name: "DSports" },
+      { id: "deportes-2", name: "Fox Sports" },
+    ],
   },
   {
     id: "mdc-2",
@@ -22,8 +24,7 @@ export const placeholderMatches: Match[] = [
     team2Logo: "https://upload.wikimedia.org/wikipedia/en/thumb/5/56/Real_Madrid_CF.svg/240px-Real_Madrid_CF.svg.png",
     date: todayDateString,
     time: "20:00",
-    channelId: "deportes-2",
-    channelName: "Fox Sports",
+    channels: [{ id: "deportes-2", name: "Fox Sports" }],
   },
   {
     id: "mdc-3",
@@ -33,8 +34,7 @@ export const placeholderMatches: Match[] = [
     team2Logo: "https://upload.wikimedia.org/wikipedia/en/thumb/c/cc/Chelsea_FC.svg/240px-Chelsea_FC.svg.png",
     date: "2025-07-01", // A future match to ensure it's filtered out
     time: "18:00",
-    channelId: "deportes-1",
-    channelName: "DSports",
+    channels: [{ id: "deportes-1", name: "DSports" }],
   },
 ];
 

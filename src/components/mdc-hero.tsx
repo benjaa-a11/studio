@@ -3,9 +3,17 @@ import type { Match } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { Clock, Tv } from "lucide-react";
+import { Clock, Tv, VideoOff } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type MdcHeroProps = {
     matches: Match[];
@@ -27,14 +35,23 @@ export default function MdcHero({ matches }: MdcHeroProps) {
                     {matches.map((match) => (
                         <Card key={match.id} className="w-[340px] sm:w-[380px] overflow-hidden shadow-lg transition-transform hover:scale-[1.02] duration-300">
                             <CardContent className="p-6 flex flex-col items-center justify-center">
-                                <div className="flex items-center justify-around w-full">
-                                    <div className="flex flex-col items-center gap-2 text-center w-[120px]">
-                                        <Image src={match.team1Logo} alt={match.team1} width={72} height={72} className="h-16 w-16 object-contain drop-shadow-sm" data-ai-hint="team logo" />
+                                <div className="flex items-center justify-between w-full">
+                                    <div className="flex flex-col items-center gap-2 text-center w-[100px]">
+                                        <Image src={match.team1Logo} alt={match.team1} width={64} height={64} className="h-16 w-16 object-contain drop-shadow-sm" data-ai-hint="team logo" />
                                         <h3 className="font-semibold truncate w-full">{match.team1}</h3>
                                     </div>
-                                    <span className="text-2xl font-bold text-muted-foreground mx-4">VS</span>
-                                    <div className="flex flex-col items-center gap-2 text-center w-[120px]">
-                                        <Image src={match.team2Logo} alt={match.team2} width={72} height={72} className="h-16 w-16 object-contain drop-shadow-sm" data-ai-hint="team logo" />
+                                    <div className="flex-shrink-0">
+                                        <Image
+                                            src="https://upload.wikimedia.org/wikipedia/en/thumb/2/23/2025_FIFA_Club_World_Cup_logo.svg/320px-2025_FIFA_Club_World_Cup_logo.svg.png"
+                                            alt="Mundial de Clubes 2025 Logo"
+                                            width={48}
+                                            height={48}
+                                            className="object-contain"
+                                            data-ai-hint="fifa logo"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col items-center gap-2 text-center w-[100px]">
+                                        <Image src={match.team2Logo} alt={match.team2} width={64} height={64} className="h-16 w-16 object-contain drop-shadow-sm" data-ai-hint="team logo" />
                                         <h3 className="font-semibold truncate w-full">{match.team2}</h3>
                                     </div>
                                 </div>
@@ -44,12 +61,39 @@ export default function MdcHero({ matches }: MdcHeroProps) {
                                 </div>
                             </CardContent>
                             <CardFooter className="bg-muted/40 px-6 py-4">
-                                 <Button asChild className="w-full">
-                                    <Link href={`/canal/${match.channelId}`}>
-                                        <Tv className="mr-2 h-4 w-4" />
-                                        Ver en {match.channelName}
-                                    </Link>
-                                </Button>
+                                {match.channels && match.channels.length > 0 ? (
+                                    match.channels.length === 1 ? (
+                                        <Button asChild className="w-full">
+                                            <Link href={`/canal/${match.channels[0].id}`}>
+                                                <Tv className="mr-2 h-4 w-4" />
+                                                Ver en {match.channels[0].name}
+                                            </Link>
+                                        </Button>
+                                    ) : (
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button className="w-full">
+                                                    <Tv className="mr-2 h-4 w-4" />
+                                                    Ver Partido
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="w-[var(--radix-dropdown-menu-trigger-width)]">
+                                                <DropdownMenuLabel>Opciones de transmisión</DropdownMenuLabel>
+                                                <DropdownMenuSeparator />
+                                                {match.channels.map((channel) => (
+                                                    <DropdownMenuItem key={channel.id} asChild>
+                                                        <Link href={`/canal/${channel.id}`}>{channel.name}</Link>
+                                                    </DropdownMenuItem>
+                                                ))}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    )
+                                ) : (
+                                    <Button className="w-full" disabled>
+                                        <VideoOff className="mr-2 h-4 w-4" />
+                                        No disponible
+                                    </Button>
+                                )}
                             </CardFooter>
                         </Card>
                     ))}

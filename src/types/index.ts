@@ -7,6 +7,11 @@ export type Channel = {
   description: string;
 };
 
+export type ChannelOption = {
+  id: string;
+  name: string;
+};
+
 export type Match = {
   id: string;
   team1: string;
@@ -15,6 +20,5 @@ export type Match = {
   team2Logo: string;
   time: string;
   date: string; // YYYY-MM-DD
-  channelId: string;
-  channelName: string;
+  channels: ChannelOption[];
 };
