@@ -42,11 +42,11 @@ This application is configured to connect to a Firebase project.
         "team1Logo": "https://...",
         "team2": "Team B Name",
         "team2Logo": "https://...",
-        "matchTimestamp": "June 20, 2025 at 4:00:00 PM UTC-3",
+        "matchTimestamp": "(Timestamp) 20 de Junio, 2025 a las 16:00:00 (Hora de Argentina)",
         "channels": ["dsports", "telefe"]
     }
     ```
-    - **`matchTimestamp`**: Este es el campo más importante. Debe ser de tipo **`timestamp`** en Firestore y determina cuándo se muestra el partido. Los partidos aparecerán en la página de inicio si su hora de comienzo es hoy y desaparecerán 3 horas después de haber comenzado.
+    - **`matchTimestamp`**: Este es el campo más importante. Debe ser de tipo **`timestamp`** en Firestore y determina cuándo se muestra el partido. **Importante:** Al seleccionar la fecha y hora en la consola de Firebase, esta usará la zona horaria de tu computadora. La aplicación se encargará de mostrarla siempre en horario de Argentina (UTC-3). Los partidos aparecerán en la página de inicio si su hora de comienzo es hoy y desaparecerán 3 horas después de haber comenzado.
     - **`channels`**: Debe ser un **`array`** de **`strings`** (texto). Cada string debe ser el ID de un documento de tu colección `channels`. La aplicación buscará el nombre del canal automáticamente.
 
 

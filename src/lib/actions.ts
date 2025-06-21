@@ -100,7 +100,7 @@ export async function getTodaysMatches(): Promise<Match[]> {
                   team1Logo: matchData.team1Logo,
                   team2: matchData.team2,
                   team2Logo: matchData.team2Logo,
-                  time: matchTimestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+                  time: matchTimestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' }),
                   channels: channelOptions,
               } as Match;
           })

@@ -42,11 +42,11 @@ This application is configured to connect to a Firebase project.
         "team1Logo": "https://...",
         "team2": "Team B Name",
         "team2Logo": "https://...",
-        "matchTimestamp": "June 20, 2025 at 4:00:00 PM UTC-3",
+        "matchTimestamp": "(Timestamp) June 20, 2025 at 4:00:00 PM (Argentinian Time)",
         "channels": ["channel_id_1", "channel_id_2"]
     }
     ```
-    - **`matchTimestamp`**: This is the most important field. It must be of type **`timestamp`** in Firestore. It determines when the match is shown. Matches will appear on the homepage if their start time is today and will disappear 3 hours after they have started.
+    - **`matchTimestamp`**: This is the most important field. It must be of type **`timestamp`** in Firestore. It determines when the match is shown. **Important:** When you select the date and time in the Firebase console, it will use your computer's local time zone. The application will correctly display it in Argentinian time (UTC-3). Matches will appear on the homepage if their start time is today and will disappear 3 hours after they have started.
     - **`channels`**: This must be an array of **strings**. Each string should be the document ID of a channel from your `channels` collection. The app will automatically fetch the channel name.
 
     ### How to Add a Match with a Timestamp
