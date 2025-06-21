@@ -43,11 +43,13 @@ This application is configured to connect to a Firebase project.
         "team2": "Team B Name",
         "team2Logo": "https://...",
         "matchTimestamp": "(Timestamp) 20 de Junio, 2025 a las 16:00:00 (Hora de Argentina)",
-        "channels": ["dsports", "telefe"]
+        "channels": ["dsports", "telefe"],
+        "matchDetails": "Fase de grupos · Grupo E · Jornada 2 de 3"
     }
     ```
     - **`matchTimestamp`**: Este es el campo más importante. Debe ser de tipo **`timestamp`** en Firestore y determina cuándo se muestra el partido. **Importante:** Al seleccionar la fecha y hora en la consola de Firebase, esta usará la zona horaria de tu computadora. La aplicación se encargará de mostrarla siempre en horario de Argentina (UTC-3). Los partidos aparecerán en la página de inicio si su hora de comienzo es hoy y desaparecerán 3 horas después de haber comenzado.
     - **`channels`**: Debe ser un **`array`** de **`strings`** (texto). Cada string debe ser el ID de un documento de tu colección `channels`. La aplicación buscará el nombre del canal automáticamente.
+    - **`matchDetails`**: Este es un campo opcional de tipo **`string`** (texto) donde puedes añadir información extra sobre el partido, como la fase del torneo (ej: "Fase de grupos · Grupo E · Jornada 2 de 3").
 
 
     ### ¿Cómo agregar un partido con Timestamp?
@@ -59,7 +61,8 @@ This application is configured to connect to a Firebase project.
     5.  En **Tipo**, selecciona **`timestamp`** en el menú desplegable.
     6.  Aparecerá un selector de fecha y hora. Elige el día y la hora exactos de inicio del partido.
     7.  Añade el campo `channels` como un `array` de strings.
-    8.  Haz clic en **"Guardar"**.
+    8.  Opcionalmente, añade el campo `matchDetails` de tipo `string`.
+    9.  Haz clic en **"Guardar"**.
 
 5.  **Security Rules**: For production, ensure your Firestore security rules are properly configured to allow read access to the collections. A basic rule for public read access would be:
     ```

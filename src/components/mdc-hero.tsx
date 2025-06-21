@@ -14,6 +14,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 type MdcHeroProps = {
     matches: Match[];
@@ -55,7 +56,17 @@ export default function MdcHero({ matches }: MdcHeroProps) {
                                         <h3 className="font-semibold truncate w-full">{match.team2}</h3>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 text-primary mt-4 text-lg font-bold">
+
+                                {match.matchDetails && (
+                                    <p className="text-xs text-muted-foreground mt-4 text-center">
+                                        {match.matchDetails}
+                                    </p>
+                                )}
+                                
+                                <div className={cn(
+                                    "flex items-center gap-2 text-primary text-lg font-bold",
+                                    match.matchDetails ? "mt-2" : "mt-4"
+                                )}>
                                     <Clock className="h-5 w-5" />
                                     <span>{match.time} hs</span>
                                 </div>

@@ -18,6 +18,7 @@ export const placeholderMatches: any[] = [
     team2Logo: "https://upload.wikimedia.org/wikipedia/en/thumb/e/eb/Manchester_City_FC_badge.svg/240px-Manchester_City_FC_badge.svg.png",
     matchTimestamp: createTimestamp(16, 0), // Match at 4:00 PM today
     channels: ["deportes-1", "deportes-2"],
+    matchDetails: "Fase de grupos · Grupo C · Jornada 1 de 3",
   },
   {
     id: "mdc-2",
@@ -27,6 +28,7 @@ export const placeholderMatches: any[] = [
     team2Logo: "https://upload.wikimedia.org/wikipedia/en/thumb/5/56/Real_Madrid_CF.svg/240px-Real_Madrid_CF.svg.png",
     matchTimestamp: createTimestamp(20, 0), // Match at 8:00 PM today
     channels: ["deportes-2"],
+    matchDetails: "Fase de grupos · Grupo A · Jornada 1 de 3",
   },
   {
     id: "mdc-3",
@@ -46,6 +48,7 @@ export const placeholderMatches: any[] = [
     // Match that started 2 hours ago, should still be visible.
     matchTimestamp: createTimestamp(new Date().getHours() - 2),
     channels: ["deportes-1"],
+    matchDetails: "Octavos de Final · Partido de Ida",
   },
    {
     id: "mdc-5",

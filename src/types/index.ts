@@ -21,4 +21,5 @@ export type Match = {
   team2Logo: string;
   time: string;
   channels: ChannelOption[];
+  matchDetails?: string;
 };
