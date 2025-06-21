@@ -33,6 +33,28 @@ export default async function RootLayout({
           fontSans.variable
         )}
       >
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                function getInitialTheme() {
+                  try {
+                    const storedTheme = localStorage.getItem('plan-b-theme');
+                    if (storedTheme) return storedTheme;
+                  } catch (e) { /* ignore */ }
+                  return 'dark'; // Default theme
+                }
+                let theme = getInitialTheme();
+                if (theme === 'system') {
+                  theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+                if (theme === 'dark') {
+                  document.documentElement.classList.add('dark');
+                }
+              })();
+            `,
+          }}
+        />
         <ThemeProvider defaultTheme="dark" storageKey="plan-b-theme">
           <FilterProvider initialCategories={categories}>
             <LayoutWrapper>{children}</LayoutWrapper>
