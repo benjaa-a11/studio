@@ -11,7 +11,7 @@ import { useState } from "react";
 import { useChannelFilters } from "@/hooks/use-channel-filters";
 
 const Logo = () => (
-   <div className="flex items-center gap-2 font-sans">
+   <div className="flex h-10 items-center justify-center gap-2 font-sans">
       <Tv2 className="h-7 w-7 text-primary" />
     </div>
 );

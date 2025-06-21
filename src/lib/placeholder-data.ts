@@ -29,7 +29,7 @@ export const placeholderChannels: Channel[] = [
     id: "peliculas-1",
     name: "TNT",
     logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/TNT_2016.svg/512px-TNT_2016.svg.png",
-    streamUrl: "https://www.youtube.com/embed/sY1S3497_fs?autoplay=1",
+    streamUrl: "",
     category: "Películas",
     description: "Grandes éxitos de taquilla y clásicos del cine.",
   },

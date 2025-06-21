@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Heart } from "lucide-react";
+import { ArrowLeft, Heart, SignalZero } from "lucide-react";
 
 import type { Channel } from "@/types";
 import { useFavorites } from "@/hooks/use-favorites";
@@ -73,13 +73,23 @@ export default function ChannelView({ channel, relatedChannels }: ChannelViewPro
          <div className="container mx-auto p-4 md:p-8">
             <main>
               <div className="aspect-video w-full overflow-hidden rounded-lg bg-black shadow-2xl shadow-primary/10">
-                <iframe
-                  className="h-full w-full border-0"
-                  src={channel.streamUrl}
-                  title={channel.name}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                ></iframe>
+                {channel.streamUrl ? (
+                  <iframe
+                    className="h-full w-full border-0"
+                    src={channel.streamUrl}
+                    title={channel.name}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  ></iframe>
+                ) : (
+                  <div className="flex h-full w-full flex-col items-center justify-center bg-card p-8 text-center">
+                      <SignalZero className="h-20 w-20 text-primary/50 mb-6" />
+                      <h2 className="text-2xl font-bold text-foreground">Señal no disponible temporalmente</h2>
+                      <p className="mt-2 max-w-md text-muted-foreground">
+                          Lo sentimos, parece que la transmisión de este canal está experimentando problemas técnicos. Nuestro equipo ya está al tanto y trabajando para solucionarlo. Por favor, intenta de nuevo más tarde.
+                      </p>
+                  </div>
+                )}
               </div>
               <div className="mt-6 rounded-lg bg-card p-6">
                 <h1 className="text-3xl font-bold tracking-tight">{channel.name}</h1>
