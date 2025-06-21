@@ -2,31 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Info, Search } from "lucide-react";
+import { Home, Info, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AboutDialog } from "./about-dialog";
 import { useState } from "react";
 
 const navItems = [
   { href: "/", label: "Inicio", icon: Home },
-  { href: "/#search-section", label: "Buscar", icon: Search },
+  { href: "/favoritos", label: "Favoritos", icon: Heart },
 ];
 
 export default function BottomNav() {
   const pathname = usePathname();
   const [isAboutOpen, setAboutOpen] = useState(false);
-
-  const handleSearchClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (pathname === "/") {
-      e.preventDefault();
-      const searchElement = document.getElementById("search-section");
-      if (searchElement) {
-        searchElement.scrollIntoView({ behavior: "smooth" });
-        const input = searchElement.querySelector('input');
-        if (input) input.focus({ preventScroll: true });
-      }
-    }
-  };
 
   return (
     <>
@@ -36,10 +24,9 @@ export default function BottomNav() {
             <Link
               key={item.label}
               href={item.href}
-              onClick={item.label === 'Buscar' ? handleSearchClick : undefined}
               className={cn(
                 "flex flex-col items-center gap-1 rounded-md p-2 text-muted-foreground transition-colors hover:text-primary",
-                pathname === item.href && "text-primary"
+                (pathname === item.href || (item.href === "/favoritos" && pathname.startsWith("/favoritos"))) && "text-primary"
               )}
             >
               <item.icon className="h-6 w-6" />
