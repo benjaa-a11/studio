@@ -1,5 +1,51 @@
-# Firebase Studio
+# Plan B Streaming
 
-This is a NextJS starter in Firebase Studio.
+This is a Next.js application for streaming live TV channels, built with Firebase integration.
 
-To get started, take a look at src/app/page.tsx.
+## Getting Started
+
+First, run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+```
+
+Open [http://localhost:9002](http://localhost:9002) with your browser to see the result.
+
+## Firebase Setup
+
+This application is configured to connect to a Firebase project.
+
+1.  **Firebase Configuration**: The Firebase configuration is located in `src/lib/firebase.ts`. The placeholder values from the proposal have been used.
+
+2.  **Firestore Database**: The application expects a Firestore database with a collection named `channels`.
+
+3.  **Data Structure**: Each document in the `channels` collection should have the following structure:
+    ```json
+    {
+      "name": "Channel Name",
+      "logoUrl": "https://...",
+      "streamUrl": "https://... (embeddable link)",
+      "category": "Category Name",
+      "description": "A brief channel description."
+    }
+    ```
+
+4.  **Security Rules**: For production, ensure your Firestore security rules are properly configured to allow read access to the `channels` collection. A basic rule for public read access would be:
+    ```
+    rules_version = '2';
+    service cloud.firestore {
+      match /databases/{database}/documents {
+        match /channels/{channelId} {
+          allow read: if true;
+          allow write: if false; // Or your admin logic
+        }
+      }
+    }
+    ```
+
+For demonstration purposes, the application will use placeholder data if it cannot fetch data from Firebase.

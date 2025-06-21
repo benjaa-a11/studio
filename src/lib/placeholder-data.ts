@@ -1,0 +1,68 @@
+import type { Channel } from "@/types";
+
+export const placeholderChannels: Channel[] = [
+  {
+    id: "deportes-1",
+    name: "Deportes Total",
+    logoUrl: "https://placehold.co/200x200/34568B/FFFFFF.png?text=DT",
+    streamUrl: "https://www.youtube.com/embed/jfKfPfyJRdk?autoplay=1",
+    category: "Deportes",
+    description: "La mejor cobertura deportiva, 24 horas al día.",
+  },
+  {
+    id: "noticias-1",
+    name: "Noticias Global",
+    logoUrl: "https://placehold.co/200x200/4B77BE/FFFFFF.png?text=NG",
+    streamUrl: "https://www.youtube.com/embed/9Auq9mYxFEE?autoplay=1",
+    category: "Noticias",
+    description: "Mantente informado con noticias de todo el mundo.",
+  },
+  {
+    id: "infantil-1",
+    name: "Peque TV",
+    logoUrl: "https://placehold.co/200x200/88B04B/FFFFFF.png?text=PTV",
+    streamUrl: "https://www.youtube.com/embed/XqZsoesa55w?autoplay=1",
+    category: "Infantil",
+    description: "Contenido divertido y educativo para los más pequeños.",
+  },
+  {
+    id: "peliculas-1",
+    name: "Cine Estelar",
+    logoUrl: "https://placehold.co/200x200/E94B3C/FFFFFF.png?text=CE",
+    streamUrl: "https://www.youtube.com/embed/sY1S3497_fs?autoplay=1",
+    category: "Películas",
+    description: "Grandes éxitos de taquilla y clásicos del cine.",
+  },
+  {
+    id: "musica-1",
+    name: "Ritmo Urbano",
+    logoUrl: "https://placehold.co/200x200/FF6F61/FFFFFF.png?text=RU",
+    streamUrl: "https://www.youtube.com/embed/DWcJFNfaw9c?autoplay=1",
+    category: "Música",
+    description: "Los mejores videos musicales del momento.",
+  },
+  {
+    id: "documentales-1",
+    name: "Planeta Vivo",
+    logoUrl: "https://placehold.co/200x200/009B77/FFFFFF.png?text=PV",
+    streamUrl: "https://www.youtube.com/embed/I-OVzYchqjI?autoplay=1",
+    category: "Documentales",
+    description: "Explora las maravillas de nuestro mundo.",
+  },
+  {
+    id: "deportes-2",
+    name: "Fútbol Mundial",
+    logoUrl: "https://placehold.co/200x200/34568B/FFFFFF.png?text=FM",
+    streamUrl: "https://www.youtube.com/embed/jfKfPfyJRdk?autoplay=1",
+    category: "Deportes",
+    description: "Partidos en vivo, análisis y resúmenes.",
+  },
+  {
+    id: "noticias-2",
+    name: "El Financiero TV",
+    logoUrl: "https://placehold.co/200x200/4B77BE/FFFFFF.png?text=EFTV",
+    streamUrl: "https://www.youtube.com/embed/9Auq9mYxFEE?autoplay=1",
+    category: "Noticias",
+    description: "Análisis económico y noticias financieras.",
+  },
+];
