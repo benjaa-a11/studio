@@ -19,6 +19,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ["var(--font-sans)", ...fontFamily.sans],
+        fifa: ["FIFASans", ...fontFamily.sans],
       },
       colors: {
         background: 'hsl(var(--background))',
