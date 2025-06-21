@@ -44,13 +44,10 @@ This application is configured to connect to a Firebase project.
         "team2Logo": "https://...",
         "date": "YYYY-MM-DD",
         "time": "HH:MM",
-        "channels": [
-            { "id": "dsports", "name": "DSports" },
-            { "id": "telefe", "name": "Telefe" }
-        ]
+        "channels": ["dsports", "telefe"]
     }
     ```
-    **Importante:** El campo `channels` debe ser de tipo **array** y contener uno o más **objetos**. Cada objeto representa un canal y debe tener un `id` y un `name`. El `id` debe coincidir con el ID de un documento en tu colección `channels`.
+    **Importante:** El campo `channels` debe ser de tipo **array** y contener una lista de IDs (en formato texto). Cada ID debe coincidir con el ID de un documento en tu colección `channels`. La aplicación se encargará de buscar el nombre del canal automáticamente.
 
 5.  **Security Rules**: For production, ensure your Firestore security rules are properly configured to allow read access to the collections. A basic rule for public read access would be:
     ```

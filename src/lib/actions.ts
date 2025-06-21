@@ -77,6 +77,10 @@ export async function getTodaysMatches(): Promise<Match[]> {
   const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
 
   try {
+    // First, get all available channels to map IDs to names later.
+    const allChannels = await getChannels();
+    const channelsMap = new Map(allChannels.map(c => [c.id, c.name]));
+
     const q = query(collection(db, "mdc25"), where("date", "==", today));
     const matchSnapshot = await getDocs(q);
     
@@ -87,17 +91,25 @@ export async function getTodaysMatches(): Promise<Match[]> {
     }
 
     const matches = matchSnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-            id: doc.id,
-            team1: data.team1,
-            team1Logo: data.team1Logo,
-            team2: data.team2,
-            team2Logo: data.team2Logo,
-            time: data.time,
-            date: data.date,
-            channels: Array.isArray(data.channels) ? data.channels : [],
-        } as Match
+      const data = doc.data();
+      // Expect `channels` to be an array of strings (channel IDs).
+      const channelIds: string[] = Array.isArray(data.channels) ? data.channels : [];
+      
+      // Transform the array of IDs into an array of {id, name} objects.
+      const channelOptions: ChannelOption[] = channelIds
+        .map(id => ({ id, name: channelsMap.get(id) }))
+        .filter(c => c.name) as ChannelOption[]; // Filter out any channels not found
+
+      return {
+          id: doc.id,
+          team1: data.team1,
+          team1Logo: data.team1Logo,
+          team2: data.team2,
+          team2Logo: data.team2Logo,
+          time: data.time,
+          date: data.date,
+          channels: channelOptions, // Use the transformed array
+      } as Match
     }).sort((a, b) => a.time.localeCompare(b.time));
     
     return matches;
