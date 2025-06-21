@@ -96,7 +96,7 @@ export async function getTodaysMatches(): Promise<Match[]> {
             team2Logo: data.team2Logo,
             time: data.time,
             date: data.date,
-            channels: data.channels || [],
+            channels: Array.isArray(data.channels) ? data.channels : [],
         } as Match
     }).sort((a, b) => a.time.localeCompare(b.time));
     
