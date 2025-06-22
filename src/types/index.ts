@@ -20,6 +20,7 @@ export type Match = {
   team2: string;
   team2Logo: string;
   time: string;
+  isLive: boolean;
   channels: ChannelOption[];
   matchDetails?: string;
 };

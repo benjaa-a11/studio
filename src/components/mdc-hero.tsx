@@ -3,9 +3,10 @@ import type { Match } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { Clock, Tv, VideoOff, Clapperboard } from "lucide-react";
+import { Clock, Tv, VideoOff, Clapperboard, Radio } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -63,29 +64,35 @@ export default function MdcHero({ matches }: MdcHeroProps) {
                                     </p>
                                 )}
                                 
-                                <div className={cn(
-                                    "flex items-center gap-2 text-primary text-lg font-bold",
-                                    match.matchDetails ? "mt-2" : "mt-4"
-                                )}>
-                                    <Clock className="h-5 w-5" />
-                                    <span>{match.time} hs</span>
-                                </div>
+                                {match.isLive ? (
+                                    <div className={cn("flex items-center gap-2 font-bold", match.matchDetails ? "mt-2" : "mt-4")}>
+                                      <Badge variant="destructive" className="animate-pulse text-sm font-bold px-3 py-1">EN VIVO</Badge>
+                                    </div>
+                                  ) : (
+                                    <div className={cn(
+                                        "flex items-center gap-2 text-primary text-lg font-bold",
+                                        match.matchDetails ? "mt-2" : "mt-4"
+                                    )}>
+                                        <Clock className="h-5 w-5" />
+                                        <span>{match.time} hs</span>
+                                    </div>
+                                )}
                             </CardContent>
                             <CardFooter className="bg-muted/40 px-6 py-4">
                                 {match.channels && match.channels.length > 0 ? (
                                     match.channels.length === 1 ? (
-                                        <Button asChild className="w-full">
+                                        <Button asChild className={cn("w-full", match.isLive && "animate-pulse")} variant={match.isLive ? "destructive" : "default"}>
                                             <Link href={`/canal/${match.channels[0].id}`}>
-                                                <Tv className="mr-2 h-4 w-4" />
-                                                Ver en {match.channels[0].name}
+                                                {match.isLive ? <Radio className="mr-2 h-4 w-4" /> : <Tv className="mr-2 h-4 w-4" />}
+                                                {match.isLive ? "Ver EN VIVO" : `Ver en ${match.channels[0].name}`}
                                             </Link>
                                         </Button>
                                     ) : (
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <Button className="w-full">
-                                                    <Tv className="mr-2 h-4 w-4" />
-                                                    Ver Partido
+                                                <Button className={cn("w-full", match.isLive && "animate-pulse")} variant={match.isLive ? "destructive" : "default"}>
+                                                    {match.isLive ? <Radio className="mr-2 h-4 w-4" /> : <Tv className="mr-2 h-4 w-4" />}
+                                                    {match.isLive ? "Ver EN VIVO" : "Ver Partido"}
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end" className="w-[var(--radix-dropdown-menu-trigger-width)]">

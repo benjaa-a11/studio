@@ -74,15 +74,15 @@ export async function getChannelsByCategory(category: string, excludeId?: string
 }
 
 export async function getTodaysMatches(): Promise<Match[]> {
+  const now = new Date();
   // Get the current date string in Argentina's timezone (e.g., "2024-07-25") to define "today"
-  const todayARTStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Argentina/Buenos_Aires' });
+  const todayARTStr = now.toLocaleDateString('sv-SE', { timeZone: 'America/Argentina/Buenos_Aires' });
 
   // Create Date objects for start and end of day in Argentina, represented in UTC for the query
   const startOfDay = new Date(`${todayARTStr}T00:00:00.000-03:00`);
   const endOfDay = new Date(`${todayARTStr}T23:59:59.999-03:00`);
 
   const processMatches = (matchDocs: any[], channelsMap: Map<string, Channel>): Match[] => {
-    const now = new Date();
     // Matches are still relevant up to 3 hours after they started.
     const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
 
@@ -114,6 +114,7 @@ export async function getTodaysMatches(): Promise<Match[]> {
           team2: matchData.team2,
           team2Logo: matchData.team2Logo,
           time: matchTimestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires', hour12: false }),
+          isLive: now >= matchTimestamp,
           channels: channelOptions,
           matchDetails: matchData.matchDetails,
         } as Match;
