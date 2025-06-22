@@ -65,14 +65,7 @@ export const getChannelsByIds = async (ids: string[]): Promise<Channel[]> => {
   }
 
   try {
-    const allChannels = await getChannels();
-    const channelMap = new Map(allChannels.map(c => [c.id, c]));
-    const foundChannels = ids.map(id => channelMap.get(id)).filter((c): c is Channel => !!c);
-
-    if (foundChannels.length === ids.length) {
-      return foundChannels;
-    }
-    
+    // Firestore 'in' query is limited to 30 elements in Next.js 14, so we chunk the IDs.
     const chunks: string[][] = [];
     for (let i = 0; i < ids.length; i += 30) {
         chunks.push(ids.slice(i, i + 30));
@@ -87,6 +80,7 @@ export const getChannelsByIds = async (ids: string[]): Promise<Channel[]> => {
         });
     }
     
+    // To preserve the original order of IDs from the input array
     const firestoreChannelMap = new Map(firestoreChannels.map(c => [c.id, c]));
     return ids.map(id => firestoreChannelMap.get(id)).filter((c): c is Channel => !!c);
 
