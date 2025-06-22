@@ -23,4 +23,5 @@ export type Match = {
   isLive: boolean;
   channels: ChannelOption[];
   matchDetails?: string;
+  matchTimestamp: Date;
 };

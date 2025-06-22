@@ -83,8 +83,8 @@ export async function getTodaysMatches(): Promise<Match[]> {
   const endOfDay = new Date(`${todayARTStr}T23:59:59.999-03:00`);
 
   const processMatches = (matchDocs: any[], channelsMap: Map<string, Channel>): Match[] => {
-    // Matches are still relevant up to 3 hours after they started.
-    const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+    // Matches are still relevant up to 2.5 hours after they started.
+    const matchExpiration = new Date(now.getTime() - (2.5 * 60 * 60 * 1000));
 
     return matchDocs
       .map(matchData => {
@@ -95,7 +95,7 @@ export async function getTodaysMatches(): Promise<Match[]> {
         const isToday = matchTimestamp >= startOfDay && matchTimestamp <= endOfDay;
         if (!isToday) return null;
 
-        const isExpired = matchTimestamp < threeHoursAgo;
+        const isExpired = matchTimestamp < matchExpiration;
         if (isExpired) return null;
         
         const channelIds: string[] = Array.isArray(matchData.channels) ? matchData.channels : [];
@@ -117,6 +117,7 @@ export async function getTodaysMatches(): Promise<Match[]> {
           isLive: now >= matchTimestamp,
           channels: channelOptions,
           matchDetails: matchData.matchDetails,
+          matchTimestamp: matchTimestamp,
         } as Match;
       })
       .filter((match): match is Match => match !== null)
