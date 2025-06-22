@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useFavorites } from '@/hooks/use-favorites';
 import type { Channel } from '@/types';
 import ChannelCard from '@/components/channel-card';
 import { HeartOff } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getChannelsByIds } from '@/lib/actions';
 
 function FavoritesLoading() {
     return (
@@ -23,25 +24,36 @@ function FavoritesLoading() {
     )
 }
 
-export default function FavoriteChannelGrid({ channels }: { channels: Channel[] }) {
-  const { favorites, isLoaded } = useFavorites();
+export default function FavoriteChannelGrid() {
+  const { favorites, isLoaded: favoritesAreLoaded } = useFavorites();
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const favoriteChannels = useMemo(() => {
-    if (!isLoaded) return [];
-    return channels.filter(channel => favorites.includes(channel.id));
-  }, [channels, favorites, isLoaded]);
+  useEffect(() => {
+    if (!favoritesAreLoaded) {
+      return;
+    }
 
-  if (!isLoaded) {
-      return (
-          <FavoritesLoading />
-      );
+    if (favorites.length > 0) {
+      setIsLoading(true);
+      getChannelsByIds(favorites)
+        .then(setChannels)
+        .finally(() => setIsLoading(false));
+    } else {
+      setChannels([]);
+      setIsLoading(false);
+    }
+  }, [favorites, favoritesAreLoaded]);
+
+  if (isLoading) {
+      return <FavoritesLoading />;
   }
 
   return (
     <>
-      {favoriteChannels.length > 0 ? (
+      {channels.length > 0 ? (
         <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-          {favoriteChannels.map((channel, index) => (
+          {channels.map((channel, index) => (
             <ChannelCard key={channel.id} channel={channel} index={index} />
           ))}
         </div>

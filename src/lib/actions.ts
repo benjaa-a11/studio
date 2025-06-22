@@ -2,7 +2,7 @@
 
 import { cache } from "react";
 import { db } from "./firebase";
-import { collection, getDocs, doc, getDoc, query, where, Timestamp, orderBy } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, query, where, Timestamp, orderBy, documentId } from "firebase/firestore";
 import type { Channel, Match, ChannelOption } from "@/types";
 import { placeholderChannels, placeholderMatches } from "./placeholder-data";
 
@@ -59,6 +59,46 @@ export const getChannelById = cache(async (id: string): Promise<Channel | null> 
   }
 });
 
+export const getChannelsByIds = async (ids: string[]): Promise<Channel[]> => {
+  if (!ids || ids.length === 0) {
+    return [];
+  }
+
+  try {
+    const allChannels = await getChannels();
+    const channelMap = new Map(allChannels.map(c => [c.id, c]));
+    const foundChannels = ids.map(id => channelMap.get(id)).filter((c): c is Channel => !!c);
+
+    if (foundChannels.length === ids.length) {
+      return foundChannels;
+    }
+    
+    const chunks: string[][] = [];
+    for (let i = 0; i < ids.length; i += 30) {
+        chunks.push(ids.slice(i, i + 30));
+    }
+
+    const firestoreChannels: Channel[] = [];
+    for (const chunk of chunks) {
+        const q = query(collection(db, "channels"), where(documentId(), "in", chunk));
+        const snapshot = await getDocs(q);
+        snapshot.forEach(doc => {
+            firestoreChannels.push({ id: doc.id, ...doc.data() } as Channel);
+        });
+    }
+    
+    const firestoreChannelMap = new Map(firestoreChannels.map(c => [c.id, c]));
+    return ids.map(id => firestoreChannelMap.get(id)).filter((c): c is Channel => !!c);
+
+  } catch (error) {
+    console.error("Error fetching channels by IDs from Firebase:", error);
+    // Fallback to placeholder data for any matching IDs
+    const allPlaceholderChannels = placeholderChannels;
+    const placeholderMap = new Map(allPlaceholderChannels.map(c => [c.id, c]));
+    return ids.map(id => placeholderMap.get(id)).filter((c): c is Channel => !!c);
+  }
+};
+
 export const getCategories = cache(async (): Promise<string[]> => {
   const channels = await getChannels();
   const categories = new Set(channels.map(channel => channel.category));
@@ -76,15 +116,12 @@ export const getChannelsByCategory = cache(async (category: string, excludeId?: 
 
 export const getTodaysMatches = cache(async (): Promise<Match[]> => {
   const now = new Date();
-  // Get the current date string in Argentina's timezone (e.g., "2024-07-25") to define "today"
   const todayARTStr = now.toLocaleDateString('sv-SE', { timeZone: 'America/Argentina/Buenos_Aires' });
 
-  // Create Date objects for start and end of day in Argentina, represented in UTC for the query
   const startOfDay = new Date(`${todayARTStr}T00:00:00.000-03:00`);
   const endOfDay = new Date(`${todayARTStr}T23:59:59.999-03:00`);
 
   const processMatches = (matchDocs: any[], channelsMap: Map<string, Channel>): Match[] => {
-    // Matches are still relevant up to 2.5 hours after they started.
     const matchExpiration = new Date(now.getTime() - (2.5 * 60 * 60 * 1000));
 
     return matchDocs
@@ -122,7 +159,7 @@ export const getTodaysMatches = cache(async (): Promise<Match[]> => {
         } as Match;
       })
       .filter((match): match is Match => match !== null)
-      .sort((a, b) => a.time.localeCompare(b.time));
+      .sort((a, b) => a.matchTimestamp.getTime() - b.matchTimestamp.getTime());
   };
 
   try {

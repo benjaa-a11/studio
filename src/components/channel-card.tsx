@@ -13,9 +13,8 @@ const ChannelCard = memo(function ChannelCard({ channel, index }: ChannelCardPro
   return (
     <Link 
       href={`/canal/${channel.id}`} 
-      className="group block outline-none opacity-0 animate-fade-in-up rounded-lg overflow-hidden transition-all duration-300 bg-card border hover:shadow-primary/30 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className="group block outline-none rounded-lg overflow-hidden transition-all duration-300 bg-card border hover:shadow-primary/30 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       title={channel.name}
-      style={{ animationDelay: `${index * 25}ms` }}
     >
         <div className="aspect-video w-full relative bg-muted/50 flex items-center justify-center">
           
