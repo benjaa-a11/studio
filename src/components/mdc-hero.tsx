@@ -16,13 +16,13 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 
 type MdcHeroProps = {
     matches: Match[];
 };
 
-const MatchCard = ({ match }: { match: Match }) => {
+const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
     const [isViewable, setIsViewable] = useState(false);
 
     useEffect(() => {
@@ -159,7 +159,8 @@ const MatchCard = ({ match }: { match: Match }) => {
             </CardFooter>
         </Card>
     );
-};
+});
+MatchCard.displayName = 'MatchCard';
 
 export default function MdcHero({ matches }: MdcHeroProps) {
     if (matches.length === 0) {
