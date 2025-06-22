@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { db } from "./firebase";
 import { collection, getDocs, doc, getDoc, query, where, Timestamp, orderBy } from "firebase/firestore";
 import type { Channel, Match, ChannelOption } from "@/types";
@@ -11,7 +12,7 @@ const useFallbackData = () => {
   return placeholderChannels;
 };
 
-export async function getChannels(): Promise<Channel[]> {
+export const getChannels = cache(async (): Promise<Channel[]> => {
   try {
     const channelsCollection = collection(db, "channels");
     const channelSnapshot = await getDocs(channelsCollection);
@@ -30,9 +31,9 @@ export async function getChannels(): Promise<Channel[]> {
     console.error("Error al obtener canales de Firebase:", error);
     return useFallbackData();
   }
-}
+});
 
-export async function getChannelById(id: string): Promise<Channel | null> {
+export const getChannelById = cache(async (id: string): Promise<Channel | null> => {
   try {
     const channelDoc = doc(db, "channels", id);
     const channelSnapshot = await getDoc(channelDoc);
@@ -56,24 +57,24 @@ export async function getChannelById(id: string): Promise<Channel | null> {
       }
     return null;
   }
-}
+});
 
-export async function getCategories(): Promise<string[]> {
+export const getCategories = cache(async (): Promise<string[]> => {
   const channels = await getChannels();
   const categories = new Set(channels.map(channel => channel.category));
   return Array.from(categories).sort();
-}
+});
 
-export async function getChannelsByCategory(category: string, excludeId?: string): Promise<Channel[]> {
+export const getChannelsByCategory = cache(async (category: string, excludeId?: string): Promise<Channel[]> => {
   const allChannels = await getChannels();
   return allChannels.filter(channel => {
     const isSameCategory = channel.category === category;
     const isNotExcluded = excludeId ? channel.id !== excludeId : true;
     return isSameCategory && isNotExcluded;
   }).slice(0, 5); // Return a max of 5 related channels
-}
+});
 
-export async function getTodaysMatches(): Promise<Match[]> {
+export const getTodaysMatches = cache(async (): Promise<Match[]> => {
   const now = new Date();
   // Get the current date string in Argentina's timezone (e.g., "2024-07-25") to define "today"
   const todayARTStr = now.toLocaleDateString('sv-SE', { timeZone: 'America/Argentina/Buenos_Aires' });
@@ -152,4 +153,4 @@ export async function getTodaysMatches(): Promise<Match[]> {
     const channelsMap = new Map(allChannels.map(c => [c.id, c]));
     return processMatches(placeholderMatches, channelsMap);
   }
-}
+});
