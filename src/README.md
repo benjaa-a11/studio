@@ -47,7 +47,7 @@ This application is configured to connect to a Firebase project.
         "matchDetails": "Fase de grupos · Grupo E · Jornada 2 de 3"
     }
     ```
-    - **`matchTimestamp`**: Este es el campo más importante. Debe ser de tipo **`timestamp`** en Firestore y determina cuándo se muestra el partido. **Importante:** Al seleccionar la fecha y hora en la consola de Firebase, esta usará la zona horaria de tu computadora. La aplicación se encargará de mostrarla siempre en horario de Argentina (UTC-3). Los partidos aparecerán en la página de inicio si su hora de comienzo es hoy y desaparecerán 3 horas después de haber comenzado.
+    - **`matchTimestamp`**: Este es el campo más importante. Debe ser de tipo **`timestamp`** en Firestore y determina cuándo se muestra el partido. **Importante:** Al seleccionar la fecha y hora en la consola de Firebase, esta usará la zona horaria de tu computadora. La aplicación se encargará de mostrarla siempre en horario de Argentina (UTC-3). Los partidos aparecerán en la página de inicio **solo si su fecha de inicio es el día actual** y desaparecerán 3 horas después de haber comenzado.
     - **`channels`**: Debe ser un **`array`** de **`strings`** (texto). Cada string debe ser el ID de un documento de tu colección `channels`. La aplicación buscará el nombre del canal automáticamente.
     - **`matchDetails`**: Este es un campo opcional de tipo **`string`** (texto) donde puedes añadir información extra sobre el partido, como la fase del torneo (ej: "Fase de grupos · Grupo E · Jornada 2 de 3").
 

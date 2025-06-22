@@ -74,43 +74,51 @@ export async function getChannelsByCategory(category: string, excludeId?: string
 }
 
 export async function getTodaysMatches(): Promise<Match[]> {
-  const now = new Date();
-  // Matches that started up to 3 hours ago are still relevant.
-  const lowerBound = new Date(now.getTime() - 3 * 60 * 60 * 1000);
-  
-  // We only want matches that start today.
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
   const endOfDay = new Date();
   endOfDay.setHours(23, 59, 59, 999);
 
   const processMatches = (matchDocs: any[], channelsMap: Map<string, Channel>): Match[] => {
-      return matchDocs
-          .map(matchData => {
-              const matchTimestamp = matchData.matchTimestamp?.toDate ? matchData.matchTimestamp.toDate() : new Date(matchData.matchTimestamp);
-              
-              if (matchTimestamp < lowerBound || matchTimestamp > endOfDay) return null;
+    const now = new Date();
+    // Matches are still relevant up to 3 hours after they started.
+    const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
 
-              const channelIds: string[] = Array.isArray(matchData.channels) ? matchData.channels : [];
-              const channelOptions: ChannelOption[] = channelIds
-                  .map(id => {
-                      const channel = channelsMap.get(id);
-                      if (!channel) return null;
-                      return { id: channel.id, name: channel.name, logoUrl: channel.logoUrl };
-                  })
-                  .filter((c): c is ChannelOption => c !== null);
+    return matchDocs
+      .map(matchData => {
+        const matchTimestamp = matchData.matchTimestamp?.toDate
+          ? matchData.matchTimestamp.toDate()
+          : new Date(matchData.matchTimestamp);
+        
+        const isToday = matchTimestamp >= startOfDay && matchTimestamp <= endOfDay;
+        if (!isToday) return null;
 
-              return {
-                  id: matchData.id,
-                  team1: matchData.team1,
-                  team1Logo: matchData.team1Logo,
-                  team2: matchData.team2,
-                  team2Logo: matchData.team2Logo,
-                  time: matchTimestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires', hour12: false }),
-                  channels: channelOptions,
-                  matchDetails: matchData.matchDetails,
-              } as Match;
+        const isExpired = matchTimestamp < threeHoursAgo;
+        if (isExpired) return null;
+        
+        const channelIds: string[] = Array.isArray(matchData.channels) ? matchData.channels : [];
+        const channelOptions: ChannelOption[] = channelIds
+          .map(id => {
+            const channel = channelsMap.get(id);
+            if (!channel) return null;
+            return { id: channel.id, name: channel.name, logoUrl: channel.logoUrl };
           })
-          .filter((match): match is Match => match !== null)
-          .sort((a, b) => a.time.localeCompare(b.time));
+          .filter((c): c is ChannelOption => c !== null);
+
+        return {
+          id: matchData.id,
+          team1: matchData.team1,
+          team1Logo: matchData.team1Logo,
+          team2: matchData.team2,
+          team2Logo: matchData.team2Logo,
+          time: matchTimestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires', hour12: false }),
+          channels: channelOptions,
+          matchDetails: matchData.matchDetails,
+        } as Match;
+      })
+      .filter((match): match is Match => match !== null)
+      .sort((a, b) => a.time.localeCompare(b.time));
   };
 
   try {
@@ -118,23 +126,20 @@ export async function getTodaysMatches(): Promise<Match[]> {
     const channelsMap = new Map(allChannels.map(c => [c.id, c]));
 
     const q = query(
-      collection(db, "mdc25"), 
-      where("matchTimestamp", ">=", lowerBound),
+      collection(db, "mdc25"),
+      where("matchTimestamp", ">=", startOfDay),
       where("matchTimestamp", "<=", endOfDay)
     );
     const matchSnapshot = await getDocs(q);
+
+    let sourceData = matchSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     
-    if (matchSnapshot.empty) {
-      console.log("No hay partidos para el rango de tiempo actual en Firebase. Usando datos de demostración.");
-      return processMatches(placeholderMatches, channelsMap);
+    if (sourceData.length === 0) {
+      console.log("No hay partidos para hoy en Firebase. Usando datos de demostración.");
+      sourceData = placeholderMatches;
     }
 
-    const matchesData = matchSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-
-    return processMatches(matchesData, channelsMap);
+    return processMatches(sourceData, channelsMap);
     
   } catch (error) {
     console.error("Error al obtener partidos de Firebase:", error);
