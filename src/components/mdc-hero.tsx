@@ -31,19 +31,16 @@ const MatchCard = ({ match }: { match: Match }) => {
             const kickoffTime = new Date(match.matchTimestamp);
             const minutesUntilKickoff = (kickoffTime.getTime() - now.getTime()) / (1000 * 60);
             
-            // A match is viewable if it's live or starts within 45 mins.
             const shouldBeViewable = match.isLive || minutesUntilKickoff <= 45;
             
-            if (isViewable !== shouldBeViewable) {
-                setIsViewable(shouldBeViewable);
-            }
+            setIsViewable(shouldBeViewable);
         };
         
         checkViewability();
         const intervalId = setInterval(checkViewability, 30000); // Check every 30 seconds
 
         return () => clearInterval(intervalId);
-    }, [match.matchTimestamp, match.isLive, isViewable]);
+    }, [match.matchTimestamp, match.isLive]);
 
     const renderButton = () => {
         if (!isViewable) {
