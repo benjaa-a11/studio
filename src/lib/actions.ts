@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "./firebase";
-import { collection, getDocs, doc, getDoc, query, where, Timestamp } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, query, where, Timestamp, orderBy } from "firebase/firestore";
 import type { Channel, Match, ChannelOption } from "@/types";
 import { placeholderChannels, placeholderMatches } from "./placeholder-data";
 
@@ -74,11 +74,12 @@ export async function getChannelsByCategory(category: string, excludeId?: string
 }
 
 export async function getTodaysMatches(): Promise<Match[]> {
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
+  // Get the current date string in Argentina's timezone (e.g., "2024-07-25") to define "today"
+  const todayARTStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Argentina/Buenos_Aires' });
 
-  const endOfDay = new Date();
-  endOfDay.setHours(23, 59, 59, 999);
+  // Create Date objects for start and end of day in Argentina, represented in UTC for the query
+  const startOfDay = new Date(`${todayARTStr}T00:00:00.000-03:00`);
+  const endOfDay = new Date(`${todayARTStr}T23:59:59.999-03:00`);
 
   const processMatches = (matchDocs: any[], channelsMap: Map<string, Channel>): Match[] => {
     const now = new Date();
@@ -128,7 +129,8 @@ export async function getTodaysMatches(): Promise<Match[]> {
     const q = query(
       collection(db, "mdc25"),
       where("matchTimestamp", ">=", startOfDay),
-      where("matchTimestamp", "<=", endOfDay)
+      where("matchTimestamp", "<=", endOfDay),
+      orderBy("matchTimestamp")
     );
     const matchSnapshot = await getDocs(q);
 
