@@ -32,8 +32,8 @@ export default function ChannelView({ channel, relatedChannels }: ChannelViewPro
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const isFav = isFavorite(channel.id);
-  const streamUrls = channel.streamUrls || [];
-  const currentStreamUrl = streamUrls[currentStreamIndex];
+  const streamLinks = channel.streamUrl || [];
+  const currentStreamUrl = streamLinks[currentStreamIndex];
 
   useEffect(() => {
     // Reset everything when the channel changes
@@ -46,7 +46,7 @@ export default function ChannelView({ channel, relatedChannels }: ChannelViewPro
   }, [channel.id]);
 
   useEffect(() => {
-    if (!streamUrls.length || !currentStreamUrl) {
+    if (!streamLinks.length || !currentStreamUrl) {
       setIsPlayerLoading(false);
       setAllStreamsFailed(true);
       return;
@@ -56,7 +56,7 @@ export default function ChannelView({ channel, relatedChannels }: ChannelViewPro
 
     // Set a timeout to detect if the iframe fails to load
     timeoutRef.current = setTimeout(() => {
-      if (currentStreamIndex < streamUrls.length - 1) {
+      if (currentStreamIndex < streamLinks.length - 1) {
         toast({
           title: "Señal débil",
           description: "Cambiando a una fuente alternativa...",
@@ -73,7 +73,7 @@ export default function ChannelView({ channel, relatedChannels }: ChannelViewPro
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [currentStreamIndex, streamUrls, channel.id, toast]);
+  }, [currentStreamIndex, streamLinks, channel.id, toast]);
 
   const handleFavoriteClick = () => {
     if (isFav) {
