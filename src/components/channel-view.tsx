@@ -32,7 +32,7 @@ export default function ChannelView({ channel, relatedChannels }: ChannelViewPro
 
   return (
     <div className="flex h-dvh w-full flex-col">
-      <header className="flex h-16 shrink-0 items-center justify-between border-b px-4 md:px-6">
+      <header className="flex h-16 shrink-0 items-center justify-between border-b px-4 md:px-6 pt-safe-top">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon" asChild>
             <Link href="/" aria-label="Volver a inicio">

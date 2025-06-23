@@ -17,6 +17,12 @@ export default {
       },
     },
     extend: {
+      spacing: {
+        'safe-top': 'env(safe-area-inset-top)',
+        'safe-bottom': 'env(safe-area-inset-bottom)',
+        'safe-left': 'env(safe-area-inset-left)',
+        'safe-right': 'env(safe-area-inset-right)',
+      },
       fontFamily: {
         sans: ["var(--font-sans)", ...fontFamily.sans],
         fifa: ["FIFASans", ...fontFamily.sans],
@@ -85,21 +91,10 @@ export default {
             height: '0',
           },
         },
-        'fade-in-up': {
-            from: {
-                opacity: '0',
-                transform: 'translateY(1rem)',
-            },
-            to: {
-                opacity: '1',
-                transform: 'translateY(0)',
-            },
-        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'fade-in-up': 'fade-in-up 0.3s ease-out forwards',
       },
     },
   },
