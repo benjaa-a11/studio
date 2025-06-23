@@ -165,6 +165,7 @@ export default function ChannelView({ channel, relatedChannels }: ChannelViewPro
           src={currentStreamUrl}
           title={channel.name}
           onLoad={handleIframeLoad}
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-modals"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
         ></iframe>
