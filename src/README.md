@@ -29,11 +29,12 @@ This application is configured to connect to a Firebase project.
     {
       "name": "Channel Name",
       "logoUrl": "https://...",
-      "streamUrl": "https://... (embeddable link)",
+      "streamUrls": ["https://... (primary link)", "https://... (fallback link)"],
       "category": "Category Name",
       "description": "A brief channel description."
     }
     ```
+    - **`streamUrls`**: This is an array of strings. The first URL is the primary source. If it fails to load, the app will automatically try the next URL in the array.
 
 4.  **Mundial de Clubes 2025**: The hero section on the homepage fetches matches from the `mdc25` collection. Each document should have the following structure:
     ```json
