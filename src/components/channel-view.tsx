@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Heart, SignalZero, Loader2 } from "lucide-react";
-import { useState, useEffect, useRef, useMemo, memo } from "react";
+import { ArrowLeft, Heart, Loader2, SwitchCamera } from "lucide-react";
+import { useState, useEffect, useMemo, memo } from "react";
 
 import type { Channel } from "@/types";
 import { useFavorites } from "@/hooks/use-favorites";
@@ -18,8 +18,6 @@ type ChannelViewProps = {
   channel: Channel;
   relatedChannels: Channel[];
 };
-
-const STREAM_LOAD_TIMEOUT = 12000; // 12 seconds
 
 /**
  * Converts various YouTube URL formats into a standard embeddable URL.
@@ -69,9 +67,6 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
 
   const [currentStreamIndex, setCurrentStreamIndex] = useState(0);
   const [isPlayerLoading, setIsPlayerLoading] = useState(true);
-  const [allStreamsFailed, setAllStreamsFailed] = useState(false);
-  
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const isFav = isLoaded ? isFavorite(channel.id) : false;
   
@@ -82,44 +77,9 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
   const currentStreamUrl = streamLinks[currentStreamIndex];
 
   useEffect(() => {
-    // Reset everything when the channel changes
-    setCurrentStreamIndex(0);
+    // When channel or stream URL changes, reset loading state
     setIsPlayerLoading(true);
-    setAllStreamsFailed(false);
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-  }, [channel.id]);
-
-  useEffect(() => {
-    if (!streamLinks.length || !currentStreamUrl) {
-      setIsPlayerLoading(false);
-      setAllStreamsFailed(true);
-      return;
-    }
-
-    setIsPlayerLoading(true);
-
-    // Set a timeout to detect if the iframe fails to load
-    timeoutRef.current = setTimeout(() => {
-      if (currentStreamIndex < streamLinks.length - 1) {
-        toast({
-          title: "Señal débil",
-          description: "Cambiando a una fuente alternativa...",
-        });
-        setCurrentStreamIndex(prev => prev + 1);
-      } else {
-        setAllStreamsFailed(true);
-        setIsPlayerLoading(false);
-      }
-    }, STREAM_LOAD_TIMEOUT);
-
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, [currentStreamIndex, streamLinks, channel.id, toast, currentStreamUrl]);
+  }, [channel.id, currentStreamUrl]);
 
   const handleFavoriteClick = () => {
     if (isFav) {
@@ -128,23 +88,26 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
       addFavorite(channel.id);
     }
   };
+
+  const handleSwitchStream = () => {
+    const nextIndex = (currentStreamIndex + 1) % streamLinks.length;
+    setCurrentStreamIndex(nextIndex);
+    toast({
+      title: "Cambiando de fuente",
+      description: `Cargando Opción ${nextIndex + 1}...`,
+    });
+  };
   
   const handleIframeLoad = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
     setIsPlayerLoading(false);
-    setAllStreamsFailed(false);
   };
 
   const renderPlayer = () => {
-    if (allStreamsFailed) {
+    if (!currentStreamUrl) {
       return (
         <div className="flex h-full w-full flex-col items-center justify-center bg-card p-8 text-center">
-          <SignalZero className="h-20 w-20 text-primary/50 mb-6" />
-          <h2 className="text-2xl font-bold text-foreground">Señal no disponible temporalmente</h2>
           <p className="mt-2 max-w-md text-muted-foreground">
-              Lo sentimos, parece que la transmisión de este canal está experimentando problemas técnicos. Hemos intentado todas las fuentes disponibles sin éxito.
+            Este canal no tiene una fuente de transmisión configurada.
           </p>
         </div>
       );
@@ -156,7 +119,7 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
             <p className="mt-4 text-primary-foreground">Cargando señal...</p>
-            {currentStreamIndex > 0 && <p className="text-sm text-muted-foreground">Intentando fuente {currentStreamIndex + 1}</p>}
+            {streamLinks.length > 1 && <p className="text-sm text-muted-foreground">Opción {currentStreamIndex + 1} de {streamLinks.length}</p>}
           </div>
         )}
         <iframe
@@ -196,6 +159,17 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
           </div>
         </div>
         <div className="flex items-center gap-2">
+            {streamLinks.length > 1 && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleSwitchStream}
+                disabled={isPlayerLoading}
+                aria-label="Cambiar fuente de transmisión"
+              >
+                <SwitchCamera className="h-5 w-5" />
+              </Button>
+            )}
             {isLoaded ? (
                  <Button
                     variant={isFav ? "default" : "outline"}
