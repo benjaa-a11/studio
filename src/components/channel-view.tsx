@@ -33,22 +33,18 @@ const getStreamableUrl = (url: string): string => {
       const urlObj = new URL(url);
       if (urlObj.hostname.includes('youtube.com')) {
         if (urlObj.pathname.startsWith('/embed/')) {
-          // It's already an embed link, we just rebuild it to standardize params.
           videoId = urlObj.pathname.split('/')[2];
         } else if (urlObj.pathname === '/watch') {
           videoId = urlObj.searchParams.get('v');
         }
       } else if (urlObj.hostname === 'youtu.be') {
-        // For youtu.be links, the ID is in the pathname.
         videoId = urlObj.pathname.substring(1).split('?')[0];
       }
     } catch (error) {
-      // If URL parsing fails, it's not a standard URL. Assume it's a direct iframe src.
       return url;
     }
   
     if (videoId) {
-      // Standardize the embed URL with desired parameters.
       const embedUrl = new URL(`https://www.youtube.com/embed/${videoId}`);
       embedUrl.searchParams.set('autoplay', '1');
       embedUrl.searchParams.set('modestbranding', '1');
@@ -56,7 +52,6 @@ const getStreamableUrl = (url: string): string => {
       return embedUrl.toString();
     }
     
-    // If it's not a recognized YouTube URL, return it as is.
     return url;
   };
 
@@ -77,7 +72,6 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
   const currentStreamUrl = streamLinks[currentStreamIndex];
 
   useEffect(() => {
-    // When channel or stream URL changes, reset loading state
     setIsPlayerLoading(true);
   }, [channel.id, currentStreamUrl]);
 
@@ -94,7 +88,8 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
     setCurrentStreamIndex(nextIndex);
     toast({
       title: "Cambiando de fuente",
-      description: `Cargando Opción ${nextIndex + 1}...`,
+      description: `Cargando Opción ${nextIndex + 1} de ${streamLinks.length}...`,
+      duration: 3000,
     });
   };
   
@@ -159,17 +154,6 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
           </div>
         </div>
         <div className="flex items-center gap-2">
-            {streamLinks.length > 1 && (
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleSwitchStream}
-                disabled={isPlayerLoading}
-                aria-label="Cambiar fuente de transmisión"
-              >
-                <SwitchCamera className="h-5 w-5" />
-              </Button>
-            )}
             {isLoaded ? (
                  <Button
                     variant={isFav ? "default" : "outline"}
@@ -192,7 +176,20 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
                 {renderPlayer()}
               </div>
               <div className="mt-6 rounded-lg bg-card p-6">
-                <h1 className="text-3xl font-bold tracking-tight">{channel.name}</h1>
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-1">
+                  <h1 className="text-3xl font-bold tracking-tight">{channel.name}</h1>
+                  {streamLinks.length > 1 && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleSwitchStream}
+                      disabled={isPlayerLoading}
+                    >
+                      <SwitchCamera className="mr-2 h-4 w-4" />
+                      Cambiar Fuente
+                    </Button>
+                  )}
+                </div>
                 <p className="mt-1 text-base text-primary">{channel.category}</p>
                 <Separator className="my-4"/>
                 <p className="text-muted-foreground">{channel.description}</p>
