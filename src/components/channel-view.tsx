@@ -176,21 +176,24 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
                 {renderPlayer()}
               </div>
               <div className="mt-6 rounded-lg bg-card p-6">
-                <div className="flex flex-wrap items-center justify-between gap-4 mb-1">
-                  <h1 className="text-3xl font-bold tracking-tight">{channel.name}</h1>
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <h1 className="text-3xl font-bold tracking-tight">{channel.name}</h1>
+                    <p className="mt-1 text-base text-primary">{channel.category}</p>
+                  </div>
                   {streamLinks.length > 1 && (
                     <Button
                       variant="secondary"
                       size="sm"
                       onClick={handleSwitchStream}
                       disabled={isPlayerLoading}
+                      className="w-9 shrink-0 p-0 sm:w-auto sm:px-3"
                     >
-                      <SwitchCamera className="mr-2 h-4 w-4" />
-                      Cambiar Fuente
+                      <SwitchCamera className="h-4 w-4" />
+                      <span className="hidden sm:inline">Cambiar Fuente</span>
                     </Button>
                   )}
                 </div>
-                <p className="mt-1 text-base text-primary">{channel.category}</p>
                 <Separator className="my-4"/>
                 <p className="text-muted-foreground">{channel.description}</p>
               </div>
