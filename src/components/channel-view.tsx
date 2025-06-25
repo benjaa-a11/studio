@@ -62,7 +62,6 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
 
   const [currentStreamIndex, setCurrentStreamIndex] = useState(0);
   const [isPlayerLoading, setIsPlayerLoading] = useState(true);
-  const [isMouseOverIframe, setIsMouseOverIframe] = useState(false);
   const [iframeKey, setIframeKey] = useState(Date.now());
 
   const isFav = isLoaded ? isFavorite(channel.id) : false;
@@ -79,26 +78,30 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
 
   useEffect(() => {
     const handleBlur = () => {
-      // A brief delay to allow the activeElement to be updated reliably.
-      setTimeout(() => {
-        if (document.activeElement?.tagName === 'IFRAME' && !isMouseOverIframe) {
-          (document.body as HTMLElement).focus();
-          toast({
-            title: "Protección Activada",
-            description: "Se ha bloqueado un intento de redirección no deseado.",
-            duration: 4000,
-          });
-          setIframeKey(Date.now());
-        }
-      }, 0);
+      // If the window loses focus and the new active element is our iframe, it's highly suspicious.
+      // This is a common pattern for programmatic redirects.
+      if (document.activeElement?.tagName === 'IFRAME') {
+        // Immediately reclaim focus to interrupt the redirect.
+        (document.body as HTMLElement).focus();
+
+        toast({
+          title: "Protección Avanzada Activada",
+          description: "Se ha neutralizado un intento de redirección.",
+          duration: 3500,
+        });
+
+        // Force a reload of the iframe to purge any malicious scripts.
+        setIframeKey(Date.now());
+      }
     };
 
+    // Listen on the 'blur' event in the capture phase to act as early as possible.
     window.addEventListener('blur', handleBlur, true);
 
     return () => {
       window.removeEventListener('blur', handleBlur, true);
     };
-  }, [isMouseOverIframe, toast]);
+  }, [toast]);
 
 
   const handleFavoriteClick = () => {
@@ -138,8 +141,6 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
     return (
       <div 
         className="w-full h-full"
-        onMouseEnter={() => setIsMouseOverIframe(true)}
-        onMouseLeave={() => setIsMouseOverIframe(false)}
       >
         {isPlayerLoading && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80">
