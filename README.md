@@ -35,7 +35,7 @@ This application is configured to connect to a Firebase project.
           "description": "A brief channel description."
         }
         ```
-        - **`streamUrl`**: This is an array of strings. The first URL is the primary source. If it fails to load, the app will automatically try the next URL in the array.
+        - **`streamUrl`**: This is an array of strings. The user can manually switch to other sources in the array if the primary one fails.
 
     - Each document in the `mdc25` and `copaargentina` collections should have the following structure:
         ```json
@@ -65,7 +65,7 @@ This application is configured to connect to a Firebase project.
     8.  Optionally, add the `matchDetails` field as a `string`.
     9.  Click **"Save"**.
 
-5.  **Security Rules**: For production, ensure your Firestore security rules are properly configured to allow read access to the collections. A basic rule for public read access would be:
+4.  **Security Rules**: For production, ensure your Firestore security rules are properly configured to allow read access to the collections. A basic rule for public read access would be:
     ```
     rules_version = '2';
     service cloud.firestore {

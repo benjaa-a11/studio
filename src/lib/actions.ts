@@ -122,7 +122,7 @@ const fetchMatchesForTournament = async (
   const endOfDay = new Date(`${todayARTStr}T23:59:59.999-03:00`);
 
   const processMatches = (matchDocs: any[]): Match[] => {
-    const matchExpiration = new Date(now.getTime() - (2.5 * 60 * 60 * 1000));
+    const matchExpiration = new Date(now.getTime() - (3 * 60 * 60 * 1000));
 
     return matchDocs
       .map(matchData => {
