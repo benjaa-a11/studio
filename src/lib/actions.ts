@@ -4,7 +4,7 @@ import { cache } from "react";
 import { db } from "./firebase";
 import { collection, getDocs, doc, getDoc, query, where, Timestamp, orderBy, documentId } from "firebase/firestore";
 import type { Channel, Match, ChannelOption } from "@/types";
-import { placeholderChannels, placeholderMatches } from "./placeholder-data";
+import { placeholderChannels, placeholderMdcMatches, placeholderCopaArgentinaMatches } from "./placeholder-data";
 
 // Helper function to use placeholder data as a fallback
 const useFallbackData = () => {
@@ -108,14 +108,20 @@ export const getChannelsByCategory = cache(async (category: string, excludeId?: 
   }).slice(0, 5); // Return a max of 5 related channels
 });
 
-export const getTodaysMatches = cache(async (): Promise<Match[]> => {
+const fetchMatchesForTournament = async (
+  collectionName: string,
+  tournamentName: string,
+  tournamentLogo: string,
+  channelsMap: Map<string, Channel>,
+  placeholderData: any[]
+): Promise<Match[]> => {
   const now = new Date();
   const todayARTStr = now.toLocaleDateString('sv-SE', { timeZone: 'America/Argentina/Buenos_Aires' });
 
   const startOfDay = new Date(`${todayARTStr}T00:00:00.000-03:00`);
   const endOfDay = new Date(`${todayARTStr}T23:59:59.999-03:00`);
 
-  const processMatches = (matchDocs: any[], channelsMap: Map<string, Channel>): Match[] => {
+  const processMatches = (matchDocs: any[]): Match[] => {
     const matchExpiration = new Date(now.getTime() - (2.5 * 60 * 60 * 1000));
 
     return matchDocs
@@ -150,18 +156,17 @@ export const getTodaysMatches = cache(async (): Promise<Match[]> => {
           channels: channelOptions,
           matchDetails: matchData.matchDetails,
           matchTimestamp: matchTimestamp,
+          tournamentName,
+          tournamentLogo
         } as Match;
       })
       .filter((match): match is Match => match !== null)
       .sort((a, b) => a.matchTimestamp.getTime() - b.matchTimestamp.getTime());
   };
-
+  
   try {
-    const allChannels = await getChannels();
-    const channelsMap = new Map(allChannels.map(c => [c.id, c]));
-
     const q = query(
-      collection(db, "mdc25"),
+      collection(db, collectionName),
       where("matchTimestamp", ">=", startOfDay),
       where("matchTimestamp", "<=", endOfDay),
       orderBy("matchTimestamp")
@@ -171,17 +176,44 @@ export const getTodaysMatches = cache(async (): Promise<Match[]> => {
     let sourceData = matchSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     
     if (sourceData.length === 0) {
-      console.log("No hay partidos para hoy en Firebase. Usando datos de demostración.");
-      sourceData = placeholderMatches;
+      console.log(`No hay partidos para hoy en la colección '${collectionName}'. Usando datos de demostración.`);
+      sourceData = placeholderData;
     }
 
-    return processMatches(sourceData, channelsMap);
+    return processMatches(sourceData);
     
   } catch (error) {
-    console.error("Error al obtener partidos de Firebase:", error);
-    console.warn("Usando datos de demostración para los partidos.");
-    const allChannels = await getChannels();
-    const channelsMap = new Map(allChannels.map(c => [c.id, c]));
-    return processMatches(placeholderMatches, channelsMap);
+    console.error(`Error al obtener partidos de ${collectionName}:`, error);
+    console.warn(`Usando datos de demostración para ${collectionName}.`);
+    return processMatches(placeholderData);
   }
+};
+
+
+export const getHeroMatches = cache(async (): Promise<Match[]> => {
+  const allChannels = await getChannels();
+  const channelsMap = new Map(allChannels.map(c => [c.id, c]));
+
+  const mdcMatches = fetchMatchesForTournament(
+    'mdc25',
+    'Mundial de Clubes FIFA 2025™',
+    'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgncCRI6MuG41vT_fctpMHh4__yYc2efUPB7jpjV9Ro8unR17c9EMBQcaIYmjPShAnnLG1Q1m-9KbNmZoK2SJnWV9bwJ1FN4OMzgcBcy7inf6c9JCSKFz1uV31aC6B1u4EeGxDwQE4z24d7sVZOJzpFjBAG0KECpsJltnqNyH9_iaTnGukhT4gWGeGj_FQ/s16000/Copa%20Mundial%20de%20Clubes.png',
+    channelsMap,
+    placeholderMdcMatches
+  );
+  
+  const copaArgentinaMatches = fetchMatchesForTournament(
+    'copaargentina',
+    'Copa Argentina',
+    'https://upload.wikimedia.org/wikipedia/commons/e/e0/Copa_Argentina_logo.svg',
+    channelsMap,
+    placeholderCopaArgentinaMatches
+  );
+  
+  const [mdcResult, copaResult] = await Promise.all([mdcMatches, copaArgentinaMatches]);
+  
+  const allMatches = [...mdcResult, ...copaResult];
+  allMatches.sort((a, b) => a.matchTimestamp.getTime() - b.matchTimestamp.getTime());
+
+  return allMatches;
 });

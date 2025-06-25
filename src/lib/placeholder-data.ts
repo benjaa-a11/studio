@@ -1,4 +1,4 @@
-import type { Channel, Match } from "@/types";
+import type { Channel } from "@/types";
 
 // Helper to create timestamps for today for placeholder data
 const createTimestamp = (hour: number, minute: number = 0) => {
@@ -8,8 +8,8 @@ const createTimestamp = (hour: number, minute: number = 0) => {
 };
 
 // Placeholder data uses a structure similar to what Firestore would return.
-// The `getTodaysMatches` function will process this into the `Match` type.
-export const placeholderMatches: any[] = [
+// The data fetching functions will process this into the `Match` type.
+export const placeholderMdcMatches: any[] = [
   {
     id: "mdc-1",
     team1: "River Plate",
@@ -30,37 +30,30 @@ export const placeholderMatches: any[] = [
     channels: ["deportes-2"],
     matchDetails: "Fase de grupos · Grupo A · Jornada 1 de 3",
   },
-  {
-    id: "mdc-3",
-    team1: "Palmeiras",
-    team1Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Palmeiras_logo.svg/240px-Palmeiras_logo.svg.png",
-    team2: "Chelsea",
-    team2Logo: "https://upload.wikimedia.org/wikipedia/en/thumb/c/cc/Chelsea_FC.svg/240px-Chelsea_FC.svg.png",
-    matchTimestamp: new Date(new Date().setDate(new Date().getDate() + 1)), // A future match to ensure it's filtered out
-    channels: ["deportes-1"],
-  },
-  {
-    id: "mdc-4",
-    team1: "Flamengo",
-    team1Logo: "https://upload.wikimedia.org/wikipedia/commons/2/2e/Flamengo_logo.svg",
-    team2: "FC Bayern",
-    team2Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/FC_Bayern_M%C3%BCnchen_logo_%282017%29.svg/240px-FC_Bayern_M%C3%BCnchen_logo_%282017%29.svg.png",
-    // Match that started 2 hours ago, should still be visible.
-    matchTimestamp: createTimestamp(new Date().getHours() - 2),
-    channels: ["deportes-1"],
-    matchDetails: "Octavos de Final · Partido de Ida",
-  },
-   {
-    id: "mdc-5",
-    team1: "Inter Milan",
-    team1Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/FC_Internazionale_Milano_2021.svg/240px-FC_Internazionale_Milano_2021.svg.png",
-    team2: "Al-Ahly",
-    team2Logo: "https://upload.wikimedia.org/wikipedia/en/thumb/a/a4/Al_Ahly_SC_logo.svg/240px-Al_Ahly_SC_logo.svg.png",
-    // Match that started 4 hours ago, should be hidden.
-    matchTimestamp: createTimestamp(new Date().getHours() - 4),
-    channels: ["deportes-2"],
-  },
 ];
+
+export const placeholderCopaArgentinaMatches: any[] = [
+    {
+        id: "ca-1",
+        team1: "Racing Club",
+        team1Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/Escudo_de_Racing_Club_%282014%29.svg/240px-Escudo_de_Racing_Club_%282014%29.svg.png",
+        team2: "Independiente",
+        team2Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Escudo_del_Club_Atl%C3%A9tico_Independiente.svg/240px-Escudo_del_Club_Atl%C3%A9tico_Independiente.svg.png",
+        matchTimestamp: createTimestamp(18, 30),
+        channels: ["deportes-2"],
+        matchDetails: "Cuartos de Final",
+    },
+    {
+        id: "ca-2",
+        team1: "San Lorenzo",
+        team1Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/Escudo_del_Club_Atl%C3%A9tico_San_Lorenzo_de_Almagro.svg/240px-Escudo_del_Club_Atl%C3%A9tico_San_Lorenzo_de_Almagro.svg.png",
+        team2: "Huracán",
+        team2Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Escudo_del_Club_Atl%C3%A9tico_Hurac%C3%A1n.svg/240px-Escudo_del_Club_Atl%C3%A9tico_Hurac%C3%A1n.svg.png",
+        matchTimestamp: createTimestamp(21, 0),
+        channels: ["deportes-1"],
+        matchDetails: "Cuartos de Final",
+    },
+]
 
 
 export const placeholderChannels: Channel[] = [
