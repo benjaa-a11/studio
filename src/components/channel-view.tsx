@@ -62,6 +62,8 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
 
   const [currentStreamIndex, setCurrentStreamIndex] = useState(0);
   const [isPlayerLoading, setIsPlayerLoading] = useState(true);
+  const [isMouseOverIframe, setIsMouseOverIframe] = useState(false);
+  const [iframeKey, setIframeKey] = useState(Date.now());
 
   const isFav = isLoaded ? isFavorite(channel.id) : false;
   
@@ -73,7 +75,31 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
 
   useEffect(() => {
     setIsPlayerLoading(true);
-  }, [channel.id, currentStreamUrl]);
+  }, [channel.id, currentStreamUrl, iframeKey]);
+
+  useEffect(() => {
+    const handleBlur = () => {
+      // A brief delay to allow the activeElement to be updated reliably.
+      setTimeout(() => {
+        if (document.activeElement?.tagName === 'IFRAME' && !isMouseOverIframe) {
+          (document.body as HTMLElement).focus();
+          toast({
+            title: "Protección Activada",
+            description: "Se ha bloqueado un intento de redirección no deseado.",
+            duration: 4000,
+          });
+          setIframeKey(Date.now());
+        }
+      }, 0);
+    };
+
+    window.addEventListener('blur', handleBlur, true);
+
+    return () => {
+      window.removeEventListener('blur', handleBlur, true);
+    };
+  }, [isMouseOverIframe, toast]);
+
 
   const handleFavoriteClick = () => {
     if (isFav) {
@@ -86,6 +112,7 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
   const handleSwitchStream = () => {
     const nextIndex = (currentStreamIndex + 1) % streamLinks.length;
     setCurrentStreamIndex(nextIndex);
+    setIframeKey(Date.now());
     toast({
       title: "Cambiando de fuente",
       description: `Cargando Opción ${nextIndex + 1} de ${streamLinks.length}...`,
@@ -109,7 +136,11 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
     }
 
     return (
-      <>
+      <div 
+        className="w-full h-full"
+        onMouseEnter={() => setIsMouseOverIframe(true)}
+        onMouseLeave={() => setIsMouseOverIframe(false)}
+      >
         {isPlayerLoading && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -118,7 +149,7 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
           </div>
         )}
         <iframe
-          key={currentStreamUrl}
+          key={`${currentStreamUrl}-${iframeKey}`}
           className="h-full w-full border-0"
           src={currentStreamUrl}
           title={channel.name}
@@ -126,7 +157,7 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
         ></iframe>
-      </>
+      </div>
     );
   }
 
