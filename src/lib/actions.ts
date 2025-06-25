@@ -4,7 +4,7 @@ import { cache } from "react";
 import { db } from "./firebase";
 import { collection, getDocs, doc, getDoc, query, where, Timestamp, orderBy, documentId } from "firebase/firestore";
 import type { Channel, Match, ChannelOption } from "@/types";
-import { placeholderChannels, placeholderMdcMatches, placeholderCopaArgentinaMatches } from "./placeholder-data";
+import { placeholderChannels } from "./placeholder-data";
 
 // Helper function to use placeholder data as a fallback
 const useFallbackData = () => {
@@ -111,9 +111,8 @@ export const getChannelsByCategory = cache(async (category: string, excludeId?: 
 const fetchMatchesForTournament = async (
   collectionName: string,
   tournamentName: string,
-  tournamentLogo: string,
-  channelsMap: Map<string, Channel>,
-  placeholderData: any[]
+  tournamentLogo: string | { light: string; dark: string },
+  channelsMap: Map<string, Channel>
 ): Promise<Match[]> => {
   const now = new Date();
   const todayARTStr = now.toLocaleDateString('sv-SE', { timeZone: 'America/Argentina/Buenos_Aires' });
@@ -173,19 +172,17 @@ const fetchMatchesForTournament = async (
     );
     const matchSnapshot = await getDocs(q);
 
-    let sourceData = matchSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const sourceData = matchSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     
     if (sourceData.length === 0) {
-      console.log(`No hay partidos para hoy en la colección '${collectionName}'. Usando datos de demostración.`);
-      sourceData = placeholderData;
+      console.log(`No hay partidos para hoy en la colección '${collectionName}'.`);
     }
 
     return processMatches(sourceData);
     
   } catch (error) {
     console.error(`Error al obtener partidos de ${collectionName}:`, error);
-    console.warn(`Usando datos de demostración para ${collectionName}.`);
-    return processMatches(placeholderData);
+    return [];
   }
 };
 
@@ -198,16 +195,17 @@ export const getHeroMatches = cache(async (): Promise<Match[]> => {
     'mdc25',
     'Mundial de Clubes FIFA 2025™',
     'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgncCRI6MuG41vT_fctpMHh4__yYc2efUPB7jpjV9Ro8unR17c9EMBQcaIYmjPShAnnLG1Q1m-9KbNmZoK2SJnWV9bwJ1FN4OMzgcBcy7inf6c9JCSKFz1uV31aC6B1u4EeGxDwQE4z24d7sVZOJzpFjBAG0KECpsJltnqNyH9_iaTnGukhT4gWGeGj_FQ/s16000/Copa%20Mundial%20de%20Clubes.png',
-    channelsMap,
-    placeholderMdcMatches
+    channelsMap
   );
   
   const copaArgentinaMatches = fetchMatchesForTournament(
     'copaargentina',
     'Copa Argentina',
-    'https://upload.wikimedia.org/wikipedia/commons/e/e0/Copa_Argentina_logo.svg',
-    channelsMap,
-    placeholderCopaArgentinaMatches
+    {
+      light: 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhMVspg_c6CLXysEZ8f-24rMQ8tfbZtn1WO8KDjZNpFXHmEWco46YoFncJZ1HEdT-nQ0azG-0sUUFiNVWe2eNPSSWI9Xk7aQXun4hrTfr-Ik-XE_SrTX0KzbYojh5kafAWACfwjlujielSrSU4E3bxq6RU8uwoBW4N5-3LCqYkbPa6xvENXZ2O3prv0DHA/s512/Copa%20Argentina%20AXION%20energy.png',
+      dark: 'https://blogger.googleusercontent.com/img/a/AVvXsEi9UORURfsnLGoEWprgs4a69QnccK54jCUVTi-9jJ8aZrWgAakBfIV6957zDUxQ8HDFJKvusZ9av0KuIdJa9y4vx9Ut-QTlsHd755hTVSFBxa_d1DkIwCDDxxZxzmhIRXNONSWKwVc9DzIh6fjrhGLRodCYLBaw99cZTX90tPzSIcmgEY3g7Ma2kUFO=s512',
+    },
+    channelsMap
   );
   
   const [mdcResult, copaResult] = await Promise.all([mdcMatches, copaArgentinaMatches]);

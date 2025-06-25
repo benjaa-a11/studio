@@ -25,5 +25,5 @@ export type Match = {
   matchDetails?: string;
   matchTimestamp: Date;
   tournamentName: string;
-  tournamentLogo: string;
+  tournamentLogo: string | { light: string; dark: string };
 };

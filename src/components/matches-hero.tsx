@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, memo } from "react";
+import { useTheme } from "@/components/theme-provider";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type MatchesHeroProps = {
     matches: Match[];
@@ -24,6 +26,29 @@ type MatchesHeroProps = {
 
 const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
     const [isViewable, setIsViewable] = useState(false);
+    const { theme } = useTheme();
+    const [tournamentLogoUrl, setTournamentLogoUrl] = useState<string>('');
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    useEffect(() => {
+        if (!isClient) return;
+
+        if (typeof match.tournamentLogo === 'string') {
+            setTournamentLogoUrl(match.tournamentLogo);
+            return;
+        }
+
+        let currentTheme = theme;
+        if (theme === 'system') {
+            currentTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        
+        setTournamentLogoUrl(currentTheme === 'dark' ? match.tournamentLogo.dark : match.tournamentLogo.light);
+    }, [theme, match.tournamentLogo, isClient]);
 
     useEffect(() => {
         const checkViewability = () => {
@@ -118,15 +143,19 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
                         <Image src={match.team1Logo} alt={match.team1} width={64} height={64} className="h-16 w-16 object-contain drop-shadow-sm" data-ai-hint="team logo" />
                         <h3 className="font-semibold truncate w-full">{match.team1}</h3>
                     </div>
-                    <div className="flex-shrink-0">
-                        <Image
-                            src={match.tournamentLogo}
-                            alt={`${match.tournamentName} Logo`}
-                            width={48}
-                            height={48}
-                            className="object-contain"
-                            data-ai-hint="tournament logo"
-                        />
+                    <div className="h-12 w-12 flex-shrink-0 flex items-center justify-center">
+                        {!isClient || !tournamentLogoUrl ? (
+                            <Skeleton className="h-12 w-12 rounded-md" />
+                        ) : (
+                            <Image
+                                src={tournamentLogoUrl}
+                                alt={`${match.tournamentName} Logo`}
+                                width={48}
+                                height={48}
+                                className="object-contain"
+                                data-ai-hint="tournament logo"
+                            />
+                        )}
                     </div>
                     <div className="flex flex-col items-center gap-2 text-center w-[100px]">
                         <Image src={match.team2Logo} alt={match.team2} width={64} height={64} className="h-16 w-16 object-contain drop-shadow-sm" data-ai-hint="team logo" />

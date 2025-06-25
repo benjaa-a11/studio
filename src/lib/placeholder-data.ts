@@ -9,51 +9,9 @@ const createTimestamp = (hour: number, minute: number = 0) => {
 
 // Placeholder data uses a structure similar to what Firestore would return.
 // The data fetching functions will process this into the `Match` type.
-export const placeholderMdcMatches: any[] = [
-  {
-    id: "mdc-1",
-    team1: "River Plate",
-    team1Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/Escudo_del_C._A._River_Plate.svg/240px-Escudo_del_C._A._River_Plate.svg.png",
-    team2: "Man City",
-    team2Logo: "https://upload.wikimedia.org/wikipedia/en/thumb/e/eb/Manchester_City_FC_badge.svg/240px-Manchester_City_FC_badge.svg.png",
-    matchTimestamp: createTimestamp(16, 0), // Match at 4:00 PM today
-    channels: ["deportes-1", "deportes-2"],
-    matchDetails: "Fase de grupos · Grupo C · Jornada 1 de 3",
-  },
-  {
-    id: "mdc-2",
-    team1: "Boca Juniors",
-    team1Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Boca_Juniors_logo18.svg/240px-Boca_Juniors_logo18.svg.png",
-    team2: "Real Madrid",
-    team2Logo: "https://upload.wikimedia.org/wikipedia/en/thumb/5/56/Real_Madrid_CF.svg/240px-Real_Madrid_CF.svg.png",
-    matchTimestamp: createTimestamp(20, 0), // Match at 8:00 PM today
-    channels: ["deportes-2"],
-    matchDetails: "Fase de grupos · Grupo A · Jornada 1 de 3",
-  },
-];
+export const placeholderMdcMatches: any[] = [];
 
-export const placeholderCopaArgentinaMatches: any[] = [
-    {
-        id: "ca-1",
-        team1: "Racing Club",
-        team1Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/Escudo_de_Racing_Club_%282014%29.svg/240px-Escudo_de_Racing_Club_%282014%29.svg.png",
-        team2: "Independiente",
-        team2Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Escudo_del_Club_Atl%C3%A9tico_Independiente.svg/240px-Escudo_del_Club_Atl%C3%A9tico_Independiente.svg.png",
-        matchTimestamp: createTimestamp(18, 30),
-        channels: ["deportes-2"],
-        matchDetails: "Cuartos de Final",
-    },
-    {
-        id: "ca-2",
-        team1: "San Lorenzo",
-        team1Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/Escudo_del_Club_Atl%C3%A9tico_San_Lorenzo_de_Almagro.svg/240px-Escudo_del_Club_Atl%C3%A9tico_San_Lorenzo_de_Almagro.svg.png",
-        team2: "Huracán",
-        team2Logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Escudo_del_Club_Atl%C3%A9tico_Hurac%C3%A1n.svg/240px-Escudo_del_Club_Atl%C3%A9tico_Hurac%C3%A1n.svg.png",
-        matchTimestamp: createTimestamp(21, 0),
-        channels: ["deportes-1"],
-        matchDetails: "Cuartos de Final",
-    },
-]
+export const placeholderCopaArgentinaMatches: any[] = [];
 
 
 export const placeholderChannels: Channel[] = [
