@@ -76,33 +76,6 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
     setIsPlayerLoading(true);
   }, [channel.id, currentStreamUrl, iframeKey]);
 
-  useEffect(() => {
-    const handleBlur = () => {
-      // If the window loses focus and the new active element is our iframe, it's highly suspicious.
-      // This is a common pattern for programmatic redirects.
-      if (document.activeElement?.tagName === 'IFRAME') {
-        // Immediately reclaim focus to interrupt the redirect.
-        (document.body as HTMLElement).focus();
-
-        toast({
-          title: "Protección Avanzada Activada",
-          description: "Se ha neutralizado un intento de redirección.",
-          duration: 3500,
-        });
-
-        // Force a reload of the iframe to purge any malicious scripts.
-        setIframeKey(Date.now());
-      }
-    };
-
-    // Listen on the 'blur' event in the capture phase to act as early as possible.
-    window.addEventListener('blur', handleBlur, true);
-
-    return () => {
-      window.removeEventListener('blur', handleBlur, true);
-    };
-  }, [toast]);
-
 
   const handleFavoriteClick = () => {
     if (isFav) {
@@ -155,6 +128,7 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
           src={currentStreamUrl}
           title={channel.name}
           onLoad={handleIframeLoad}
+          sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen allow-autoplay"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
         ></iframe>
