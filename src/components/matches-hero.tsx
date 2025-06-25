@@ -16,7 +16,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { useState, useEffect, useMemo, memo } from "react";
+import { useState, useEffect, memo } from "react";
 
 type MatchesHeroProps = {
     matches: Match[];
@@ -163,39 +163,24 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
 MatchCard.displayName = 'MatchCard';
 
 export default function MatchesHero({ matches }: MatchesHeroProps) {
-    const groupedMatches = useMemo(() => {
-        return matches.reduce((acc, match) => {
-          const { tournamentName } = match;
-          if (!acc[tournamentName]) {
-            acc[tournamentName] = [];
-          }
-          acc[tournamentName].push(match);
-          return acc;
-        }, {} as Record<string, Match[]>);
-    }, [matches]);
-
-    if (Object.keys(groupedMatches).length === 0) {
+    if (!matches || matches.length === 0) {
         return null;
     }
 
     return (
-        <div className="space-y-12">
-            {Object.entries(groupedMatches).map(([tournamentName, tournamentMatches]) => (
-                 <div key={tournamentName} className="font-fifa">
-                    <div className="mb-4">
-                        <h1 className="text-3xl font-bold tracking-tight">{tournamentName}</h1>
-                        <p className="text-muted-foreground">Partidos de Hoy</p>
-                    </div>
-                    <ScrollArea className="w-full whitespace-nowrap rounded-lg">
-                        <div className="flex w-max space-x-4 pb-4">
-                            {tournamentMatches.map((match) => (
-                                <MatchCard key={match.id} match={match} />
-                            ))}
-                        </div>
-                        <ScrollBar orientation="horizontal" />
-                    </ScrollArea>
+        <div className="mb-12">
+            <div className="mb-4">
+                <h1 className="text-3xl font-bold tracking-tight">Partidos de Hoy</h1>
+                <p className="text-muted-foreground">La agenda del día en un solo lugar.</p>
+            </div>
+            <ScrollArea className="w-full whitespace-nowrap rounded-lg">
+                <div className="flex w-max space-x-4 pb-4">
+                    {matches.map((match) => (
+                        <MatchCard key={match.id} match={match} />
+                    ))}
                 </div>
-            ))}
+                <ScrollBar orientation="horizontal" />
+            </ScrollArea>
         </div>
     );
 }
