@@ -128,8 +128,9 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
           src={currentStreamUrl}
           title={channel.name}
           onLoad={handleIframeLoad}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope;"
           allowFullScreen
+          sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen allow-autoplay"
         ></iframe>
       </div>
     );
