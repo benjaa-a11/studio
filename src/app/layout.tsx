@@ -7,6 +7,7 @@ import LayoutWrapper from "@/components/layout-wrapper";
 import { getCategories } from "@/lib/actions";
 import { FilterProvider } from "@/hooks/use-channel-filters";
 import { ThemeProvider } from "@/components/theme-provider";
+import ServiceWorkerRegistrar from "@/components/service-worker-registrar";
 
 const fontSans = Inter({
   subsets: ['latin'],
@@ -79,6 +80,7 @@ export default async function RootLayout({
         />
         <ThemeProvider defaultTheme="dark" storageKey="plan-b-theme">
           <FilterProvider initialCategories={categories}>
+            <ServiceWorkerRegistrar />
             <LayoutWrapper>{children}</LayoutWrapper>
             <Toaster />
           </FilterProvider>

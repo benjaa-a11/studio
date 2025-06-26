@@ -62,7 +62,6 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
 
   const [currentStreamIndex, setCurrentStreamIndex] = useState(0);
   const [isPlayerLoading, setIsPlayerLoading] = useState(true);
-  const [iframeKey, setIframeKey] = useState(Date.now());
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const isFav = isLoaded ? isFavorite(channel.id) : false;
@@ -75,28 +74,7 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
 
   useEffect(() => {
     setIsPlayerLoading(true);
-  }, [channel.id, currentStreamUrl, iframeKey]);
-
-  useEffect(() => {
-    const handleBlur = () => {
-      if (iframeRef.current && document.activeElement === iframeRef.current) {
-        document.body.focus();
-        toast({
-          title: "Protección Activada",
-          description: "Se ha bloqueado una redirección no deseada.",
-          duration: 3000,
-        });
-        setIframeKey(prevKey => prevKey + 1); 
-      }
-    };
-
-    window.addEventListener('blur', handleBlur);
-
-    return () => {
-      window.removeEventListener('blur', handleBlur);
-    };
-  }, [toast]);
-
+  }, [channel.id, currentStreamUrl]);
 
   const handleFavoriteClick = () => {
     if (isFav) {
@@ -109,7 +87,6 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
   const handleSwitchStream = () => {
     const nextIndex = (currentStreamIndex + 1) % streamLinks.length;
     setCurrentStreamIndex(nextIndex);
-    setIframeKey(Date.now());
     toast({
       title: "Cambiando de fuente",
       description: `Cargando Opción ${nextIndex + 1} de ${streamLinks.length}...`,
@@ -145,13 +122,14 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
         )}
         <iframe
           ref={iframeRef}
-          key={`${currentStreamUrl}-${iframeKey}`}
+          key={currentStreamUrl}
           className="h-full w-full border-0"
           src={currentStreamUrl}
           title={channel.name}
           onLoad={handleIframeLoad}
           allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope;"
           allowFullScreen
+          sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen allow-autoplay allow-popups allow-top-navigation-by-user-activation"
         ></iframe>
       </div>
     );
