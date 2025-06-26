@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Heart, SwitchCamera, PlayCircle } from "lucide-react";
+import { ArrowLeft, Heart, SwitchCamera, VideoOff } from "lucide-react";
 import { useState, useMemo, memo } from "react";
 
 import type { Channel } from "@/types";
@@ -88,48 +88,6 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
     });
   };
 
-  const handleOpenSecurePlayer = () => {
-    if (currentStreamUrl) {
-      window.open(currentStreamUrl, '_blank', 'noopener,noreferrer');
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Error de transmisión",
-        description: "Este canal no tiene una fuente de transmisión configurada.",
-      });
-    }
-  };
-  
-  const renderSecureLauncher = () => {
-    return (
-        <div className="flex h-full w-full flex-col items-center justify-center bg-card p-8 text-center relative bg-black">
-            {channel.logoUrl && (
-                <Image
-                    src={channel.logoUrl}
-                    alt=""
-                    fill
-                    className="object-contain p-12 opacity-10 blur-sm"
-                    aria-hidden="true"
-                />
-            )}
-            <div className="absolute inset-0 bg-black/50" />
-            <div className="relative z-10 flex flex-col items-center">
-                <PlayCircle className="h-20 w-20 text-white/50 mb-4" />
-                <h3 className="text-xl font-bold text-white mb-2">Reproductor Externo Seguro</h3>
-                <p className="max-w-md text-muted-foreground mb-6">
-                    Para protegerte de redirecciones y anuncios no deseados, el canal se abrirá en una nueva pestaña.
-                </p>
-                <Button onClick={handleOpenSecurePlayer} size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8 py-6 shadow-lg">
-                    Abrir Canal
-                </Button>
-                {streamLinks.length > 1 && (
-                    <p className="text-sm text-muted-foreground mt-4">Opción {currentStreamIndex + 1} de {streamLinks.length}</p>
-                )}
-            </div>
-        </div>
-    );
-  }
-
   return (
     <div className="flex h-dvh w-full flex-col">
       <header className="flex h-16 shrink-0 items-center justify-between border-b px-4 md:px-6 pt-safe-top">
@@ -173,7 +131,24 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
          <div className="container mx-auto p-4 md:p-8">
             <main>
               <div className="aspect-video relative w-full overflow-hidden rounded-lg bg-black shadow-2xl shadow-primary/10">
-                {renderSecureLauncher()}
+                 {currentStreamUrl ? (
+                  <iframe
+                    key={currentStreamUrl}
+                    src={currentStreamUrl}
+                    allow="autoplay; encrypted-media; picture-in-picture"
+                    allowFullScreen
+                    className="h-full w-full border-0"
+                    title={`Reproductor de ${channel.name}`}
+                  ></iframe>
+                ) : (
+                  <div className="flex h-full w-full flex-col items-center justify-center bg-card p-8 text-center">
+                    <VideoOff className="h-20 w-20 text-muted-foreground/50 mb-4" />
+                    <h3 className="text-xl font-bold">Transmisión no disponible</h3>
+                    <p className="max-w-md text-muted-foreground">
+                      Este canal no tiene una fuente de transmisión configurada.
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="mt-6 rounded-lg bg-card p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
