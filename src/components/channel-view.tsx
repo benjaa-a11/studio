@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Heart, Loader2, SwitchCamera } from "lucide-react";
-import { useState, useEffect, useMemo, memo, useRef } from "react";
+import { ArrowLeft, Heart, SwitchCamera, PlayCircle } from "lucide-react";
+import { useState, useMemo, memo } from "react";
 
 import type { Channel } from "@/types";
 import { useFavorites } from "@/hooks/use-favorites";
@@ -61,8 +61,6 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
   const { toast } = useToast();
 
   const [currentStreamIndex, setCurrentStreamIndex] = useState(0);
-  const [isPlayerLoading, setIsPlayerLoading] = useState(true);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const isFav = isLoaded ? isFavorite(channel.id) : false;
   
@@ -71,48 +69,6 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
     [channel.streamUrl]
   );
   const currentStreamUrl = streamLinks[currentStreamIndex];
-
-  useEffect(() => {
-    setIsPlayerLoading(true);
-  }, [channel.id, currentStreamUrl]);
-
-  useEffect(() => {
-    const originalWindowOpen = window.open;
-    
-    const blockedDomains = [
-      'ocpydtjcvcxug.site',
-      'youradexchange.com',
-      'mydzcajckvmzp.website',
-    ];
-
-    window.open = function (...args: [string | URL | undefined, string | undefined, string | undefined]) {
-      const url = args[0];
-      if (url) {
-        try {
-          const urlString = url.toString();
-          const isBlocked = blockedDomains.some(domain => urlString.includes(domain));
-          
-          if (isBlocked) {
-            console.warn(`[Blocker] Prevented pop-up to a blocked domain: ${urlString}`);
-            toast({
-              title: "Protección Activada",
-              description: "Se ha bloqueado una ventana emergente no deseada.",
-              duration: 3000,
-            });
-            return null;
-          }
-        } catch (e) {
-          console.error('[Blocker] Error processing URL in window.open:', e);
-        }
-      }
-      
-      return originalWindowOpen.apply(window, args);
-    };
-
-    return () => {
-      window.open = originalWindowOpen;
-    };
-  }, [toast]);
 
   const handleFavoriteClick = () => {
     if (isFav) {
@@ -127,48 +83,50 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
     setCurrentStreamIndex(nextIndex);
     toast({
       title: "Cambiando de fuente",
-      description: `Cargando Opción ${nextIndex + 1} de ${streamLinks.length}...`,
+      description: `Ahora usarás la Opción ${nextIndex + 1} de ${streamLinks.length}.`,
       duration: 3000,
     });
   };
-  
-  const handleIframeLoad = () => {
-    setIsPlayerLoading(false);
-  };
 
-  const renderPlayer = () => {
-    if (!currentStreamUrl) {
-      return (
-        <div className="flex h-full w-full flex-col items-center justify-center bg-card p-8 text-center">
-          <p className="mt-2 max-w-md text-muted-foreground">
-            Este canal no tiene una fuente de transmisión configurada.
-          </p>
-        </div>
-      );
+  const handleOpenSecurePlayer = () => {
+    if (currentStreamUrl) {
+      window.open(currentStreamUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Error de transmisión",
+        description: "Este canal no tiene una fuente de transmisión configurada.",
+      });
     }
-
+  };
+  
+  const renderSecureLauncher = () => {
     return (
-      <div 
-        className="w-full h-full"
-      >
-        {isPlayerLoading && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="mt-4 text-primary-foreground">Cargando señal...</p>
-            {streamLinks.length > 1 && <p className="text-sm text-muted-foreground">Opción {currentStreamIndex + 1} de {streamLinks.length}</p>}
-          </div>
-        )}
-        <iframe
-          ref={iframeRef}
-          key={currentStreamUrl}
-          className="h-full w-full border-0"
-          src={currentStreamUrl}
-          title={channel.name}
-          onLoad={handleIframeLoad}
-          allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope;"
-          allowFullScreen
-        ></iframe>
-      </div>
+        <div className="flex h-full w-full flex-col items-center justify-center bg-card p-8 text-center relative bg-black">
+            {channel.logoUrl && (
+                <Image
+                    src={channel.logoUrl}
+                    alt=""
+                    fill
+                    className="object-contain p-12 opacity-10 blur-sm"
+                    aria-hidden="true"
+                />
+            )}
+            <div className="absolute inset-0 bg-black/50" />
+            <div className="relative z-10 flex flex-col items-center">
+                <PlayCircle className="h-20 w-20 text-white/50 mb-4" />
+                <h3 className="text-xl font-bold text-white mb-2">Reproductor Externo Seguro</h3>
+                <p className="max-w-md text-muted-foreground mb-6">
+                    Para protegerte de redirecciones y anuncios no deseados, el canal se abrirá en una nueva pestaña.
+                </p>
+                <Button onClick={handleOpenSecurePlayer} size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8 py-6 shadow-lg">
+                    Abrir Canal
+                </Button>
+                {streamLinks.length > 1 && (
+                    <p className="text-sm text-muted-foreground mt-4">Opción {currentStreamIndex + 1} de {streamLinks.length}</p>
+                )}
+            </div>
+        </div>
     );
   }
 
@@ -215,7 +173,7 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
          <div className="container mx-auto p-4 md:p-8">
             <main>
               <div className="aspect-video relative w-full overflow-hidden rounded-lg bg-black shadow-2xl shadow-primary/10">
-                {renderPlayer()}
+                {renderSecureLauncher()}
               </div>
               <div className="mt-6 rounded-lg bg-card p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
@@ -228,7 +186,6 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
                       variant="secondary"
                       size="sm"
                       onClick={handleSwitchStream}
-                      disabled={isPlayerLoading}
                       className="w-9 shrink-0 p-0 sm:w-auto sm:px-3"
                     >
                       <SwitchCamera className="h-4 w-4 sm:mr-2" />
