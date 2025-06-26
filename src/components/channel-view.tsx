@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, Heart, Loader2, SwitchCamera } from "lucide-react";
-import { useState, useEffect, useMemo, memo } from "react";
+import { useState, useEffect, useMemo, memo, useRef } from "react";
 
 import type { Channel } from "@/types";
 import { useFavorites } from "@/hooks/use-favorites";
@@ -63,6 +63,7 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
   const [currentStreamIndex, setCurrentStreamIndex] = useState(0);
   const [isPlayerLoading, setIsPlayerLoading] = useState(true);
   const [iframeKey, setIframeKey] = useState(Date.now());
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const isFav = isLoaded ? isFavorite(channel.id) : false;
   
@@ -75,6 +76,26 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
   useEffect(() => {
     setIsPlayerLoading(true);
   }, [channel.id, currentStreamUrl, iframeKey]);
+
+  useEffect(() => {
+    const handleBlur = () => {
+      if (iframeRef.current && document.activeElement === iframeRef.current) {
+        document.body.focus();
+        toast({
+          title: "Protección Activada",
+          description: "Se ha bloqueado una redirección no deseada.",
+          duration: 3000,
+        });
+        setIframeKey(prevKey => prevKey + 1); 
+      }
+    };
+
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [toast]);
 
 
   const handleFavoriteClick = () => {
@@ -123,6 +144,7 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
           </div>
         )}
         <iframe
+          ref={iframeRef}
           key={`${currentStreamUrl}-${iframeKey}`}
           className="h-full w-full border-0"
           src={currentStreamUrl}
@@ -130,7 +152,6 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
           onLoad={handleIframeLoad}
           allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope;"
           allowFullScreen
-          sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen allow-autoplay"
         ></iframe>
       </div>
     );
@@ -195,7 +216,7 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
                       disabled={isPlayerLoading}
                       className="w-9 shrink-0 p-0 sm:w-auto sm:px-3"
                     >
-                      <SwitchCamera className="h-4 w-4" />
+                      <SwitchCamera className="h-4 w-4 sm:mr-2" />
                       <span className="hidden sm:inline">Cambiar Fuente</span>
                     </Button>
                   )}
