@@ -76,6 +76,44 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
     setIsPlayerLoading(true);
   }, [channel.id, currentStreamUrl]);
 
+  useEffect(() => {
+    const originalWindowOpen = window.open;
+    
+    const blockedDomains = [
+      'ocpydtjcvcxug.site',
+      'youradexchange.com',
+      'mydzcajckvmzp.website',
+    ];
+
+    window.open = function (...args: [string | URL | undefined, string | undefined, string | undefined]) {
+      const url = args[0];
+      if (url) {
+        try {
+          const urlString = url.toString();
+          const isBlocked = blockedDomains.some(domain => urlString.includes(domain));
+          
+          if (isBlocked) {
+            console.warn(`[Blocker] Prevented pop-up to a blocked domain: ${urlString}`);
+            toast({
+              title: "Protección Activada",
+              description: "Se ha bloqueado una ventana emergente no deseada.",
+              duration: 3000,
+            });
+            return null;
+          }
+        } catch (e) {
+          console.error('[Blocker] Error processing URL in window.open:', e);
+        }
+      }
+      
+      return originalWindowOpen.apply(window, args);
+    };
+
+    return () => {
+      window.open = originalWindowOpen;
+    };
+  }, [toast]);
+
   const handleFavoriteClick = () => {
     if (isFav) {
       removeFavorite(channel.id);
@@ -129,7 +167,6 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
           onLoad={handleIframeLoad}
           allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope;"
           allowFullScreen
-          sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen allow-autoplay allow-popups allow-top-navigation-by-user-activation"
         ></iframe>
       </div>
     );
