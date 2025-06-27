@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "./firebase";
-import { collection, getDocs, doc, getDoc, query, where, documentId } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, query, where, documentId, Timestamp } from "firebase/firestore";
 import type { Channel, Match, ChannelOption } from "@/types";
 import { placeholderChannels } from "./placeholder-data";
 
@@ -107,94 +107,65 @@ export const getChannelsByCategory = async (category: string, excludeId?: string
   }).slice(0, 5); // Return a max of 5 related channels
 };
 
-// Function to normalize channel names for better matching
-const normalizeChannelName = (name: string) => {
-    return name
-        .toLowerCase()
-        .replace(/ sports/g, ' sport')
-        .replace(/ tv/g, '')
-        .replace(/ hd/g, '')
-        .replace(/ premium/g, '')
-        .replace(/ futbol/g, ' fútbol')
-        .replace(/[-_.\s]/g, '');
-};
-
 export const getAgendaMatches = async (): Promise<Match[]> => {
-    try {
-        const [response, allChannels] = await Promise.all([
-            fetch('https://librefutboltv.su/api/agenda.php', {
-                next: { revalidate: 1800 }, // Revalidate every 30 minutes
-                headers: {
-                    'Accept': 'application/json'
-                }
-            }),
-            getChannels()
-        ]);
+  try {
+    const allChannels = await getChannels();
+    const allChannelsMap = new Map(allChannels.map(c => [c.id, { id: c.id, name: c.name, logoUrl: c.logoUrl }]));
+    
+    const now = new Date();
+    // Use Argentina's time zone to determine what "today" is
+    const argentinaTimeNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
+    const startOfToday = new Date(argentinaTimeNow.getFullYear(), argentinaTimeNow.getMonth(), argentinaTimeNow.getDate());
+    const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
 
-        if (!response.ok) {
-            throw new Error(`Failed to fetch agenda API: ${response.statusText}`);
-        }
+    const matchCollections = ["mdc25", "copaargentina"];
+    let allMatches: Match[] = [];
 
-        const data = await response.json();
-        
-        if (!data || !Array.isArray(data.agenda)) {
-            console.warn("Agenda API returned invalid data format.");
-            return [];
-        }
+    for (const coll of matchCollections) {
+        const q = query(
+            collection(db, coll),
+            where("matchTimestamp", ">=", Timestamp.fromDate(startOfToday)),
+            where("matchTimestamp", "<", Timestamp.fromDate(endOfToday))
+        );
 
-        const matches: Match[] = [];
-        const channelsMap = new Map(allChannels.map(c => [normalizeChannelName(c.name), c]));
-        const now = new Date();
+        const querySnapshot = await getDocs(q);
 
-        for (const event of data.agenda) {
-            const { event_time, event_title, event_league, channels: scrapedChannels, live } = event;
-
-            if (!event_time || !event_title) continue;
-
-            const [hours, minutes] = event_time.split(':').map(Number);
-            const matchTimestamp = new Date();
-            matchTimestamp.setHours(hours, minutes, 0, 0);
+        querySnapshot.forEach(docSnap => {
+            const data = docSnap.data();
+            const matchTimestamp = (data.matchTimestamp as Timestamp).toDate();
             
-            // Filter out matches that ended more than 2h 15m ago
-            const timeDiff = now.getTime() - matchTimestamp.getTime();
-            if (timeDiff > ((2 * 60 + 15) * 60 * 1000)) {
-              continue; 
+            // Hide match 2 hours and 15 minutes (135 minutes) after it started
+            const timeDifferenceMs = now.getTime() - matchTimestamp.getTime();
+            if (timeDifferenceMs > 135 * 60 * 1000) {
+                return;
             }
 
-            const teams = event_title.split(' vs ');
-            if (teams.length < 2) continue;
+            const channelOptions: ChannelOption[] = (data.channels || []).map((id: string) => 
+                allChannelsMap.get(id)
+            ).filter((c: ChannelOption | undefined): c is ChannelOption => !!c);
 
-            const [team1, team2] = teams;
-
-            const channelOptions: ChannelOption[] = (scrapedChannels || []).map((ch: any) => {
-                const normalizedName = normalizeChannelName(ch.channel_name);
-                const matchedChannel = channelsMap.get(normalizedName);
-                
-                if (matchedChannel) {
-                    return { id: matchedChannel.id, name: matchedChannel.name, logoUrl: matchedChannel.logoUrl };
-                }
-                return null;
-            }).filter((c: ChannelOption | null): c is ChannelOption => c !== null);
-
-            if (channelOptions.length === 0) continue;
-
-            matches.push({
-                id: event.event_id || `${team1}-${team2}-${event_time}`.replace(/\s+/g, '-').toLowerCase(),
-                team1: team1.trim(),
-                team2: team2.trim(),
-                team1Logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(team1.trim())}&background=random&color=fff`,
-                team2Logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(team2.trim())}&background=random&color=fff`,
-                time: event_time,
-                isLive: live === "1",
+            allMatches.push({
+                id: docSnap.id,
+                team1: data.team1,
+                team1Logo: data.team1Logo,
+                team2: data.team2,
+                team2Logo: data.team2Logo,
+                time: matchTimestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' }),
+                isLive: now.getTime() >= matchTimestamp.getTime(),
                 channels: channelOptions,
-                tournamentName: event_league,
+                matchDetails: data.matchDetails,
                 matchTimestamp: matchTimestamp,
+                tournamentName: coll === 'mdc25' ? 'Copa del Mundo 2025' : 'Copa Argentina',
+                tournamentLogo: coll === 'mdc25' ? { light: '/mdc25-light.png', dark: '/mdc25-dark.png' } : { light: '/afa-light.png', dark: '/afa-dark.png' },
             });
-        }
-        
-        return matches.sort((a, b) => a.matchTimestamp.getTime() - b.matchTimestamp.getTime());
-    } catch (error) {
-        console.error("Error fetching or processing agenda:", error);
-        return [];
+        });
     }
+    
+    return allMatches.sort((a, b) => a.matchTimestamp.getTime() - b.matchTimestamp.getTime());
+
+  } catch (error) {
+    console.error("Error al obtener partidos de Firebase:", error);
+    // Return empty array on error as there is no placeholder match data
+    return [];
+  }
 };
