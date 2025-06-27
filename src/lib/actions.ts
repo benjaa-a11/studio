@@ -134,9 +134,8 @@ export const getAgendaMatches = async (): Promise<Match[]> => {
             const data = docSnap.data();
             const matchTimestamp = (data.matchTimestamp as Timestamp).toDate();
             
-            // Hide match 2 hours and 15 minutes (135 minutes) after it started
-            const timeDifferenceMs = now.getTime() - matchTimestamp.getTime();
-            if (timeDifferenceMs > 135 * 60 * 1000) {
+            // Hide match 3 hours after it started
+            if (now.getTime() - matchTimestamp.getTime() > 3 * 60 * 60 * 1000) {
                 return;
             }
 
@@ -151,7 +150,7 @@ export const getAgendaMatches = async (): Promise<Match[]> => {
                 team2: data.team2,
                 team2Logo: data.team2Logo,
                 time: matchTimestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' }),
-                isLive: now.getTime() >= matchTimestamp.getTime(),
+                isLive: now > matchTimestamp,
                 channels: channelOptions,
                 matchDetails: data.matchDetails,
                 matchTimestamp: matchTimestamp,
