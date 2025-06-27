@@ -82,9 +82,18 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
     const nextIndex = (currentStreamIndex + 1) % streamLinks.length;
     setCurrentStreamIndex(nextIndex);
     toast({
-      title: "Cambiando de fuente",
-      description: `Ahora usarás la Opción ${nextIndex + 1} de ${streamLinks.length}.`,
-      duration: 3000,
+      title: (
+        <div className="flex items-start gap-3">
+          <SwitchCamera className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-foreground">Fuente Cambiada</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Se ha seleccionado la Opción {nextIndex + 1} de {streamLinks.length}.
+            </p>
+          </div>
+        </div>
+      ),
+      duration: 4000,
     });
   };
 
@@ -100,7 +109,7 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
           <div className="flex items-center gap-3">
              <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md">
                 {channel.logoUrl ? (
-                    <Image src={channel.logoUrl} alt={`Logo de ${channel.name}`} fill className="object-contain"/>
+                    <Image src={channel.logoUrl} alt={`Logo de ${channel.name}`} fill className="object-contain" sizes="40px"/>
                 ) : (
                     <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground text-xs font-bold">{channel.name.charAt(0)}</div>
                 )}

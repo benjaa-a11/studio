@@ -31,12 +31,6 @@ type MatchesHeroProps = {
     matches: Match[];
 };
 
-const handleVibration = () => {
-    if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
-        window.navigator.vibrate(50);
-    }
-};
-
 const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
     const [isViewable, setIsViewable] = useState(false);
     const { theme } = useTheme();
@@ -93,7 +87,7 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
         if (match.channels && match.channels.length > 0) {
              if (match.channels.length === 1) {
                 return (
-                    <Button asChild className={cn("w-full", match.isLive && "animate-pulse")} variant={match.isLive ? "destructive" : "default"} onClick={handleVibration}>
+                    <Button asChild className={cn("w-full", match.isLive && "animate-pulse")} variant={match.isLive ? "destructive" : "default"}>
                         <Link href={`/canal/${match.channels[0].id}`}>
                             {match.isLive ? <Radio className="mr-2 h-4 w-4" /> : <Tv className="mr-2 h-4 w-4" />}
                             {match.isLive ? "Ver EN VIVO" : `Ver en ${match.channels[0].name}`}
@@ -114,7 +108,7 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
             );
 
             const mobileChannelLinks = match.channels.map((channel) => (
-                 <Link key={channel.id} href={`/canal/${channel.id}`} onClick={handleVibration} className="flex items-center gap-4 w-full text-left p-3 rounded-lg transition-colors hover:bg-muted">
+                 <Link key={channel.id} href={`/canal/${channel.id}`} className="flex items-center gap-4 w-full text-left p-3 rounded-lg transition-colors hover:bg-muted">
                     <div className="relative h-8 w-14 flex-shrink-0">
                         {channel.logoUrl ? (
                             <Image src={channel.logoUrl} alt={`Logo de ${channel.name}`} fill sizes="56px" className="object-contain" data-ai-hint="channel logo" />
@@ -130,7 +124,7 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
             
             const desktopChannelLinks = match.channels.map((channel) => (
                 <DropdownMenuItem key={channel.id} asChild className="p-0">
-                    <Link href={`/canal/${channel.id}`} onClick={handleVibration} className="flex items-center gap-3 w-full px-2 py-1.5">
+                    <Link href={`/canal/${channel.id}`} className="flex items-center gap-3 w-full px-2 py-1.5">
                         <div className="relative h-6 w-10 flex-shrink-0">
                             {channel.logoUrl ? (
                                 <Image src={channel.logoUrl} alt={`Logo de ${channel.name}`} fill sizes="40px" className="object-contain" data-ai-hint="channel logo" />
@@ -162,7 +156,7 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
                     {/* Mobile Sheet */}
                     <Sheet>
                         <SheetTrigger asChild>
-                            <Button {...commonButtonProps} className={cn(commonButtonProps.className, "md:hidden")} onClick={handleVibration}>
+                            <Button {...commonButtonProps} className={cn(commonButtonProps.className, "md:hidden")}>
                                 {commonButtonContent}
                             </Button>
                         </SheetTrigger>
@@ -247,6 +241,10 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
 MatchCard.displayName = 'MatchCard';
 
 export default function MatchesHero({ matches }: MatchesHeroProps) {
+    if (matches.length === 0) {
+        return null;
+    }
+
     return (
         <div className="mb-12">
             <div className="mb-4">
