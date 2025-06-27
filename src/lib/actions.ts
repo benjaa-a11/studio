@@ -122,7 +122,7 @@ const normalizeChannelName = (name: string) => {
 export const getAgendaMatches = async (): Promise<Match[]> => {
     try {
         const [response, allChannels] = await Promise.all([
-            fetch('https://librefutboltv.su/api/agenda.php', {
+            fetch('https://www.futbollibre.futbol/api/agenda.php', {
                 next: { revalidate: 1800 }, // Revalidate every 30 minutes
                 headers: {
                     'Accept': 'application/json'
