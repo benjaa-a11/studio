@@ -1,11 +1,11 @@
 "use client";
 
-import type { Match, ChannelOption } from "@/types";
+import type { Match } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Tv, Clock, Radio, Shield, Clapperboard, ChevronDown } from "lucide-react";
+import { Tv, Radio, Shield, Clapperboard, ChevronDown, CalendarX } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -64,7 +64,7 @@ const AgendaCard = ({ match }: AgendaCardProps) => {
             <DropdownMenuItem key={channel.id} asChild className="p-0">
                 <Link href={`/canal/${channel.id}`} className="flex items-center gap-3 w-full px-2 py-1.5">
                     {channel.logoUrl ? (
-                        <Image src={channel.logoUrl} alt={channel.name} width={24} height={24} className="h-6 w-auto object-contain" data-ai-hint="channel logo"/>
+                        <Image src={channel.logoUrl} alt={channel.name} width={24} height={24} className="h-6 w-auto object-contain" sizes="24px" data-ai-hint="channel logo"/>
                     ) : (
                         <Clapperboard className="h-5 w-5 text-muted-foreground" />
                     )}
@@ -76,7 +76,7 @@ const AgendaCard = ({ match }: AgendaCardProps) => {
         const mobileChannelLinks = match.channels.map((channel) => (
              <Link key={channel.id} href={`/canal/${channel.id}`} className="flex items-center gap-4 w-full text-left p-3 rounded-lg transition-colors hover:bg-muted">
                 {channel.logoUrl ? (
-                    <Image src={channel.logoUrl} alt={channel.name} width={40} height={40} className="h-10 w-auto object-contain" data-ai-hint="channel logo"/>
+                    <Image src={channel.logoUrl} alt={channel.name} width={40} height={40} className="h-10 w-auto object-contain" sizes="40px" data-ai-hint="channel logo"/>
                 ) : (
                     <Clapperboard className="h-8 w-8 text-muted-foreground" />
                 )}
@@ -121,31 +121,28 @@ const AgendaCard = ({ match }: AgendaCardProps) => {
     };
 
     return (
-        <div className="flex items-stretch border-b last:border-b-0 py-4">
-            <div className="flex w-24 flex-col items-center justify-center gap-1 text-center">
-                <div className="flex items-center gap-1.5 text-lg font-bold">
-                    {match.isLive ? (
-                         <Badge variant="destructive" className="animate-pulse px-3 py-1 text-sm">EN VIVO</Badge>
-                    ) : (
-                        <>
-                        <Clock className="h-5 w-5 text-primary" />
-                        <span>{match.time}</span>
-                        </>
-                    )}
-                </div>
-                <p className="text-xs text-muted-foreground px-2 truncate">{match.tournamentName}</p>
+        <div className="flex items-center gap-2 sm:gap-4 p-3 sm:p-4 border-b last:border-b-0 hover:bg-muted/40 transition-colors">
+            <div className="w-16 sm:w-20 text-center flex-shrink-0">
+                {match.isLive ? (
+                    <Badge variant="destructive" className="animate-pulse px-2 sm:px-3 py-1 text-xs sm:text-sm font-semibold">EN VIVO</Badge>
+                ) : (
+                    <div className="font-bold text-base sm:text-lg text-primary">{match.time}</div>
+                )}
+                <div className="text-xs text-muted-foreground truncate mt-0.5">{match.tournamentName}</div>
             </div>
-            <div className="flex-1 px-4 border-l border-r">
-                <div className="flex items-center gap-3">
-                    <Image src={match.team1Logo || ''} width={24} height={24} alt={match.team1} data-ai-hint="team logo" />
-                    <span className="font-medium">{match.team1}</span>
+
+            <div className="flex-1 space-y-1.5 min-w-0">
+                <div className="flex items-center gap-2">
+                    <Image src={match.team1Logo || ''} width={20} height={20} alt={match.team1} className="w-5 h-5 sm:w-6 sm:h-6 object-contain" sizes="24px" data-ai-hint="team logo" />
+                    <span className="font-medium text-sm sm:text-base truncate">{match.team1}</span>
                 </div>
-                <div className="flex items-center gap-3 mt-2">
-                    <Image src={match.team2Logo || ''} width={24} height={24} alt={match.team2} data-ai-hint="team logo" />
-                    <span className="font-medium">{match.team2}</span>
+                <div className="flex items-center gap-2">
+                    <Image src={match.team2Logo || ''} width={20} height={20} alt={match.team2} className="w-5 h-5 sm:w-6 sm:h-6 object-contain" sizes="24px" data-ai-hint="team logo" />
+                    <span className="font-medium text-sm sm:text-base truncate">{match.team2}</span>
                 </div>
             </div>
-            <div className="flex w-36 flex-col items-center justify-center px-4">
+            
+            <div className="w-28 sm:w-32 flex-shrink-0">
                 {renderButton()}
             </div>
         </div>
@@ -153,11 +150,7 @@ const AgendaCard = ({ match }: AgendaCardProps) => {
 };
 
 export default function AgendaHero({ matches }: { matches: Match[] }) {
-    if (matches.length === 0) {
-        return null;
-    }
-
-    const today = new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const today = new Date().toLocaleDateString('es-ES', { weekday: 'long', month: 'long', day: 'numeric' });
 
     return (
         <div className="mb-12">
@@ -170,11 +163,19 @@ export default function AgendaHero({ matches }: { matches: Match[] }) {
                     <p className="text-muted-foreground capitalize">{today}</p>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <div>
-                        {matches.map((match) => (
-                            <AgendaCard key={match.id} match={match} />
-                        ))}
-                    </div>
+                    {matches.length > 0 ? (
+                        <div>
+                            {matches.map((match) => (
+                                <AgendaCard key={match.id} match={match} />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center p-10 text-center border-t">
+                            <CalendarX className="w-16 h-16 text-muted-foreground/30 mb-4" />
+                            <h3 className="text-xl font-semibold">Sin partidos por hoy</h3>
+                            <p className="mt-1 text-muted-foreground">No hay eventos programados en la agenda o ya han finalizado.</p>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
