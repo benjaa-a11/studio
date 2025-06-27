@@ -3,7 +3,7 @@ import type { Match } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { Clock, Tv, VideoOff, Clapperboard, Radio, Timer } from "lucide-react";
+import { Clock, Tv, VideoOff, Clapperboard, Radio, Timer, CalendarOff } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 type MatchesHeroProps = {
     matches: Match[];
 };
+
+const NoMatchesCard = () => (
+    <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/20 py-16 text-center w-full">
+        <CalendarOff className="w-16 h-16 text-muted-foreground/50 mb-4" />
+        <h3 className="text-2xl font-semibold text-foreground">
+            Sin partidos por hoy
+        </h3>
+        <p className="mt-2 text-muted-foreground max-w-sm">
+            No hay partidos programados en la agenda de hoy. ¡Disfruta de nuestra grilla de canales!
+        </p>
+    </div>
+)
 
 const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
     const [isViewable, setIsViewable] = useState(false);
@@ -136,11 +148,11 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
     }
     
     return (
-        <Card className="w-[340px] sm:w-[380px] overflow-hidden shadow-lg">
+        <Card className="w-[340px] sm:w-[380px] overflow-hidden shadow-lg flex-shrink-0">
             <CardContent className="p-6 flex flex-col items-center justify-center">
                 <div className="flex items-center justify-between w-full">
                     <div className="flex flex-col items-center gap-2 text-center w-[100px]">
-                        <Image src={match.team1Logo} alt={match.team1} width={64} height={64} className="h-16 w-16 object-contain drop-shadow-sm" data-ai-hint="team logo" />
+                        <Image src={match.team1Logo} alt={match.team1} width={64} height={64} sizes="64px" className="h-16 w-16 object-contain drop-shadow-sm" data-ai-hint="team logo" />
                         <h3 className="font-semibold truncate w-full">{match.team1}</h3>
                     </div>
                     <div className="h-12 w-12 flex-shrink-0 flex items-center justify-center">
@@ -152,13 +164,14 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
                                 alt={`${match.tournamentName} Logo`}
                                 width={48}
                                 height={48}
+                                sizes="48px"
                                 className="object-contain"
                                 data-ai-hint="tournament logo"
                             />
                         )}
                     </div>
                     <div className="flex flex-col items-center gap-2 text-center w-[100px]">
-                        <Image src={match.team2Logo} alt={match.team2} width={64} height={64} className="h-16 w-16 object-contain drop-shadow-sm" data-ai-hint="team logo" />
+                        <Image src={match.team2Logo} alt={match.team2} width={64} height={64} sizes="64px" className="h-16 w-16 object-contain drop-shadow-sm" data-ai-hint="team logo" />
                         <h3 className="font-semibold truncate w-full">{match.team2}</h3>
                     </div>
                 </div>
@@ -192,24 +205,24 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
 MatchCard.displayName = 'MatchCard';
 
 export default function MatchesHero({ matches }: MatchesHeroProps) {
-    if (!matches || matches.length === 0) {
-        return null;
-    }
-
     return (
         <div className="mb-12">
             <div className="mb-4">
                 <h1 className="text-3xl font-bold tracking-tight">Partidos de Hoy</h1>
                 <p className="text-muted-foreground">La agenda del día en un solo lugar.</p>
             </div>
-            <ScrollArea className="w-full whitespace-nowrap rounded-lg">
-                <div className="flex w-max space-x-4 pb-4">
-                    {matches.map((match) => (
-                        <MatchCard key={match.id} match={match} />
-                    ))}
-                </div>
-                <ScrollBar orientation="horizontal" />
-            </ScrollArea>
+            {matches.length > 0 ? (
+                <ScrollArea className="w-full whitespace-nowrap rounded-lg">
+                    <div className="flex w-max space-x-4 pb-4">
+                        {matches.map((match) => (
+                            <MatchCard key={match.id} match={match} />
+                        ))}
+                    </div>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+            ) : (
+                <NoMatchesCard />
+            )}
         </div>
     );
 }
