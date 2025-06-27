@@ -16,14 +16,14 @@ export type ChannelOption = {
 export type Match = {
   id: string;
   team1: string;
-  team1Logo: string;
+  team1Logo?: string;
   team2: string;
-  team2Logo: string;
+  team2Logo?: string;
   time: string;
   isLive: boolean;
   channels: ChannelOption[];
   matchDetails?: string;
   matchTimestamp: Date;
-  tournamentName: string;
-  tournamentLogo: string | { light: string; dark: string };
+  tournamentName?: string;
+  tournamentLogo?: string | { light: string; dark: string };
 };

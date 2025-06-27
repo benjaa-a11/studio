@@ -1,9 +1,10 @@
 "use server";
 
 import { db } from "./firebase";
-import { collection, getDocs, doc, getDoc, query, where, Timestamp, orderBy, documentId } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, query, where, documentId } from "firebase/firestore";
 import type { Channel, Match, ChannelOption } from "@/types";
 import { placeholderChannels } from "./placeholder-data";
+import * as cheerio from 'cheerio';
 
 // Helper function to use placeholder data as a fallback
 const useFallbackData = () => {
@@ -14,7 +15,7 @@ const useFallbackData = () => {
 export const getChannels = async (): Promise<Channel[]> => {
   try {
     const channelsCollection = collection(db, "channels");
-    const channelSnapshot = await getDocs(channelsCollection);
+    const channelSnapshot = await getDocs(query(channelsCollection));
     
     if (channelSnapshot.empty) {
       return useFallbackData();
@@ -107,103 +108,90 @@ export const getChannelsByCategory = async (category: string, excludeId?: string
   }).slice(0, 5); // Return a max of 5 related channels
 };
 
-const fetchRawMatchesForTournament = async (collectionName: string): Promise<any[]> => {
-  try {
-    const now = new Date();
-    const todayARTStr = now.toLocaleDateString('sv-SE', { timeZone: 'America/Argentina/Buenos_Aires' });
-    const startOfDay = new Date(`${todayARTStr}T00:00:00.000-03:00`);
-    const endOfDay = new Date(`${todayARTStr}T23:59:59.999-03:00`);
+// Function to normalize channel names for better matching
+const normalizeChannelName = (name: string) => {
+    return name
+        .toLowerCase()
+        .replace(/ sports/g, ' sport')
+        .replace(/ tv/g, '')
+        .replace(/ hd/g, '')
+        .replace(/ premium/g, '')
+        .replace(/ futbol/g, ' fútbol')
+        .replace(/[-_.\s]/g, '');
+};
 
-    const q = query(
-      collection(db, collectionName),
-      where("matchTimestamp", ">=", startOfDay),
-      where("matchTimestamp", "<=", endOfDay),
-      orderBy("matchTimestamp")
-    );
-    const matchSnapshot = await getDocs(q);
-    return matchSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  } catch (error) {
-    console.error(`Error al obtener partidos de ${collectionName}:`, error);
-    return [];
-  }
-}
+export const getAgendaMatches = async (): Promise<Match[]> => {
+    try {
+        const [response, allChannels] = await Promise.all([
+            fetch('https://librefutboltv.su/agenda/', {
+                next: { revalidate: 1800 } // Revalidate every 30 minutes
+            }),
+            getChannels()
+        ]);
 
-export const getHeroMatches = async (): Promise<Match[]> => {
-  const tournamentConfigs = [
-    {
-      collectionName: 'mdc25',
-      tournamentName: 'Mundial de Clubes FIFA 2025™',
-      tournamentLogo: 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgncCRI6MuG41vT_fctpMHh4__yYc2efUPB7jpjV9Ro8unR17c9EMBQcaIYmjPShAnnLG1Q1m-9KbNmZoK2SJnWV9bwJ1FN4OMzgcBcy7inf6c9JCSKFz1uV31aC6B1u4EeGxDwQE4z24d7sVZOJzpFjBAG0KECpsJltnqNyH9_iaTnGukhT4gWGeGj_FQ/s16000/Copa%20Mundial%20de%20Clubes.png',
-    },
-    {
-      collectionName: 'copaargentina',
-      tournamentName: 'Copa Argentina',
-      tournamentLogo: {
-        light: 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhMVspg_c6CLXysEZ8f-24rMQ8tfbZtn1WO8KDjZNpFXHmEWco46YoFncJZ1HEdT-nQ0azG-0sUUFiNVWe2eNPSSWI9Xk7aQXun4hrTfr-Ik-XE_SrTX0KzbYojh5kafAWACfwjlujielSrSU4E3bxq6RU8uwoBW4N5-3LCqYkbPa6xvENXZ2O3prv0DHA/s512/Copa%20Argentina%20AXION%20energy.png',
-        dark: 'https://blogger.googleusercontent.com/img/a/AVvXsEi9UORURfsnLGoEWprgs4a69QnccK54jCUVTi-9jJ8aZrWgAakBfIV6957zDUxQ8HDFJKvusZ9av0KuIdJa9y4vx9Ut-QTlsHd755hTVSFBxa_d1DkIwCDDxxZxzmhIRXNONSWKwVc9DzIh6fjrhGLRodCYLBaw99cZTX90tPzSIcmgEY3g7Ma2kUFO=s512',
-      },
-    },
-  ];
+        if (!response.ok) {
+            throw new Error(`Failed to fetch agenda: ${response.statusText}`);
+        }
 
-  const rawMatchesPromises = tournamentConfigs.map(t => 
-    fetchRawMatchesForTournament(t.collectionName).then(matches => 
-      matches.map(m => ({ ...m, ...t }))
-    )
-  );
+        const html = await response.text();
+        const $ = cheerio.load(html);
+        const matches: Match[] = [];
 
-  const allRawMatchesNested = await Promise.all(rawMatchesPromises);
-  const allRawMatches = allRawMatchesNested.flat();
+        const channelsMap = new Map(allChannels.map(c => [normalizeChannelName(c.name), c]));
+        
+        const now = new Date();
 
-  if (allRawMatches.length === 0) {
-    return [];
-  }
+        $('.event-info').each((_, element) => {
+            const timeStr = $(element).find('.event-time').text().trim();
+            const title = $(element).find('.event-title').text().trim();
+            const league = $(element).find('.event-league').text().trim();
 
-  const now = new Date();
-  // A match is considered expired 2 hours and 15 minutes after it starts.
-  const twoHoursFifteenMinutes = 2 * 60 * 60 * 1000 + 15 * 60 * 1000;
-  const matchExpiration = new Date(now.getTime() - twoHoursFifteenMinutes);
-  
-  const validMatches = allRawMatches.filter(matchData => {
-    const matchTimestamp = matchData.matchTimestamp?.toDate ? matchData.matchTimestamp.toDate() : new Date(matchData.matchTimestamp);
-    return matchTimestamp >= matchExpiration;
-  });
+            const scrapedChannels = $(element).find('.event-channels a')
+                .map((_, el) => $(el).text().trim()).get();
 
-  const allChannelIds = new Set(
-    validMatches.flatMap(match => (Array.isArray(match.channels) ? match.channels : []))
-  );
+            if (!timeStr || !title) return;
 
-  const channels = await getChannelsByIds(Array.from(allChannelIds));
-  const channelsMap = new Map(channels.map(c => [c.id, c]));
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            const matchTimestamp = new Date();
+            matchTimestamp.setHours(hours, minutes, 0, 0);
 
-  const processedMatches = validMatches.map((matchData): Match | null => {
-    const matchTimestamp = matchData.matchTimestamp.toDate();
-    
-    const channelIds: string[] = Array.isArray(matchData.channels) ? matchData.channels : [];
-    const channelOptions: ChannelOption[] = channelIds
-      .map(id => {
-        const channel = channelsMap.get(id);
-        if (!channel) return null;
-        return { id: channel.id, name: channel.name, logoUrl: channel.logoUrl };
-      })
-      .filter((c): c is ChannelOption => c !== null);
+            const teams = title.split(' vs ');
+            if (teams.length < 2) return;
 
-    return {
-      id: matchData.id,
-      team1: matchData.team1,
-      team1Logo: matchData.team1Logo,
-      team2: matchData.team2,
-      team2Logo: matchData.team2Logo,
-      time: matchTimestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires', hour12: false }),
-      isLive: now >= matchTimestamp,
-      channels: channelOptions,
-      matchDetails: matchData.matchDetails,
-      matchTimestamp: matchTimestamp,
-      tournamentName: matchData.tournamentName,
-      tournamentLogo: matchData.tournamentLogo,
-    };
-  }).filter((match): match is Match => match !== null);
+            const [team1, team2] = teams;
 
-  processedMatches.sort((a, b) => a.matchTimestamp.getTime() - b.matchTimestamp.getTime());
-  
-  return processedMatches;
+            const channelOptions: ChannelOption[] = scrapedChannels.map(scrapedName => {
+                const normalizedName = normalizeChannelName(scrapedName);
+                const matchedChannel = channelsMap.get(normalizedName);
+                
+                if (matchedChannel) {
+                    return { id: matchedChannel.id, name: matchedChannel.name, logoUrl: matchedChannel.logoUrl };
+                }
+                return null;
+            }).filter((c): c is ChannelOption => c !== null);
+            
+            // Only include matches that have at least one channel we can stream
+            if (channelOptions.length === 0) return;
+
+            const isLive = now >= matchTimestamp && (now.getTime() - matchTimestamp.getTime()) < (2 * 60 + 15) * 60 * 1000;
+
+            matches.push({
+                id: `${team1}-${team2}-${timeStr}`.replace(/\s+/g, '-').toLowerCase(),
+                team1: team1.trim(),
+                team2: team2.trim(),
+                team1Logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(team1.trim())}&background=random&color=fff`,
+                team2Logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(team2.trim())}&background=random&color=fff`,
+                time: timeStr,
+                isLive: isLive,
+                channels: channelOptions,
+                tournamentName: league,
+                matchTimestamp: matchTimestamp,
+            });
+        });
+        
+        return matches;
+    } catch (error) {
+        console.error("Error scraping agenda:", error);
+        return []; // Return empty array on error
+    }
 };
