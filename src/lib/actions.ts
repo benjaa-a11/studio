@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { db } from "./firebase";
 import { collection, getDocs, doc, getDoc, query, where, documentId, Timestamp } from "firebase/firestore";
 import type { Channel, Match, ChannelOption, Movie } from "@/types";
@@ -11,7 +12,8 @@ const useFallbackData = () => {
   return placeholderChannels;
 };
 
-export const getChannels = async (): Promise<Channel[]> => {
+// Cached version of getChannels
+export const getChannels = cache(async (): Promise<Channel[]> => {
   try {
     const channelsCollection = collection(db, "channels");
     const channelSnapshot = await getDocs(query(channelsCollection));
@@ -30,7 +32,7 @@ export const getChannels = async (): Promise<Channel[]> => {
     console.error("Error al obtener canales de Firebase:", error);
     return useFallbackData();
   }
-};
+});
 
 export const getChannelById = async (id: string): Promise<Channel | null> => {
   try {
@@ -86,7 +88,7 @@ export const getChannelsByIds = async (ids: string[]): Promise<Channel[]> => {
   } catch (error) {
     console.error("Error fetching channels by IDs from Firebase:", error);
     // Fallback to placeholder data for any matching IDs
-    const allPlaceholderChannels = placeholderChannels;
+    const allPlaceholderChannels = await getChannels();
     const placeholderMap = new Map(allPlaceholderChannels.map(c => [c.id, c]));
     return ids.map(id => placeholderMap.get(id)).filter((c): c is Channel => !!c);
   }
@@ -184,7 +186,8 @@ const useMovieFallbackData = () => {
   return placeholderMovies;
 };
 
-export const getMovies = async (): Promise<Movie[]> => {
+// Cached version of getMovies
+export const getMovies = cache(async (): Promise<Movie[]> => {
   try {
     const moviesCollection = collection(db, "peliculas");
     const movieSnapshot = await getDocs(query(moviesCollection));
@@ -203,7 +206,7 @@ export const getMovies = async (): Promise<Movie[]> => {
     console.error("Error al obtener películas de Firebase:", error);
     return useMovieFallbackData();
   }
-};
+});
 
 export const getMovieById = async (id: string): Promise<Movie | null> => {
   try {

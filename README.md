@@ -42,13 +42,16 @@ This application is configured to connect to a Firebase project.
         {
             "title": "Movie Title",
             "posterUrl": "https://...",
-            "streamUrl": "https://... (iframe embed link)",
+            "streamUrl": "https://... (mp4 or iframe link)",
+            "format": "mp4" or "iframe",
             "category": "Category Name",
             "description": "A brief movie synopsis.",
             "year": 2024,
             "duration": "2h 15m"
         }
         ```
+        - **`format`**: (Optional) Specify `'mp4'` to use the advanced, custom video player. Otherwise, it will default to an `iframe` embed.
+        - **`streamUrl`**: For `mp4` format, this must be a direct link to the video file. For `iframe`, it should be the embeddable link.
 
     - Each document in the `mdc25` and `copaargentina` collections should have the following structure:
         ```json
