@@ -38,10 +38,17 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handlePlayPause = useCallback(() => {
+  const handlePlayPause = useCallback(async () => {
     if (videoRef.current) {
       if (videoRef.current.paused) {
-        videoRef.current.play();
+        try {
+          await videoRef.current.play();
+        } catch (err) {
+          // This can happen if the user quickly pauses after playing.
+          // It's usually safe to ignore, but we'll log it for debugging.
+          console.error("Video play failed:", err);
+          setIsPlaying(false);
+        }
       } else {
         videoRef.current.pause();
       }
@@ -144,10 +151,22 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
     const onFullScreenChange = () => setIsFullScreen(!!document.fullscreenElement);
     const onKeyDown = (e: KeyboardEvent) => {
         if ((e.target as HTMLElement).tagName === 'INPUT') return;
-        if (e.key === " ") e.preventDefault();
-        if (e.key === " " || e.key === "k") handlePlayPause();
-        if (e.key === "f") handleFullScreenToggle();
-        if (e.key === "m") handleMuteToggle();
+        
+        switch(e.key.toLowerCase()) {
+            case " ":
+            case "k":
+                e.preventDefault(); // Prevent page scroll on space
+                handlePlayPause();
+                break;
+            case "f":
+                e.preventDefault();
+                handleFullScreenToggle();
+                break;
+            case "m":
+                e.preventDefault();
+                handleMuteToggle();
+                break;
+        }
     };
 
     video.addEventListener("play", onPlay);
@@ -157,8 +176,10 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
     video.addEventListener("waiting", onWaiting);
     video.addEventListener("canplay", onCanPlay);
     video.addEventListener("playing", onPlaying);
+    
+    const playerEl = playerRef.current;
     document.addEventListener("fullscreenchange", onFullScreenChange);
-    playerRef.current?.addEventListener("keydown", onKeyDown);
+    playerEl?.addEventListener("keydown", onKeyDown);
 
     resetControlsTimeout();
 
@@ -171,7 +192,7 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
       video.removeEventListener("canplay", onCanPlay);
       video.removeEventListener("playing", onPlaying);
       document.removeEventListener("fullscreenchange", onFullScreenChange);
-      playerRef.current?.removeEventListener("keydown", onKeyDown);
+      playerEl?.removeEventListener("keydown", onKeyDown);
       if (controlsTimeoutRef.current) {
         clearTimeout(controlsTimeoutRef.current);
       }
@@ -240,7 +261,7 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
                 value={[progress]}
                 onValueChange={handleProgressChange}
                 className="w-full h-2 cursor-pointer [&>span:last-child]:h-3.5 [&>span:last-child]:w-3.5 [&>span:last-child]:bg-red-500"
-                style={{'--primary': 'hsl(346.8 77.2% 49.8%)', '--secondary': 'hsl(0 0% 100% / 0.3)'} as React.CSSProperties}
+                style={sliderColorStyle}
             />
         </div>
         <div className="flex items-center gap-3 px-2 sm:px-4 pb-1 text-white">
@@ -269,5 +290,3 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
     </div>
   );
 }
-
-    
