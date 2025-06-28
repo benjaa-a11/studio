@@ -153,7 +153,7 @@ export const getAgendaMatches = async (): Promise<Match[]> => {
                 team1Logo: data.team1Logo,
                 team2: data.team2,
                 team2Logo: data.team2Logo,
-                time: matchTimestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' }),
+                time: matchTimestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires', hour12: false }),
                 isLive: isLive,
                 isWatchable: isWatchable,
                 channels: channelOptions,
