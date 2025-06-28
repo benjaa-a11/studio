@@ -44,8 +44,6 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
         try {
           await videoRef.current.play();
         } catch (err) {
-          // This can happen if the user quickly pauses after playing.
-          // It's usually safe to ignore, but we'll log it for debugging.
           console.error("Video play failed:", err);
           setIsPlaying(false);
         }
@@ -132,7 +130,10 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
     if (!video) return;
 
     const onPlay = () => setIsPlaying(true);
-    const onPause = () => setIsPlaying(false);
+    const onPause = () => {
+        setIsPlaying(false);
+        setShowControls(true);
+    };
     const onVolumeChange = () => {
         if (video) setIsMuted(video.muted);
     };
@@ -155,7 +156,7 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
         switch(e.key.toLowerCase()) {
             case " ":
             case "k":
-                e.preventDefault(); // Prevent page scroll on space
+                e.preventDefault();
                 handlePlayPause();
                 break;
             case "f":
@@ -214,12 +215,12 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
       className="relative w-full h-full bg-black flex items-center justify-center group/player overflow-hidden outline-none"
       onMouseMove={resetControlsTimeout}
       onMouseLeave={hideControls}
+      onClick={resetControlsTimeout}
     >
       <video
         ref={videoRef}
         src={src}
         className="max-h-full w-full object-contain"
-        onClick={handlePlayPause}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onDoubleClick={handleFullScreenToggle}
@@ -249,21 +250,24 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
       
       <div
         className={cn(
-          "absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-300",
-          showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+          "absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/70 to-transparent",
+          "transition-all duration-300 ease-in-out",
+          showControls ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"
         )}
       >
-        <div className="mx-2 sm:mx-4 mb-2">
-            <Slider
-                min={0}
-                max={duration || 1}
-                step={1}
-                value={[progress]}
-                onValueChange={handleProgressChange}
-                className="w-full h-2 cursor-pointer [&>span:last-child]:h-3.5 [&>span:last-child]:w-3.5 [&>span:last-child]:bg-red-500"
-                style={sliderColorStyle}
-            />
-        </div>
+        {isFullScreen && (
+            <div className="mx-2 sm:mx-4 mb-2">
+                <Slider
+                    min={0}
+                    max={duration || 1}
+                    step={1}
+                    value={[progress]}
+                    onValueChange={handleProgressChange}
+                    className="w-full h-2 cursor-pointer [&>span:last-child]:h-3.5 [&>span:last-child]:w-3.5 [&>span:last-child]:bg-red-500"
+                    style={sliderColorStyle}
+                />
+            </div>
+        )}
         <div className="flex items-center gap-3 px-2 sm:px-4 pb-1 text-white">
             <button onClick={handlePlayPause} className="hover:text-red-500 transition-colors p-1">
               {isPlaying ? <Pause size={26} /> : <Play size={26} />}
