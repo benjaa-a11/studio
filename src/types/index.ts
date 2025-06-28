@@ -21,6 +21,7 @@ export type Match = {
   team2Logo?: string;
   time: string;
   isLive: boolean;
+  isWatchable: boolean;
   channels: ChannelOption[];
   matchDetails?: string;
   matchTimestamp: Date;

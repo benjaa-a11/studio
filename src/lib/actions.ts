@@ -134,14 +134,18 @@ export const getAgendaMatches = async (): Promise<Match[]> => {
             const data = docSnap.data();
             const matchTimestamp = (data.matchTimestamp as Timestamp).toDate();
             
-            // Hide match 3 hours after it started
-            if (now.getTime() - matchTimestamp.getTime() > 3 * 60 * 60 * 1000) {
+            // Hide match 2 hours and 15 minutes (135 minutes) after it started
+            if (now.getTime() - matchTimestamp.getTime() > (135 * 60 * 1000)) {
                 return;
             }
 
             const channelOptions: ChannelOption[] = (data.channels || []).map((id: string) => 
                 allChannelsMap.get(id)
             ).filter((c: ChannelOption | undefined): c is ChannelOption => !!c);
+            
+            const isLive = now.getTime() >= matchTimestamp.getTime();
+            // A match becomes watchable 30 minutes before it starts and remains so until it's removed from the agenda.
+            const isWatchable = matchTimestamp.getTime() - now.getTime() <= (30 * 60 * 1000);
 
             allMatches.push({
                 id: docSnap.id,
@@ -150,7 +154,8 @@ export const getAgendaMatches = async (): Promise<Match[]> => {
                 team2: data.team2,
                 team2Logo: data.team2Logo,
                 time: matchTimestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' }),
-                isLive: now > matchTimestamp,
+                isLive: isLive,
+                isWatchable: isWatchable,
                 channels: channelOptions,
                 matchDetails: data.matchDetails,
                 matchTimestamp: matchTimestamp,

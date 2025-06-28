@@ -59,6 +59,15 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
     }, [theme, match.tournamentLogo, isClient]);
 
     const renderButton = () => {
+        if (!match.isWatchable) {
+            return (
+                <Button className="w-full" disabled>
+                    <Clock className="mr-2 h-4 w-4" />
+                    Próximamente
+                </Button>
+            );
+        }
+
         if (match.channels && match.channels.length > 0) {
              if (match.channels.length === 1) {
                 return (
