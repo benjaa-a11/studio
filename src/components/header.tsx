@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, ListFilter, Settings, Heart } from "lucide-react";
+import { Search, ListFilter, Settings, Heart, Film } from "lucide-react";
 import { useChannelFilters } from "@/hooks/use-channel-filters";
 import { useState, useEffect } from "react";
 
@@ -74,6 +74,14 @@ const HeaderContent = () => {
   if (pathname === "/") {
     return <Filters />;
   }
+  if (pathname.startsWith('/peliculas')) {
+    return (
+      <div className="flex items-center gap-3 w-full justify-center md:justify-start">
+        <Film className="h-6 w-6 text-primary" />
+        <h1 className="text-xl font-semibold tracking-tight">Películas</h1>
+      </div>
+    );
+  }
   if (pathname.startsWith('/favoritos')) {
     return (
       <div className="flex items-center gap-3 w-full justify-center md:justify-start">
@@ -120,6 +128,12 @@ export default function Header() {
         
         <div className="flex-none">
             <nav className="hidden items-center md:flex">
+              <Button asChild variant={pathname.startsWith('/peliculas') ? "secondary" : "ghost"}>
+                <Link href="/peliculas">
+                  <Film className="h-5 w-5 mr-2" />
+                  Películas
+                </Link>
+              </Button>
               <Button asChild variant={pathname.startsWith('/favoritos') ? "secondary" : "ghost"}>
                 <Link href="/favoritos">
                   <Heart className="h-5 w-5 mr-2" />

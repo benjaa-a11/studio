@@ -22,7 +22,7 @@ This application is configured to connect to a Firebase project.
 
 1.  **Firebase Configuration**: The Firebase configuration is located in `src/lib/firebase.ts`. The placeholder values from the proposal have been used.
 
-2.  **Firestore Database**: The application expects a Firestore database with three collections: `channels`, `mdc25`, and `copaargentina`.
+2.  **Firestore Database**: The application expects a Firestore database with four collections: `channels`, `peliculas`, `mdc25`, and `copaargentina`.
 
 3.  **Data Structure**: 
     - Each document in the `channels` collection should have the following structure:
@@ -36,6 +36,19 @@ This application is configured to connect to a Firebase project.
         }
         ```
         - **`streamUrl`**: This is an array of strings. The first URL is the primary source. If it fails to load, the app will automatically try the next URL in the array.
+
+    - Each document in the `peliculas` collection should have the following structure:
+        ```json
+        {
+            "title": "Movie Title",
+            "posterUrl": "https://...",
+            "streamUrl": "https://... (iframe embed link)",
+            "category": "Category Name",
+            "description": "A brief movie synopsis.",
+            "year": 2024,
+            "duration": "2h 15m"
+        }
+        ```
 
     - Each document in the `mdc25` and `copaargentina` collections should have the following structure:
         ```json
@@ -72,6 +85,10 @@ This application is configured to connect to a Firebase project.
     service cloud.firestore {
       match /databases/{database}/documents {
         match /channels/{channelId} {
+          allow read: if true;
+          allow write: if false; // Or your admin logic
+        }
+        match /peliculas/{peliculaId} {
           allow read: if true;
           allow write: if false; // Or your admin logic
         }

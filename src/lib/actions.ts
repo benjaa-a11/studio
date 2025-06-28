@@ -2,8 +2,8 @@
 
 import { db } from "./firebase";
 import { collection, getDocs, doc, getDoc, query, where, documentId, Timestamp } from "firebase/firestore";
-import type { Channel, Match, ChannelOption } from "@/types";
-import { placeholderChannels } from "./placeholder-data";
+import type { Channel, Match, ChannelOption, Movie } from "@/types";
+import { placeholderChannels, placeholderMovies } from "./placeholder-data";
 
 // Helper function to use placeholder data as a fallback
 const useFallbackData = () => {
@@ -121,54 +121,49 @@ export const getAgendaMatches = async (): Promise<Match[]> => {
     const matchCollections = ["mdc25", "copaargentina"];
     let allMatches: Match[] = [];
 
-    // Create a query for each collection
-    const queries = matchCollections.map(coll => 
-        query(
-            collection(db, coll),
-            where("matchTimestamp", ">=", Timestamp.fromDate(startOfToday)),
-            where("matchTimestamp", "<", Timestamp.fromDate(endOfToday))
-        )
-    );
+    for (const coll of matchCollections) {
+      const q = query(
+          collection(db, coll),
+          where("matchTimestamp", ">=", Timestamp.fromDate(startOfToday)),
+          where("matchTimestamp", "<", Timestamp.fromDate(endOfToday))
+      );
 
-    // Fetch all queries in parallel
-    const querySnapshots = await Promise.all(queries.map(q => getDocs(q)));
+      const querySnapshot = await getDocs(q);
 
-    // Process the results from all snapshots
-    querySnapshots.forEach((snapshot, index) => {
-        const coll = matchCollections[index];
-        snapshot.forEach(docSnap => {
-            const data = docSnap.data();
-            const matchTimestamp = (data.matchTimestamp as Timestamp).toDate();
-            
-            // Hide match 2 hours and 15 minutes (135 minutes) after it started
-            if (now.getTime() - matchTimestamp.getTime() > (135 * 60 * 1000)) {
-                return;
-            }
+      querySnapshot.forEach(docSnap => {
+          const data = docSnap.data();
+          const matchTimestamp = (data.matchTimestamp as Timestamp).toDate();
+          
+          // Hide match 3 hours after it started
+          if (now.getTime() - matchTimestamp.getTime() > (180 * 60 * 1000)) {
+              return;
+          }
 
-            const channelOptions: ChannelOption[] = (data.channels || []).map((id: string) => 
-                allChannelsMap.get(id)
-            ).filter((c: ChannelOption | undefined): c is ChannelOption => !!c);
-            
-            const isLive = now.getTime() >= matchTimestamp.getTime();
-            const isWatchable = matchTimestamp.getTime() - now.getTime() <= (30 * 60 * 1000);
+          const channelOptions: ChannelOption[] = (data.channels || []).map((id: string) => 
+              allChannelsMap.get(id)
+          ).filter((c: ChannelOption | undefined): c is ChannelOption => !!c);
+          
+          const isLive = now.getTime() >= matchTimestamp.getTime();
+          // Button is enabled 30 mins before match
+          const isWatchable = matchTimestamp.getTime() - now.getTime() <= (30 * 60 * 1000);
 
-            allMatches.push({
-                id: docSnap.id,
-                team1: data.team1,
-                team1Logo: data.team1Logo,
-                team2: data.team2,
-                team2Logo: data.team2Logo,
-                time: matchTimestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires', hour12: false }),
-                isLive: isLive,
-                isWatchable: isWatchable,
-                channels: channelOptions,
-                matchDetails: data.matchDetails,
-                matchTimestamp: matchTimestamp,
-                tournamentName: coll === 'mdc25' ? 'Copa del Mundo 2025' : 'Copa Argentina',
-                tournamentLogo: coll === 'mdc25' ? { light: '/mdc25-light.png', dark: '/mdc25-dark.png' } : { light: '/afa-light.png', dark: '/afa-dark.png' },
-            });
-        });
-    });
+          allMatches.push({
+              id: docSnap.id,
+              team1: data.team1,
+              team1Logo: data.team1Logo,
+              team2: data.team2,
+              team2Logo: data.team2Logo,
+              time: matchTimestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires', hour12: false }),
+              isLive: isLive,
+              isWatchable: isWatchable,
+              channels: channelOptions,
+              matchDetails: data.matchDetails,
+              matchTimestamp: matchTimestamp,
+              tournamentName: coll === 'mdc25' ? 'Copa del Mundo 2025' : 'Copa Argentina',
+              tournamentLogo: coll === 'mdc25' ? { light: '/mdc25-light.png', dark: '/mdc25-dark.png' } : { light: '/afa-light.png', dark: '/afa-dark.png' },
+          });
+      });
+    }
     
     // Sort all combined matches by time
     return allMatches.sort((a, b) => a.matchTimestamp.getTime() - b.matchTimestamp.getTime());
@@ -177,5 +172,59 @@ export const getAgendaMatches = async (): Promise<Match[]> => {
     console.error("Error al obtener partidos de Firebase:", error);
     // Return empty array on error as there is no placeholder match data
     return [];
+  }
+};
+
+
+// --- MOVIES ---
+
+const useMovieFallbackData = () => {
+  console.warn("Firebase no disponible o colección de películas vacía. Usando datos de demostración.");
+  return placeholderMovies;
+};
+
+export const getMovies = async (): Promise<Movie[]> => {
+  try {
+    const moviesCollection = collection(db, "peliculas");
+    const movieSnapshot = await getDocs(query(moviesCollection));
+    
+    if (movieSnapshot.empty) {
+      return useMovieFallbackData();
+    }
+    
+    const movies = movieSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    } as Movie));
+    
+    return movies;
+  } catch (error) {
+    console.error("Error al obtener películas de Firebase:", error);
+    return useMovieFallbackData();
+  }
+};
+
+export const getMovieById = async (id: string): Promise<Movie | null> => {
+  try {
+    const movieDoc = doc(db, "peliculas", id);
+    const movieSnapshot = await getDoc(movieDoc);
+
+    if (movieSnapshot.exists()) {
+      return { id: movieSnapshot.id, ...movieSnapshot.data() } as Movie;
+    } else {
+      const fallbackMovie = placeholderMovies.find(m => m.id === id);
+      if (fallbackMovie) {
+        console.warn(`Película con id ${id} no encontrada en Firebase. Usando dato de demostración.`);
+        return fallbackMovie;
+      }
+      return null;
+    }
+  } catch (error) {
+    console.error(`Error al obtener película con id ${id}:`, error);
+    const fallbackMovie = placeholderMovies.find(m => m.id === id);
+    if (fallbackMovie) {
+      return fallbackMovie;
+    }
+    return null;
   }
 };
