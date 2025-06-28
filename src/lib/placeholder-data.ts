@@ -18,7 +18,7 @@ export const placeholderMovies: Movie[] = [
     id: "peli-1",
     title: "Interestelar",
     posterUrl: "https://m.media-amazon.com/images/M/MV5BZjdkOTU3MDktN2IxOS00OGEyLWFmMjktY2FiMmZkNWIyODZiXkEyXkFqcGdeQXVyMTMxODk2OTU@._V1_FMjpg_UX1000_.jpg",
-    streamUrl: "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4", // MP4 sample
+    streamUrl: "samples/elephants",
     category: "Ciencia Ficción",
     description: "Un equipo de exploradores viaja a través de un agujero de gusano en el espacio en un intento de asegurar la supervivencia de la humanidad.",
     year: 2014,
