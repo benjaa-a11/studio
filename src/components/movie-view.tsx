@@ -5,8 +5,7 @@ import { ArrowLeft, VideoOff, Calendar, Clock } from "lucide-react";
 import type { Movie } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { CldVideoPlayer } from 'next-cloudinary';
-import 'next-cloudinary/dist/cld-video-player.css';
+import VideoPlayer from "@/components/video-player";
 
 type MovieViewProps = {
   movie: Movie;
@@ -33,18 +32,7 @@ export default function MovieView({ movie }: MovieViewProps) {
             <main>
               <div className="aspect-video relative w-full overflow-hidden rounded-lg bg-black shadow-2xl shadow-primary/10">
                 {movie.format === 'mp4' && movie.streamUrl ? (
-                   <CldVideoPlayer
-                    width="1920"
-                    height="1080"
-                    src={movie.streamUrl}
-                    className="w-full h-full"
-                    onMetadataLoad={({ player }) => {
-                      console.log(`[CldVideoPlayer] Duration: ${player.duration()}`);
-                    }}
-                    onPause={({ player }) => {
-                      console.log(`[CldVideoPlayer] Current Time: ${player.currentTime()}`);
-                    }}
-                  />
+                   <VideoPlayer src={movie.streamUrl} />
                 ) : movie.streamUrl ? (
                   <iframe
                     key={movie.id}
