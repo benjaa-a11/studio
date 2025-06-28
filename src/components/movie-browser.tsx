@@ -1,8 +1,10 @@
 "use client";
 
+import { useMemo } from "react";
 import type { Movie } from "@/types";
 import MovieCard from "./movie-card";
 import { Clapperboard } from "lucide-react";
+import { useMovieFilters } from "@/hooks/use-movie-filters";
 
 type MovieBrowserProps = {
   movies: Movie[];
@@ -11,12 +13,25 @@ type MovieBrowserProps = {
 export default function MovieBrowser({
   movies,
 }: MovieBrowserProps) {
+  const { searchTerm, selectedCategory } = useMovieFilters();
+
+  const filteredMovies = useMemo(() => {
+    return movies.filter((movie) => {
+      if (!movie) return false;
+      const matchesCategory =
+        selectedCategory === "Todas" || movie.category === selectedCategory;
+      const matchesSearch =
+        (movie.title?.toLowerCase() ?? "").includes(searchTerm.toLowerCase()) ||
+        (movie.description?.toLowerCase() ?? "").includes(searchTerm.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [movies, searchTerm, selectedCategory]);
 
   return (
     <div className="space-y-8">
-      {movies.length > 0 ? (
+      {filteredMovies.length > 0 ? (
         <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-          {movies.map((movie) => (
+          {filteredMovies.map((movie) => (
             <MovieCard key={movie.id} movie={movie} />
           ))}
         </div>
@@ -27,7 +42,7 @@ export default function MovieBrowser({
             No se encontraron películas
           </h3>
           <p className="mt-2 text-muted-foreground max-w-sm">
-            Vuelve más tarde para ver el contenido disponible en esta sección.
+            Prueba a cambiar la categoría o utiliza un término de búsqueda diferente.
           </p>
         </div>
       )}

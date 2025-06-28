@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Heart, Settings, Film } from "lucide-react";
+import { Home, Heart, Settings, Popcorn } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 
 const navItems = [
   { href: "/", label: "Inicio", icon: Home },
-  { href: "/peliculas", label: "Películas", icon: Film },
+  { href: "/peliculas", label: "Películas", icon: Popcorn },
   { href: "/favoritos", label: "Favoritos", icon: Heart },
   { href: "/ajustes", label: "Ajustes", icon: Settings },
 ];

@@ -4,8 +4,9 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
 import LayoutWrapper from "@/components/layout-wrapper";
-import { getCategories } from "@/lib/actions";
-import { FilterProvider } from "@/hooks/use-channel-filters";
+import { getCategories, getMovieCategories } from "@/lib/actions";
+import { ChannelFilterProvider } from "@/hooks/use-channel-filters";
+import { MovieFilterProvider } from "@/hooks/use-movie-filters";
 import { ThemeProvider } from "@/components/theme-provider";
 
 const fontSans = Inter({
@@ -48,7 +49,8 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const categories = await getCategories();
+  const channelCategories = await getCategories();
+  const movieCategories = await getMovieCategories();
 
   return (
     <html lang="es" suppressHydrationWarning>
@@ -81,10 +83,12 @@ export default async function RootLayout({
           }}
         />
         <ThemeProvider defaultTheme="dark" storageKey="plan-b-theme">
-          <FilterProvider initialCategories={categories}>
-            <LayoutWrapper>{children}</LayoutWrapper>
-            <Toaster />
-          </FilterProvider>
+          <ChannelFilterProvider initialCategories={channelCategories}>
+            <MovieFilterProvider initialCategories={movieCategories}>
+              <LayoutWrapper>{children}</LayoutWrapper>
+              <Toaster />
+            </MovieFilterProvider>
+          </ChannelFilterProvider>
         </ThemeProvider>
       </body>
     </html>

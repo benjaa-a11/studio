@@ -134,8 +134,9 @@ export const getAgendaMatches = async (): Promise<Match[]> => {
           const data = docSnap.data();
           const matchTimestamp = (data.matchTimestamp as Timestamp).toDate();
           
-          // Hide match 3 hours after it started
-          if (now.getTime() - matchTimestamp.getTime() > (180 * 60 * 1000)) {
+          const timeSinceStart = now.getTime() - matchTimestamp.getTime();
+          // Hide match 2 hours and 15 minutes after it started (135 minutes)
+          if (timeSinceStart > (135 * 60 * 1000)) {
               return;
           }
 
@@ -227,4 +228,11 @@ export const getMovieById = async (id: string): Promise<Movie | null> => {
     }
     return null;
   }
+};
+
+export const getMovieCategories = async (): Promise<string[]> => {
+  const movies = await getMovies();
+  if (!movies || movies.length === 0) return [];
+  const categories = new Set(movies.map(movie => movie.category));
+  return Array.from(categories).sort();
 };
