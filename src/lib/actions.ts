@@ -121,16 +121,22 @@ export const getAgendaMatches = async (): Promise<Match[]> => {
     const matchCollections = ["mdc25", "copaargentina"];
     let allMatches: Match[] = [];
 
-    for (const coll of matchCollections) {
-        const q = query(
+    // Create a query for each collection
+    const queries = matchCollections.map(coll => 
+        query(
             collection(db, coll),
             where("matchTimestamp", ">=", Timestamp.fromDate(startOfToday)),
             where("matchTimestamp", "<", Timestamp.fromDate(endOfToday))
-        );
+        )
+    );
 
-        const querySnapshot = await getDocs(q);
+    // Fetch all queries in parallel
+    const querySnapshots = await Promise.all(queries.map(q => getDocs(q)));
 
-        querySnapshot.forEach(docSnap => {
+    // Process the results from all snapshots
+    querySnapshots.forEach((snapshot, index) => {
+        const coll = matchCollections[index];
+        snapshot.forEach(docSnap => {
             const data = docSnap.data();
             const matchTimestamp = (data.matchTimestamp as Timestamp).toDate();
             
@@ -144,7 +150,6 @@ export const getAgendaMatches = async (): Promise<Match[]> => {
             ).filter((c: ChannelOption | undefined): c is ChannelOption => !!c);
             
             const isLive = now.getTime() >= matchTimestamp.getTime();
-            // A match becomes watchable 30 minutes before it starts and remains so until it's removed from the agenda.
             const isWatchable = matchTimestamp.getTime() - now.getTime() <= (30 * 60 * 1000);
 
             allMatches.push({
@@ -163,8 +168,9 @@ export const getAgendaMatches = async (): Promise<Match[]> => {
                 tournamentLogo: coll === 'mdc25' ? { light: '/mdc25-light.png', dark: '/mdc25-dark.png' } : { light: '/afa-light.png', dark: '/afa-dark.png' },
             });
         });
-    }
+    });
     
+    // Sort all combined matches by time
     return allMatches.sort((a, b) => a.matchTimestamp.getTime() - b.matchTimestamp.getTime());
 
   } catch (error) {
