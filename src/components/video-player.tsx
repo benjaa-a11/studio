@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Play, Pause, Volume2, VolumeX, Maximize, Minimize } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Loader2 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
@@ -9,24 +9,33 @@ type VideoPlayerProps = {
   src: string;
 };
 
-const formatTime = (timeInSeconds: number): string => {
-  if (isNaN(timeInSeconds)) return "00:00";
-  const totalSeconds = Math.floor(timeInSeconds);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
+const formatTime = (timeInSeconds: number, showHours: boolean = false): string => {
+  if (isNaN(timeInSeconds) || timeInSeconds < 0) {
+    return showHours ? "0:00:00" : "00:00";
+  }
+
+  const hours = Math.floor(timeInSeconds / 3600);
+  const minutes = Math.floor((timeInSeconds % 3600) / 60);
+  const seconds = Math.floor(timeInSeconds % 60);
+
+  if (showHours) {
+    return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  }
+
   return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 };
+
 
 export default function VideoPlayer({ src }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handlePlayPause = useCallback(() => {
@@ -38,17 +47,6 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
       }
     }
   }, []);
-
-  const handleVolumeChange = (value: number[]) => {
-    if (videoRef.current) {
-        const newVolume = value[0];
-        videoRef.current.volume = newVolume;
-        setVolume(newVolume);
-        if (newVolume > 0 && videoRef.current.muted) {
-            videoRef.current.muted = false;
-        }
-    }
-  };
   
   const handleMuteToggle = useCallback(() => {
     if (videoRef.current) {
@@ -83,16 +81,30 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
     }
   };
   
-  const handleFullScreenToggle = useCallback(() => {
-    if (!playerRef.current) return;
+  const handleFullScreenToggle = useCallback(async () => {
+    const player = playerRef.current;
+    if (!player) return;
+
     if (!document.fullscreenElement) {
-      playerRef.current.requestFullscreen().catch(err => {
-        console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-      });
+        try {
+            await player.requestFullscreen();
+            if (screen.orientation && typeof screen.orientation.lock === "function") {
+                await screen.orientation.lock("landscape").catch(() => {});
+            }
+        } catch (err) {
+            console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+        }
     } else {
-      document.exitFullscreen();
+        try {
+            if (screen.orientation && typeof screen.orientation.unlock === "function") {
+                screen.orientation.unlock();
+            }
+            await document.exitFullscreen();
+        } catch (err) {
+            console.error(`Error exiting full-screen mode: ${err.message} (${err.name})`);
+        }
     }
-  }, []);
+}, []);
   
   const hideControls = useCallback(() => {
     if (videoRef.current && !videoRef.current.paused) {
@@ -112,34 +124,39 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
     const video = videoRef.current;
     if (!video) return;
 
-    const onPlay = () => {
-      setIsPlaying(true);
-      resetControlsTimeout();
-    };
-    const onPause = () => {
-      setIsPlaying(false);
-      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-      setShowControls(true);
-    };
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
     const onVolumeChange = () => {
-      if (video) {
-        setVolume(video.volume);
-        setIsMuted(video.muted);
-      }
+        if (video) setIsMuted(video.muted);
     };
-    const onFullScreenChange = () => {
-      setIsFullScreen(!!document.fullscreenElement);
+    const onWaiting = () => setIsLoading(true);
+    const onCanPlay = () => setIsLoading(false);
+    const onPlaying = () => {
+        setIsPlaying(true);
+        setIsLoading(false);
+        resetControlsTimeout();
     };
+    const onEnded = () => {
+        setIsPlaying(false);
+        setShowControls(true);
+    };
+
+    const onFullScreenChange = () => setIsFullScreen(!!document.fullscreenElement);
     const onKeyDown = (e: KeyboardEvent) => {
-        // Prevent spacebar from scrolling page
+        if ((e.target as HTMLElement).tagName === 'INPUT') return;
         if (e.key === " ") e.preventDefault();
         if (e.key === " " || e.key === "k") handlePlayPause();
         if (e.key === "f") handleFullScreenToggle();
+        if (e.key === "m") handleMuteToggle();
     };
 
     video.addEventListener("play", onPlay);
     video.addEventListener("pause", onPause);
+    video.addEventListener("ended", onEnded);
     video.addEventListener("volumechange", onVolumeChange);
+    video.addEventListener("waiting", onWaiting);
+    video.addEventListener("canplay", onCanPlay);
+    video.addEventListener("playing", onPlaying);
     document.addEventListener("fullscreenchange", onFullScreenChange);
     playerRef.current?.addEventListener("keydown", onKeyDown);
 
@@ -148,20 +165,26 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
     return () => {
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
+      video.removeEventListener("ended", onEnded);
       video.removeEventListener("volumechange", onVolumeChange);
+      video.removeEventListener("waiting", onWaiting);
+      video.removeEventListener("canplay", onCanPlay);
+      video.removeEventListener("playing", onPlaying);
       document.removeEventListener("fullscreenchange", onFullScreenChange);
       playerRef.current?.removeEventListener("keydown", onKeyDown);
       if (controlsTimeoutRef.current) {
         clearTimeout(controlsTimeoutRef.current);
       }
     };
-  }, [resetControlsTimeout, handlePlayPause, handleFullScreenToggle]);
+  }, [resetControlsTimeout, handlePlayPause, handleFullScreenToggle, handleMuteToggle]);
 
-  const VolumeIcon = isMuted || volume === 0 ? VolumeX : Volume2;
+  const VolumeIcon = isMuted ? VolumeX : Volume2;
   const sliderColorStyle = {
-    '--primary': 'hsl(346.8 77.2% 49.8%)', // A strong red color
-    '--secondary': 'hsl(0 0% 100% / 0.3)', // Semi-transparent white
+    '--primary': 'hsl(346.8 77.2% 49.8%)',
+    '--secondary': 'hsl(0 0% 100% / 0.3)',
   } as React.CSSProperties;
+  
+  const showHours = duration >= 3600;
 
   return (
     <div 
@@ -182,10 +205,16 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
         playsInline
       />
       
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10 pointer-events-none">
+          <Loader2 className="w-12 h-12 text-white animate-spin" />
+        </div>
+      )}
+
       <div 
         className={cn(
-            "absolute inset-0 flex items-center justify-center transition-opacity duration-300",
-            isPlaying ? "opacity-0 pointer-events-none" : "opacity-100"
+            "absolute inset-0 flex items-center justify-center transition-opacity duration-300 z-20",
+            (isPlaying || isLoading) ? "opacity-0 pointer-events-none" : "opacity-100"
         )}
       >
         <button
@@ -199,49 +228,46 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
       
       <div
         className={cn(
-          "absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-300",
+          "absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-300",
           showControls ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
       >
-        <div className="flex items-center gap-2 sm:gap-4 p-2 sm:p-4 text-white" style={sliderColorStyle}>
-            <button onClick={handlePlayPause} className="hover:text-primary transition-colors p-1">
-              {isPlaying ? <Pause size={24} /> : <Play size={24} />}
-            </button>
-            
-            <span className="text-xs font-mono select-none w-12 text-center">{formatTime(progress)}</span>
-
+        <div className="mx-2 sm:mx-4 mb-2">
             <Slider
                 min={0}
                 max={duration || 1}
                 step={1}
                 value={[progress]}
                 onValueChange={handleProgressChange}
-                className="flex-1 h-2 cursor-pointer [&>span:last-child]:h-3 [&>span:last-child]:w-3 [&>span:last-child]:bg-white [&>span:last-child]:border-0"
+                className="w-full h-2 cursor-pointer [&>span:last-child]:h-3.5 [&>span:last-child]:w-3.5 [&>span:last-child]:bg-red-500"
+                style={{'--primary': 'hsl(346.8 77.2% 49.8%)', '--secondary': 'hsl(0 0% 100% / 0.3)'} as React.CSSProperties}
             />
+        </div>
+        <div className="flex items-center gap-3 px-2 sm:px-4 pb-1 text-white">
+            <button onClick={handlePlayPause} className="hover:text-red-500 transition-colors p-1">
+              {isPlaying ? <Pause size={26} /> : <Play size={26} />}
+            </button>
+            <button onClick={handleMuteToggle} className="hover:text-red-500 transition-colors p-1">
+                <VolumeIcon size={26} />
+            </button>
             
-            <span className="text-xs font-mono select-none w-12 text-center">{formatTime(duration)}</span>
-
-            <div className="group/volume flex items-center gap-1">
-                <button onClick={handleMuteToggle} className="hover:text-primary transition-colors p-1">
-                    <VolumeIcon size={24} />
-                </button>
-                <Slider
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    value={[isMuted ? 0 : volume]}
-                    onValueChange={handleVolumeChange}
-                    className="w-0 sm:w-20 h-2 cursor-pointer transition-all duration-300 group-hover/volume:w-20 sm:group-hover/volume:w-20 [&>span:last-child]:h-3 [&>span:last-child]:w-3 [&>span:last-child]:bg-white [&>span:last-child]:border-0"
-                />
+            <div className="text-xs sm:text-sm font-mono select-none flex items-center gap-1">
+                <span>{formatTime(progress, showHours)}</span>
+                <span>/</span>
+                <span>{formatTime(duration, showHours)}</span>
             </div>
-
+            
+            <div className="flex-1" />
+            
             <span className="hidden sm:block text-xs font-bold px-2 py-0.5 rounded-sm border border-white/50 cursor-default">HD</span>
             
-            <button onClick={handleFullScreenToggle} className="hover:text-primary transition-colors p-1">
-              {isFullScreen ? <Minimize size={24} /> : <Maximize size={24} />}
+            <button onClick={handleFullScreenToggle} className="hover:text-red-500 transition-colors p-1">
+              {isFullScreen ? <Minimize size={26} /> : <Maximize size={26} />}
             </button>
         </div>
       </div>
     </div>
   );
 }
+
+    
