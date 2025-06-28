@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Loader2 } from "lucide-react";
-import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
 type VideoPlayerProps = {
@@ -39,17 +38,22 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handlePlayPause = useCallback(async () => {
-    if (videoRef.current) {
+    if (!videoRef.current) return;
+    try {
       if (videoRef.current.paused) {
-        try {
-          await videoRef.current.play();
-        } catch (err) {
-          console.error("Video play failed:", err);
-          setIsPlaying(false);
-        }
+        await videoRef.current.play();
       } else {
         videoRef.current.pause();
       }
+    } catch (error) {
+       if (error instanceof Error && error.name === 'NotAllowedError') {
+        console.warn("Autoplay was prevented.", error);
+      } else if (error instanceof Error && error.name === 'AbortError') {
+        // This is normal if the user interrupts play, e.g., by pausing quickly.
+      } else {
+        console.error("Video play failed:", error);
+      }
+      setIsPlaying(false);
     }
   }, []);
   
@@ -63,14 +67,6 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
     }
   }, []);
 
-  const handleProgressChange = (value: number[]) => {
-    if (videoRef.current) {
-      const newTime = value[0];
-      videoRef.current.currentTime = newTime;
-      setProgress(newTime);
-    }
-  };
-
   const handleTimeUpdate = () => {
     if (videoRef.current) {
       setProgress(videoRef.current.currentTime);
@@ -80,9 +76,7 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
       setDuration(videoRef.current.duration);
-      if (videoRef.current.autoplay) {
-        videoRef.current.play().catch(() => setIsPlaying(false));
-      }
+      setIsLoading(false); // Video metadata is loaded, ready to show play button
     }
   };
   
@@ -90,26 +84,24 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
     const player = playerRef.current;
     if (!player) return;
 
-    if (!document.fullscreenElement) {
-        try {
-            await player.requestFullscreen();
-            if (screen.orientation && typeof screen.orientation.lock === "function") {
-                await screen.orientation.lock("landscape").catch(() => {});
-            }
-        } catch (err) {
-            console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+    try {
+      if (!document.fullscreenElement) {
+        await player.requestFullscreen();
+        if (screen.orientation && typeof screen.orientation.lock === "function") {
+          await screen.orientation.lock("landscape").catch(() => {});
         }
-    } else {
-        try {
-            if (screen.orientation && typeof screen.orientation.unlock === "function") {
-                screen.orientation.unlock();
-            }
+      } else {
+        if (document.exitFullscreen) {
             await document.exitFullscreen();
-        } catch (err) {
-            console.error(`Error exiting full-screen mode: ${err.message} (${err.name})`);
         }
+        if (screen.orientation && typeof screen.orientation.unlock === "function") {
+            screen.orientation.unlock();
+        }
+      }
+    } catch (err) {
+        console.error(`Fullscreen Error: ${err instanceof Error ? err.message : String(err)}`);
     }
-}, []);
+  }, []);
   
   const hideControls = useCallback(() => {
     if (videoRef.current && !videoRef.current.paused) {
@@ -124,6 +116,11 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
     setShowControls(true);
     controlsTimeoutRef.current = setTimeout(hideControls, 3000);
   }, [hideControls]);
+
+  const handleVideoClick = useCallback(() => {
+    setShowControls(true);
+    resetControlsTimeout();
+  }, [resetControlsTimeout]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -152,19 +149,16 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
     const onFullScreenChange = () => setIsFullScreen(!!document.fullscreenElement);
     const onKeyDown = (e: KeyboardEvent) => {
         if ((e.target as HTMLElement).tagName === 'INPUT') return;
-        
+        e.preventDefault();
         switch(e.key.toLowerCase()) {
             case " ":
             case "k":
-                e.preventDefault();
                 handlePlayPause();
                 break;
             case "f":
-                e.preventDefault();
                 handleFullScreenToggle();
                 break;
             case "m":
-                e.preventDefault();
                 handleMuteToggle();
                 break;
         }
@@ -201,11 +195,6 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
   }, [resetControlsTimeout, handlePlayPause, handleFullScreenToggle, handleMuteToggle]);
 
   const VolumeIcon = isMuted ? VolumeX : Volume2;
-  const sliderColorStyle = {
-    '--primary': 'hsl(346.8 77.2% 49.8%)',
-    '--secondary': 'hsl(0 0% 100% / 0.3)',
-  } as React.CSSProperties;
-  
   const showHours = duration >= 3600;
 
   return (
@@ -215,7 +204,7 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
       className="relative w-full h-full bg-black flex items-center justify-center group/player overflow-hidden outline-none"
       onMouseMove={resetControlsTimeout}
       onMouseLeave={hideControls}
-      onClick={resetControlsTimeout}
+      onClick={handleVideoClick}
     >
       <video
         ref={videoRef}
@@ -233,61 +222,46 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
         </div>
       )}
 
-      <div 
-        className={cn(
-            "absolute inset-0 flex items-center justify-center transition-opacity duration-300 z-20",
-            (isPlaying || isLoading) ? "opacity-0 pointer-events-none" : "opacity-100"
-        )}
-      >
-        <button
-          onClick={handlePlayPause}
-          className="bg-black/40 text-white rounded-full p-2 sm:p-4 backdrop-blur-sm transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black"
-          aria-label="Play video"
-        >
-          <Play size={64} className="fill-white ml-1" />
-        </button>
-      </div>
+      {!isPlaying && !isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center z-20">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePlayPause();
+            }}
+            className="bg-black/40 text-white rounded-full p-2 sm:p-4 backdrop-blur-sm transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black"
+            aria-label="Play video"
+          >
+            <Play size={64} className="fill-white pl-1" />
+          </button>
+        </div>
+      )}
       
       <div
         className={cn(
-          "absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/70 to-transparent",
+          "absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/70 to-transparent p-2",
           "transition-all duration-300 ease-in-out",
           showControls ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"
         )}
       >
-        {isFullScreen && (
-            <div className="mx-2 sm:mx-4 mb-2">
-                <Slider
-                    min={0}
-                    max={duration || 1}
-                    step={1}
-                    value={[progress]}
-                    onValueChange={handleProgressChange}
-                    className="w-full h-2 cursor-pointer [&>span:last-child]:h-3.5 [&>span:last-child]:w-3.5 [&>span:last-child]:bg-red-500"
-                    style={sliderColorStyle}
-                />
-            </div>
-        )}
-        <div className="flex items-center gap-3 px-2 sm:px-4 pb-1 text-white">
+        <div className="flex items-center gap-3 sm:gap-4 px-2 sm:px-4 pb-1 text-white">
             <button onClick={handlePlayPause} className="hover:text-red-500 transition-colors p-1">
-              {isPlaying ? <Pause size={26} /> : <Play size={26} />}
+              {isPlaying ? <Pause size={28} /> : <Play size={28} />}
             </button>
-            <button onClick={handleMuteToggle} className="hover:text-red-500 transition-colors p-1">
-                <VolumeIcon size={26} />
-            </button>
-            
-            <div className="text-xs sm:text-sm font-mono select-none flex items-center gap-1">
+            <div className="text-xs sm:text-sm font-mono select-none flex items-center gap-1.5">
                 <span>{formatTime(progress, showHours)}</span>
-                <span>/</span>
+                <span className="text-white/70">/</span>
                 <span>{formatTime(duration, showHours)}</span>
             </div>
             
             <div className="flex-1" />
             
-            <span className="hidden sm:block text-xs font-bold px-2 py-0.5 rounded-sm border border-white/50 cursor-default">HD</span>
+            <button onClick={handleMuteToggle} className="hover:text-red-500 transition-colors p-1">
+                <VolumeIcon size={28} />
+            </button>
             
             <button onClick={handleFullScreenToggle} className="hover:text-red-500 transition-colors p-1">
-              {isFullScreen ? <Minimize size={26} /> : <Maximize size={26} />}
+              {isFullScreen ? <Minimize size={28} /> : <Maximize size={28} />}
             </button>
         </div>
       </div>
