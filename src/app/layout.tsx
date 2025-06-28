@@ -16,7 +16,7 @@ const fontSans = Inter({
 export const metadata: Metadata = {
   title: "Plan B Streaming",
   description: "Tu alternativa para ver televisión en vivo.",
-  manifest: "/manifest.ts",
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: "/icon.png",
     apple: "/apple-touch-icon.png",
@@ -29,10 +29,6 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#030617' },
-  ],
 };
 
 export const viewport: Viewport = {
@@ -41,6 +37,10 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
   maximumScale: 1,
   userScalable: false,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#030617' },
+  ],
 }
 
 export default async function RootLayout({
