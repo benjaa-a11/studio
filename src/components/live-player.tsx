@@ -20,11 +20,66 @@ export default function LivePlayer({ src }: LivePlayerProps) {
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false); // 1. Default to unmuted
+  const [isMuted, setIsMuted] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const resetControlsTimeout = useCallback(() => {
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    if (isPlaying) {
+      controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 3000);
+    }
+  }, [isPlaying]);
+
+  const handlePlayPause = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      video.play().catch(() => setIsPlaying(false));
+    } else {
+      video.pause();
+    }
+  }, []);
+
+  const handleMuteToggle = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = !video.muted;
+  }, []);
+
+  const handleFullScreenToggle = useCallback(async () => {
+    const player = playerRef.current;
+    if (!player) return;
+    try {
+      if (!document.fullscreenElement) {
+        await player.requestFullscreen();
+        if (screen.orientation && typeof screen.orientation.lock === "function") {
+          await screen.orientation.lock("landscape").catch(() => {});
+        }
+      } else {
+        await document.exitFullscreen();
+        if (screen.orientation && typeof screen.orientation.unlock === "function") {
+          screen.orientation.unlock();
+        }
+      }
+    } catch (err) {
+      console.error("Fullscreen Error:", err);
+    }
+  }, []);
+
+  const handlePlayerClick = useCallback(() => {
+    setShowControls(true);
+    resetControlsTimeout();
+  }, [resetControlsTimeout]);
+
+  const handleMouseMove = useCallback(() => {
+    setShowControls(true);
+    resetControlsTimeout();
+  }, [resetControlsTimeout]);
 
   // Core effect for setting up and cleaning up the player
   useEffect(() => {
@@ -54,7 +109,6 @@ export default function LivePlayer({ src }: LivePlayerProps) {
               // Robust configuration
               fragLoadErrorMaxRetry: 6,
               manifestLoadErrorMaxRetry: 4,
-              // Attempt to recover from media errors
               recoverMediaError: true,
             });
 
@@ -142,61 +196,6 @@ export default function LivePlayer({ src }: LivePlayerProps) {
     };
   }, [error, resetControlsTimeout]);
   
-  const handlePlayPause = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    if (video.paused) {
-      video.play().catch(() => setIsPlaying(false));
-    } else {
-      video.pause();
-    }
-  }, []);
-
-  const handleMuteToggle = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    video.muted = !video.muted;
-  }, []);
-
-  const handleFullScreenToggle = useCallback(async () => {
-    const player = playerRef.current;
-    if (!player) return;
-    try {
-      if (!document.fullscreenElement) {
-        await player.requestFullscreen();
-        if (screen.orientation && typeof screen.orientation.lock === "function") {
-          await screen.orientation.lock("landscape").catch(() => {});
-        }
-      } else {
-        await document.exitFullscreen();
-        if (screen.orientation && typeof screen.orientation.unlock === "function") {
-          screen.orientation.unlock();
-        }
-      }
-    } catch (err) {
-      console.error("Fullscreen Error:", err);
-    }
-  }, []);
-  
-  const resetControlsTimeout = useCallback(() => {
-    if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-    }
-    if (isPlaying) {
-        controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 3000);
-    }
-  }, [isPlaying]);
-
-  const handlePlayerClick = useCallback(() => {
-      setShowControls(true);
-      resetControlsTimeout();
-  }, [resetControlsTimeout]);
-  
-  const handleMouseMove = useCallback(() => {
-      setShowControls(true);
-      resetControlsTimeout();
-  }, [resetControlsTimeout]);
-
   const VolumeIcon = isMuted ? VolumeX : Volume2;
   const showCenterPlayButton = !isPlaying && !isLoading && !error;
   
