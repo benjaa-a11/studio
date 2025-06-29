@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import Hls from "hls.js";
-import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Loader2, VideoOff } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
@@ -13,71 +12,65 @@ type LivePlayerProps = {
 export default function LivePlayer({ src }: LivePlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
-  const hlsInstanceRef = useRef<Hls | null>(null);
+  const hlsInstanceRef = useRef<any | null>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false); // Video starts unmuted
+  const [isMuted, setIsMuted] = useState(false); // Start unmuted
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const hideControls = useCallback(() => {
-    if (isPlaying) {
-      setShowControls(false);
-    }
-  }, [isPlaying]);
-
-  const resetControlsTimeout = useCallback(() => {
-    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    setShowControls(true);
-    controlsTimeoutRef.current = setTimeout(hideControls, 3000);
-  }, [hideControls]);
-
+  // Main effect for HLS setup and teardown
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !src) return;
 
-    setError(null);
-    setIsLoading(true);
-    if (hlsInstanceRef.current) {
-      hlsInstanceRef.current.destroy();
+    let hls: any; // Hls instance
+
+    async function setupHls() {
+      if (video?.canPlayType("application/vnd.apple.mpegurl")) {
+        // Native HLS support (Safari)
+        video.src = src;
+        setIsLoading(true);
+        // Autoplay is handled by the video tag's autoPlay prop
+      } else {
+        // Use hls.js
+        const Hls = (await import("hls.js")).default;
+        if (Hls.isSupported()) {
+          hls = new Hls({
+             fragLoadErrorMaxRetry: 5,
+             manifestLoadErrorMaxRetry: 2,
+          });
+          hlsInstanceRef.current = hls;
+          hls.loadSource(src);
+          hls.attachMedia(video);
+
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            setIsLoading(false);
+            if(video.paused) {
+                video.play().catch(() => {
+                    // Autoplay with sound was likely blocked.
+                    setIsPlaying(false);
+                });
+            }
+          });
+
+          hls.on(Hls.Events.ERROR, (event, data) => {
+            if (data.fatal) {
+              console.warn(`HLS fatal error: ${data.type}`, data.details);
+            }
+          });
+        }
+      }
     }
 
-    if (Hls.isSupported()) {
-      const hls = new Hls({
-        fragLoadErrorMaxRetry: 5,
-        manifestLoadErrorMaxRetry: 2,
-      });
-      hlsInstanceRef.current = hls;
-      hls.loadSource(src);
-      hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        setIsLoading(false);
-        video.play().catch(() => setIsPlaying(false));
-      });
-      hls.on(Hls.Events.ERROR, (event, data) => {
-        if (data.fatal) {
-          console.warn(`HLS fatal error: ${data.type}`, data.details);
-          setError("No se pudo cargar la transmisión.");
-          setIsLoading(false);
-        }
-      });
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = src;
-      video.addEventListener('loadedmetadata', () => {
-        setIsLoading(false);
-        video.play().catch(() => setIsPlaying(false));
-      });
-    } else {
-        setError("Formato de video no compatible.");
-        setIsLoading(false);
-    }
+    setupHls();
 
     return () => {
-      if (hlsInstanceRef.current) {
-        hlsInstanceRef.current.destroy();
+      if (hls) {
+        hls.destroy();
+        hlsInstanceRef.current = null;
       }
     };
   }, [src]);
@@ -99,105 +92,122 @@ export default function LivePlayer({ src }: LivePlayerProps) {
   const handleFullScreenToggle = useCallback(async () => {
     const player = playerRef.current;
     if (!player) return;
+
     try {
       if (!document.fullscreenElement) {
         await player.requestFullscreen();
+        if (screen.orientation && typeof screen.orientation.lock === "function") {
+          await screen.orientation.lock("landscape").catch(() => {});
+        }
       } else {
         await document.exitFullscreen();
+        if (screen.orientation && typeof screen.orientation.unlock === "function") {
+            screen.orientation.unlock();
+        }
       }
-    } catch (error) {
-      console.error("Fullscreen toggle failed:", error);
+    } catch (err) {
+        console.error(`Fullscreen Error: ${err instanceof Error ? err.message : String(err)}`);
     }
   }, []);
-  
+
   const handlePlayerClick = useCallback(() => {
-    setShowControls(s => !s);
+    if(isPlaying) {
+      setShowControls(s => !s);
+    }
+  }, [isPlaying]);
+
+  const handleMouseMove = useCallback(() => {
+    setShowControls(true);
   }, []);
 
-  useEffect(() => {
-    if (isPlaying && showControls) {
-      resetControlsTimeout();
-    } else if(controlsTimeoutRef.current) {
-      clearTimeout(controlsTimeoutRef.current);
-    }
-  }, [isPlaying, showControls, resetControlsTimeout]);
-
-
+  // Effect for event listeners on the video element
   useEffect(() => {
     const video = videoRef.current;
-    const playerEl = playerRef.current;
-    if (!video || !playerEl) return;
+    if (!video) return;
 
-    const onPlay = () => { setIsPlaying(true); setIsLoading(false); if (error) setError(null); resetControlsTimeout(); };
-    const onPause = () => { setIsPlaying(false); setShowControls(true); if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current); };
+    const onPlay = () => { setIsPlaying(true); setIsLoading(false); };
+    const onPause = () => setIsPlaying(false);
     const onVolumeChange = () => setIsMuted(video.muted);
     const onWaiting = () => setIsLoading(true);
-    const onPlaying = () => setIsLoading(false);
-    const onFullScreenChange = () => setIsFullScreen(!!document.fullscreenElement);
-    const onMouseMove = () => resetControlsTimeout();
-
+    const onCanPlay = () => setIsLoading(false);
+    const onPlaying = () => { setIsLoading(false); setIsPlaying(true); };
+    const onFullscreenChange = () => setIsFullScreen(!!document.fullscreenElement);
+    
     video.addEventListener("play", onPlay);
     video.addEventListener("pause", onPause);
     video.addEventListener("volumechange", onVolumeChange);
     video.addEventListener("waiting", onWaiting);
+    video.addEventListener("canplay", onCanPlay);
     video.addEventListener("playing", onPlaying);
-    document.addEventListener("fullscreenchange", onFullScreenChange);
-    playerEl.addEventListener('mousemove', onMouseMove);
-    
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+
     return () => {
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
       video.removeEventListener("volumechange", onVolumeChange);
       video.removeEventListener("waiting", onWaiting);
+      video.removeEventListener("canplay", onCanPlay);
       video.removeEventListener("playing", onPlaying);
-      document.removeEventListener("fullscreenchange", onFullScreenChange);
-      playerEl.removeEventListener('mousemove', onMouseMove);
-      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
     };
-  }, [error, resetControlsTimeout]);
+  }, []);
+  
+  // Effect for auto-hiding controls
+  useEffect(() => {
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    if (showControls && isPlaying) {
+      controlsTimeoutRef.current = setTimeout(() => {
+        setShowControls(false);
+      }, 3000);
+    }
+    return () => {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+    };
+  }, [showControls, isPlaying]);
+
 
   const VolumeIcon = isMuted ? VolumeX : Volume2;
-  const showControlsClass = showControls || !isPlaying;
+  const showOverlay = !isPlaying && !isLoading;
+  const showPlayerControls = showControls || !isPlaying;
 
   return (
     <div
       ref={playerRef}
       className="relative w-full h-full bg-black flex items-center justify-center group/player overflow-hidden outline-none"
       onClick={handlePlayerClick}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => {if (isPlaying) setShowControls(false)}}
       onDoubleClick={handleFullScreenToggle}
     >
       <video ref={videoRef} className="max-h-full w-full object-contain" playsInline autoPlay muted={isMuted} />
 
-      {error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20 text-white p-4 text-center">
-          <VideoOff className="w-12 h-12 mb-4 text-destructive" />
-          <h3 className="text-lg font-semibold mb-1">Error de reproducción</h3>
-          <p className="text-sm text-white/80 max-w-xs">{error}</p>
-        </div>
-      )}
-
-      {isLoading && !error && (
+      {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10 pointer-events-none">
           <Loader2 className="w-12 h-12 text-white animate-spin" />
         </div>
       )}
 
-      {!isPlaying && !isLoading && !error && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center">
-          <button
-            onClick={(e) => { e.stopPropagation(); handlePlayPause(); }}
-            className="bg-black/50 text-white rounded-full p-4 transition-all duration-300 backdrop-blur-sm hover:bg-black/70 hover:scale-110 focus:outline-none focus:ring-4 focus:ring-primary/50"
-            aria-label="Reproducir"
-          >
-            <Play className="h-10 w-10 fill-white pl-1" />
-          </button>
-        </div>
-      )}
+      <div className={cn(
+          "absolute inset-0 z-20 flex items-center justify-center transition-opacity duration-300",
+          showOverlay ? "opacity-100" : "opacity-0 pointer-events-none"
+      )}>
+        <button
+          onClick={(e) => { e.stopPropagation(); handlePlayPause(); }}
+          className="bg-black/50 text-white rounded-full p-4 transition-all duration-300 backdrop-blur-sm hover:bg-black/70 hover:scale-110 focus:outline-none focus:ring-4 focus:ring-primary/50"
+          aria-label="Reproducir"
+        >
+          <Play className="h-10 w-10 fill-white pl-1" />
+        </button>
+      </div>
       
       <div
         className={cn(
           "absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/70 to-transparent p-4 transition-all duration-300",
-          showControlsClass ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"
+          showPlayerControls ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"
         )}
         onClick={(e) => e.stopPropagation()}
       >
