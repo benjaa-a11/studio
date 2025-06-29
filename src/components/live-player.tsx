@@ -20,7 +20,7 @@ export default function LivePlayer({ src }: LivePlayerProps) {
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay
+  const [isMuted, setIsMuted] = useState(false); // 1. Default to unmuted
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,8 +38,6 @@ export default function LivePlayer({ src }: LivePlayerProps) {
 
     const setupPlayer = async () => {
       try {
-        const Hls = (await import("hls.js")).default;
-        
         // Destroy previous instance if it exists
         if (hlsInstanceRef.current) {
           hlsInstanceRef.current.destroy();
@@ -48,29 +46,43 @@ export default function LivePlayer({ src }: LivePlayerProps) {
         if (video.canPlayType("application/vnd.apple.mpegurl")) {
           // Use native HLS support
           video.src = src;
-          // Events are handled by the general event listener effect
-        } else if (Hls.isSupported()) {
-          // Use hls.js
-          const hls = new Hls({
-            // Robust configuration
-            startLevel: -1, // Start with auto level selection
-            fragLoadErrorMaxRetry: 6,
-            manifestLoadErrorMaxRetry: 4,
-          });
-
-          hlsInstanceRef.current = hls;
-          hls.loadSource(src);
-          hls.attachMedia(video);
-
-          hls.on(Hls.Events.ERROR, (event, data) => {
-            if (data.fatal) {
-              console.error("HLS Fatal Error:", data);
-              setError("No se pudo cargar la transmisión.");
-              setIsLoading(false);
-            }
-          });
         } else {
-          throw new Error("HLS not supported");
+          // Use hls.js as a fallback
+          const Hls = (await import("hls.js")).default;
+          if (Hls.isSupported()) {
+            const hls = new Hls({
+              // Robust configuration
+              fragLoadErrorMaxRetry: 6,
+              manifestLoadErrorMaxRetry: 4,
+              // Attempt to recover from media errors
+              recoverMediaError: true,
+            });
+
+            hlsInstanceRef.current = hls;
+            hls.loadSource(src);
+            hls.attachMedia(video);
+
+            hls.on(Hls.Events.ERROR, (event, data) => {
+              if (data.fatal) {
+                console.warn("HLS Fatal Error:", data);
+                switch (data.type) {
+                  case Hls.ErrorTypes.NETWORK_ERROR:
+                    hls.startLoad();
+                    break;
+                  case Hls.ErrorTypes.MEDIA_ERROR:
+                    hls.recoverMediaError();
+                    break;
+                  default:
+                    // Cannot recover, show error to user
+                    setError("No se pudo cargar la transmisión. Es posible que no esté disponible o sea incompatible.");
+                    setIsLoading(false);
+                    break;
+                }
+              }
+            });
+          } else {
+             throw new Error("HLS not supported by hls.js");
+          }
         }
       } catch (e) {
         console.error("Player setup error:", e);
@@ -96,15 +108,14 @@ export default function LivePlayer({ src }: LivePlayerProps) {
     if (!video) return;
 
     const onPlay = () => { setIsPlaying(true); setIsLoading(false); setError(null); };
-    const onPause = () => setIsPlaying(false);
+    const onPause = () => { setIsPlaying(false); setShowControls(true); };
     const onVolumeChange = () => setIsMuted(video.muted || video.volume === 0);
     const onWaiting = () => setIsLoading(true);
     const onCanPlay = () => setIsLoading(false);
-    const onPlaying = () => { setIsLoading(false); setIsPlaying(true); };
+    const onPlaying = () => { setIsLoading(false); setIsPlaying(true); resetControlsTimeout(); };
     const onFullscreenChange = () => setIsFullScreen(!!document.fullscreenElement);
     const onError = () => {
-        // Handle native video element errors
-        if (!hlsInstanceRef.current) { // Only if not handled by hls.js
+        if (video.error && !error) { // Only if not already handled by HLS
             setError("Ocurrió un error al reproducir el video.");
             setIsLoading(false);
         }
@@ -129,7 +140,7 @@ export default function LivePlayer({ src }: LivePlayerProps) {
       video.removeEventListener("error", onError);
       document.removeEventListener("fullscreenchange", onFullscreenChange);
     };
-  }, []);
+  }, [error, resetControlsTimeout]);
   
   const handlePlayPause = useCallback(() => {
     const video = videoRef.current;
@@ -166,7 +177,7 @@ export default function LivePlayer({ src }: LivePlayerProps) {
       console.error("Fullscreen Error:", err);
     }
   }, []);
-
+  
   const resetControlsTimeout = useCallback(() => {
     if (controlsTimeoutRef.current) {
         clearTimeout(controlsTimeoutRef.current);
@@ -177,10 +188,9 @@ export default function LivePlayer({ src }: LivePlayerProps) {
   }, [isPlaying]);
 
   const handlePlayerClick = useCallback(() => {
-      if (!isPlaying) return;
-      setShowControls(v => !v);
+      setShowControls(true);
       resetControlsTimeout();
-  }, [isPlaying, resetControlsTimeout]);
+  }, [resetControlsTimeout]);
   
   const handleMouseMove = useCallback(() => {
       setShowControls(true);
@@ -190,8 +200,8 @@ export default function LivePlayer({ src }: LivePlayerProps) {
   const VolumeIcon = isMuted ? VolumeX : Volume2;
   const showCenterPlayButton = !isPlaying && !isLoading && !error;
   
-  // Controls are visible if not playing, if there's an error, or if explicitly shown
-  const areControlsVisible = !isPlaying || showControls || !!error;
+  // Controls are visible if not playing, if explicitly shown, or if there's an error
+  const areControlsVisible = showControls || !isPlaying || !!error;
 
   return (
     <div
