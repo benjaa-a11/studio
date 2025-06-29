@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "./ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import LivePlayer from "./live-player";
 
 type ChannelViewProps = {
   channel: Channel;
@@ -27,6 +28,9 @@ type ChannelViewProps = {
  */
 const getStreamableUrl = (url: string): string => {
     if (!url) return '';
+    
+    // Do not process m3u8 urls
+    if (url.includes('.m3u8')) return url;
     
     let videoId: string | null = null;
     try {
@@ -69,6 +73,7 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
     [channel.streamUrl]
   );
   const currentStreamUrl = streamLinks[currentStreamIndex];
+  const isHls = currentStreamUrl?.includes('.m3u8');
 
   const handleFavoriteClick = () => {
     if (isFav) {
@@ -140,7 +145,9 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
          <div className="container mx-auto p-4 md:p-8">
             <main>
               <div className="aspect-video relative w-full overflow-hidden rounded-lg bg-black shadow-2xl shadow-primary/10">
-                 {currentStreamUrl ? (
+                 {isHls ? (
+                  <LivePlayer src={currentStreamUrl} />
+                 ) : currentStreamUrl ? (
                   <iframe
                     key={currentStreamUrl}
                     src={currentStreamUrl}
