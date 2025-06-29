@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import Hls from "hls.js";
 import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Loader2, VideoOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -12,15 +13,27 @@ type LivePlayerProps = {
 export default function LivePlayer({ src }: LivePlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
-  const hlsInstanceRef = useRef<import("hls.js").default | null>(null);
+  const hlsInstanceRef = useRef<Hls | null>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay
+  const [isMuted, setIsMuted] = useState(false); // Video starts unmuted
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const hideControls = useCallback(() => {
+    if (isPlaying) {
+      setShowControls(false);
+    }
+  }, [isPlaying]);
+
+  const resetControlsTimeout = useCallback(() => {
+    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    setShowControls(true);
+    controlsTimeoutRef.current = setTimeout(hideControls, 3000);
+  }, [hideControls]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -28,107 +41,58 @@ export default function LivePlayer({ src }: LivePlayerProps) {
 
     setError(null);
     setIsLoading(true);
-    setIsPlaying(false);
-
     if (hlsInstanceRef.current) {
       hlsInstanceRef.current.destroy();
     }
 
-    const initializePlayer = async () => {
-      try {
-        const Hls = (await import('hls.js')).default;
-        
-        if (Hls.isSupported()) {
-          const hls = new Hls({
-            autoStartLoad: true,
-            fragLoadErrorMaxRetry: 5,
-            manifestLoadErrorMaxRetry: 2,
-          });
-
-          hlsInstanceRef.current = hls;
-          hls.loadSource(src);
-          hls.attachMedia(video);
-
-          hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            setIsLoading(false);
-            video.play().catch(() => {
-              setIsPlaying(false);
-            });
-          });
-          
-          hls.on(Hls.Events.ERROR, (event, data) => {
-            if (data.fatal) {
-              console.warn(`HLS fatal error: ${data.type}`, data.details);
-              switch (data.type) {
-                case Hls.ErrorTypes.NETWORK_ERROR:
-                case Hls.ErrorTypes.MEDIA_ERROR:
-                  setError('No se pudo cargar la transmisión. Es posible que no esté disponible o sea incompatible.');
-                  break;
-                default:
-                  setError('Ocurrió un error inesperado al reproducir el video.');
-                  break;
-              }
-              setIsLoading(false);
-            }
-          });
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-          video.src = src;
-          video.play().catch(() => setIsPlaying(false));
-        } else {
-          setError('Este formato de video no es compatible con su navegador.');
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        fragLoadErrorMaxRetry: 5,
+        manifestLoadErrorMaxRetry: 2,
+      });
+      hlsInstanceRef.current = hls;
+      hls.loadSource(src);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        setIsLoading(false);
+        video.play().catch(() => setIsPlaying(false));
+      });
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          console.warn(`HLS fatal error: ${data.type}`, data.details);
+          setError("No se pudo cargar la transmisión.");
           setIsLoading(false);
         }
-      } catch (e) {
-        console.warn("Failed to load or initialize hls.js:", e);
-        setError("No se pudo cargar el reproductor para este formato.");
+      });
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = src;
+      video.addEventListener('loadedmetadata', () => {
         setIsLoading(false);
-      }
-    };
-
-    initializePlayer();
+        video.play().catch(() => setIsPlaying(false));
+      });
+    } else {
+        setError("Formato de video no compatible.");
+        setIsLoading(false);
+    }
 
     return () => {
       if (hlsInstanceRef.current) {
         hlsInstanceRef.current.destroy();
-        hlsInstanceRef.current = null;
       }
     };
   }, [src]);
 
-  const hideControls = useCallback(() => {
-    if (videoRef.current && !videoRef.current.paused) {
-      setShowControls(false);
+  const handlePlayPause = useCallback(() => {
+    if (videoRef.current?.paused) {
+      videoRef.current.play().catch(() => setIsPlaying(false));
+    } else {
+      videoRef.current?.pause();
     }
   }, []);
 
-  const resetControlsTimeout = useCallback(() => {
-    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    setShowControls(true);
-    controlsTimeoutRef.current = setTimeout(hideControls, 3000);
-  }, [hideControls]);
-  
-  const handlePlayPause = useCallback(async () => {
-    if (!videoRef.current || error) return;
-    try {
-      if (videoRef.current.paused) {
-        await videoRef.current.play();
-      } else {
-        videoRef.current.pause();
-      }
-    } catch (err) {
-      console.warn("Video play/pause failed:", err);
-      setIsPlaying(false);
-    }
-  }, [error]);
-
   const handleMuteToggle = useCallback(() => {
     if (videoRef.current) {
-      const newMutedState = !videoRef.current.muted;
-      videoRef.current.muted = newMutedState;
-      if (!newMutedState && videoRef.current.volume === 0) {
-        videoRef.current.volume = 0.5;
-      }
-      setIsMuted(newMutedState);
+      videoRef.current.muted = !videoRef.current.muted;
     }
   }, []);
 
@@ -138,88 +102,66 @@ export default function LivePlayer({ src }: LivePlayerProps) {
     try {
       if (!document.fullscreenElement) {
         await player.requestFullscreen();
-        if (screen.orientation && typeof screen.orientation.lock === "function") {
-          await screen.orientation.lock("landscape").catch(() => {});
-        }
-      } else if (document.exitFullscreen) {
+      } else {
         await document.exitFullscreen();
-        if (screen.orientation && typeof screen.orientation.unlock === "function") {
-          screen.orientation.unlock();
-        }
       }
-    } catch (err) {
-        if (err instanceof Error) {
-           console.error(`Fullscreen Error: ${err.message}`);
-        }
+    } catch (error) {
+      console.error("Fullscreen toggle failed:", error);
     }
   }, []);
-
+  
   const handlePlayerClick = useCallback(() => {
     setShowControls(s => !s);
   }, []);
-  
-  const handleCenterPlayClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    handlePlayPause();
-  }, [handlePlayPause]);
+
+  useEffect(() => {
+    if (isPlaying && showControls) {
+      resetControlsTimeout();
+    } else if(controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+  }, [isPlaying, showControls, resetControlsTimeout]);
+
 
   useEffect(() => {
     const video = videoRef.current;
     const playerEl = playerRef.current;
     if (!video || !playerEl) return;
 
-    const onPlay = () => {
-      setIsPlaying(true);
-      setIsLoading(false);
-      setError(null);
-      resetControlsTimeout();
-    };
-    const onPause = () => setIsPlaying(false);
+    const onPlay = () => { setIsPlaying(true); setIsLoading(false); if (error) setError(null); resetControlsTimeout(); };
+    const onPause = () => { setIsPlaying(false); setShowControls(true); if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current); };
+    const onVolumeChange = () => setIsMuted(video.muted);
     const onWaiting = () => setIsLoading(true);
     const onPlaying = () => setIsLoading(false);
-    const onVolumeChange = () => setIsMuted(video.muted || video.volume === 0);
     const onFullScreenChange = () => setIsFullScreen(!!document.fullscreenElement);
-    const onKeyDown = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement).tagName === 'INPUT') return;
-      resetControlsTimeout();
-      if ([' ', 'k', 'f', 'm'].includes(e.key.toLowerCase())) {
-        e.preventDefault();
-        if (e.key === ' ' || e.key === 'k') handlePlayPause();
-        if (e.key === 'f') handleFullScreenToggle();
-        if (e.key === 'm') handleMuteToggle();
-      }
-    };
+    const onMouseMove = () => resetControlsTimeout();
 
     video.addEventListener("play", onPlay);
     video.addEventListener("pause", onPause);
+    video.addEventListener("volumechange", onVolumeChange);
     video.addEventListener("waiting", onWaiting);
     video.addEventListener("playing", onPlaying);
-    video.addEventListener("volumechange", onVolumeChange);
     document.addEventListener("fullscreenchange", onFullScreenChange);
-    playerEl.addEventListener("keydown", onKeyDown);
-    playerEl.addEventListener('mousemove', resetControlsTimeout);
-    playerEl.addEventListener('mouseleave', hideControls);
-
+    playerEl.addEventListener('mousemove', onMouseMove);
+    
     return () => {
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
+      video.removeEventListener("volumechange", onVolumeChange);
       video.removeEventListener("waiting", onWaiting);
       video.removeEventListener("playing", onPlaying);
-      video.removeEventListener("volumechange", onVolumeChange);
       document.removeEventListener("fullscreenchange", onFullScreenChange);
-      playerEl.removeEventListener("keydown", onKeyDown);
-      playerEl.removeEventListener('mousemove', resetControlsTimeout);
-      playerEl.removeEventListener('mouseleave', hideControls);
+      playerEl.removeEventListener('mousemove', onMouseMove);
       if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
     };
-  }, [resetControlsTimeout, handlePlayPause, handleFullScreenToggle, handleMuteToggle, hideControls]);
+  }, [error, resetControlsTimeout]);
 
   const VolumeIcon = isMuted ? VolumeX : Volume2;
+  const showControlsClass = showControls || !isPlaying;
 
   return (
     <div
       ref={playerRef}
-      tabIndex={0}
       className="relative w-full h-full bg-black flex items-center justify-center group/player overflow-hidden outline-none"
       onClick={handlePlayerClick}
       onDoubleClick={handleFullScreenToggle}
@@ -235,15 +177,15 @@ export default function LivePlayer({ src }: LivePlayerProps) {
       )}
 
       {isLoading && !error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10 pointer-events-none transition-opacity duration-300">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10 pointer-events-none">
           <Loader2 className="w-12 h-12 text-white animate-spin" />
         </div>
       )}
 
       {!isPlaying && !isLoading && !error && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center transition-opacity duration-300">
+        <div className="absolute inset-0 z-20 flex items-center justify-center">
           <button
-            onClick={handleCenterPlayClick}
+            onClick={(e) => { e.stopPropagation(); handlePlayPause(); }}
             className="bg-black/50 text-white rounded-full p-4 transition-all duration-300 backdrop-blur-sm hover:bg-black/70 hover:scale-110 focus:outline-none focus:ring-4 focus:ring-primary/50"
             aria-label="Reproducir"
           >
@@ -254,9 +196,8 @@ export default function LivePlayer({ src }: LivePlayerProps) {
       
       <div
         className={cn(
-          "absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/80 to-transparent p-4 transition-all duration-300 ease-in-out",
-          (showControls && isPlaying) ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none",
-          error && "hidden"
+          "absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/70 to-transparent p-4 transition-all duration-300",
+          showControlsClass ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"
         )}
         onClick={(e) => e.stopPropagation()}
       >
