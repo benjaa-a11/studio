@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Heart, SwitchCamera, VideoOff } from "lucide-react";
+import { ArrowLeft, Heart, SwitchCamera, VideoOff, Loader2 } from "lucide-react";
 import { useState, useMemo, memo } from "react";
+import dynamic from 'next/dynamic';
 
 import type { Channel } from "@/types";
 import { useFavorites } from "@/hooks/use-favorites";
@@ -13,12 +14,11 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "./ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import LivePlayer from "./live-player";
 
-type ChannelViewProps = {
-  channel: Channel;
-  relatedChannels: Channel[];
-};
+const LivePlayer = dynamic(() => import('@/components/live-player'), {
+  loading: () => <div className="w-full h-full bg-black flex items-center justify-center"><Loader2 className="w-12 h-12 text-white animate-spin" /></div>,
+  ssr: false
+});
 
 /**
  * Converts various YouTube URL formats into a standard embeddable URL.

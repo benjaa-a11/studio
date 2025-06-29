@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import Hls from 'hls.js';
 import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Loader2, VideoOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -25,28 +24,38 @@ export default function LivePlayer({ src }: LivePlayerProps) {
     const video = videoRef.current;
     if (!video || !src) return;
 
-    let hls: Hls | null = null;
+    let hls: import("hls.js").default | null = null;
     setError(null);
     setIsLoading(true);
 
-    if (Hls.isSupported()) {
-        hls = new Hls();
-        hls.loadSource(src);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.ERROR, (event, data) => {
-            if (data.fatal) {
-                console.warn(`HLS fatal error: ${data.type}`, data);
-                setError('No se pudo cargar la transmisión. Es posible que no esté disponible o sea incompatible.');
-                setIsLoading(false);
-            }
-        });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        // Native HLS support (e.g., Safari)
-        video.src = src;
-    } else {
-        setError('Este formato de video no es compatible con su navegador.');
+    const initializePlayer = async () => {
+      try {
+        const Hls = (await import('hls.js')).default;
+        if (Hls.isSupported()) {
+            hls = new Hls();
+            hls.loadSource(src);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.ERROR, (event, data) => {
+                if (data.fatal) {
+                    console.warn(`HLS fatal error: ${data.type}`, data);
+                    setError('No se pudo cargar la transmisión. Es posible que no esté disponible o sea incompatible.');
+                    setIsLoading(false);
+                }
+            });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = src;
+        } else {
+            setError('Este formato de video no es compatible con su navegador.');
+            setIsLoading(false);
+        }
+      } catch(e) {
+        console.warn("Failed to load hls.js:", e);
+        setError("No se pudo cargar el reproductor para este formato.");
         setIsLoading(false);
-    }
+      }
+    };
+    
+    initializePlayer();
 
     return () => {
         if (hls) {
@@ -65,7 +74,7 @@ export default function LivePlayer({ src }: LivePlayerProps) {
       }
     } catch (err) {
        if (err instanceof Error && (err.name === 'NotAllowedError' || err.name === 'AbortError')) {
-        // This is expected in some cases, e.g., user interaction interruption
+        // This is expected in some cases
        } else {
         console.warn("Video play/pause failed:", err);
       }
@@ -74,11 +83,7 @@ export default function LivePlayer({ src }: LivePlayerProps) {
   
   const handleMuteToggle = useCallback(() => {
     if (videoRef.current) {
-      const currentMuted = videoRef.current.muted;
-      videoRef.current.muted = !currentMuted;
-      if(currentMuted && videoRef.current.volume === 0) {
-        videoRef.current.volume = 1;
-      }
+      videoRef.current.muted = !videoRef.current.muted;
     }
   }, []);
   
@@ -120,10 +125,8 @@ export default function LivePlayer({ src }: LivePlayerProps) {
   }, [hideControls]);
 
   const handlePlayerClick = useCallback(() => {
-    if (isPlaying) {
-      setShowControls(s => !s);
-    }
-  }, [isPlaying]);
+    setShowControls(s => !s);
+  }, []);
 
   const handleCenterPlayClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -155,7 +158,7 @@ export default function LivePlayer({ src }: LivePlayerProps) {
         if ((e.target as HTMLElement).tagName === 'INPUT') return;
         
         const key = e.key.toLowerCase();
-        if (key === ' ' || key === 'f' || key === 'm') {
+        if (key === ' ' || key === 'k' || key === 'f' || key === 'm') {
           e.preventDefault();
           resetControlsTimeout();
           switch(key) {
@@ -212,17 +215,18 @@ export default function LivePlayer({ src }: LivePlayerProps) {
       tabIndex={0}
       className="relative w-full h-full bg-black flex items-center justify-center group/player overflow-hidden outline-none"
       onClick={handlePlayerClick}
+      onDoubleClick={handleFullScreenToggle}
     >
       <video
         ref={videoRef}
         className="max-h-full w-full object-contain"
-        onDoubleClick={handleFullScreenToggle}
         playsInline
+        autoPlay
       />
       
       {error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20 text-white p-4 text-center">
-            <VideoOff className="w-12 h-12 mb-4 text-red-500" />
+            <VideoOff className="w-12 h-12 mb-4 text-destructive" />
             <h3 className="text-lg font-semibold mb-1">Error de reproducción</h3>
             <p className="text-sm text-white/80">{error}</p>
         </div>
@@ -235,38 +239,38 @@ export default function LivePlayer({ src }: LivePlayerProps) {
       )}
 
       {!isPlaying && !isLoading && !error && (
-        <div className="absolute inset-0 flex items-center justify-center z-20">
-          <button
-            onClick={handleCenterPlayClick}
-            className="bg-black/40 text-white rounded-full p-2 sm:p-4 backdrop-blur-sm transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black"
-            aria-label="Play video"
-          >
-            <Play size={64} className="fill-white pl-1" />
-          </button>
+        <div className="absolute inset-0 z-20 flex items-center justify-center">
+            <button
+                onClick={handleCenterPlayClick}
+                className="bg-black/50 text-white rounded-full p-4 transition-all duration-300 backdrop-blur-sm hover:bg-black/70 hover:scale-110 focus:outline-none focus:ring-4 focus:ring-primary/50"
+                aria-label="Reproducir"
+            >
+                <Play className="h-10 w-10 fill-white pl-1" />
+            </button>
         </div>
       )}
       
       <div
         className={cn(
-          "absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/70 to-transparent p-2",
-          "transition-all duration-300 ease-in-out",
-          (showControls && !error) ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"
+          "absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/80 to-transparent p-4 transition-all duration-300 ease-in-out",
+          (showControls && isPlaying) ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none",
+          error && "hidden"
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-3 sm:gap-4 px-2 sm:px-4 text-white">
-            <button onClick={handlePlayPause} className="hover:text-red-500 transition-colors p-1" aria-label={isPlaying ? "Pausar" : "Reproducir"}>
+        <div className="flex items-center gap-4 text-white">
+            <button onClick={handlePlayPause} className="hover:text-primary transition-colors p-1" aria-label={isPlaying ? "Pausar" : "Reproducir"}>
               {isPlaying ? <Pause size={28} /> : <Play size={28} />}
             </button>
             <Badge variant="destructive" className="animate-pulse">EN VIVO</Badge>
             
             <div className="flex-1" />
             
-            <button onClick={handleMuteToggle} className="hover:text-red-500 transition-colors p-1" aria-label={isMuted ? "Quitar silencio" : "Silenciar"}>
+            <button onClick={handleMuteToggle} className="hover:text-primary transition-colors p-1" aria-label={isMuted ? "Quitar silencio" : "Silenciar"}>
                 <VolumeIcon size={28} />
             </button>
             
-            <button onClick={handleFullScreenToggle} className="hover:text-red-500 transition-colors p-1" aria-label={isFullScreen ? "Salir de pantalla completa" : "Pantalla completa"}>
+            <button onClick={handleFullScreenToggle} className="hover:text-primary transition-colors p-1" aria-label={isFullScreen ? "Salir de pantalla completa" : "Pantalla completa"}>
               {isFullScreen ? <Minimize size={28} /> : <Maximize size={28} />}
             </button>
         </div>
