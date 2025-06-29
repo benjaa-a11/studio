@@ -13,25 +13,23 @@ export default function LivePlayer({ src }: LivePlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
   const hlsInstanceRef = useRef<import("hls.js").default | null>(null);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !src) return;
 
-    // Reset states for new source
     setError(null);
     setIsLoading(true);
     setIsPlaying(false);
 
-    // Cleanup previous HLS instance if it exists
     if (hlsInstanceRef.current) {
       hlsInstanceRef.current.destroy();
     }
@@ -41,44 +39,41 @@ export default function LivePlayer({ src }: LivePlayerProps) {
         const Hls = (await import('hls.js')).default;
         
         if (Hls.isSupported()) {
-          const hls = new Hls();
+          const hls = new Hls({
+            autoStartLoad: true,
+            fragLoadErrorMaxRetry: 5,
+            manifestLoadErrorMaxRetry: 2,
+          });
+
           hlsInstanceRef.current = hls;
-          
           hls.loadSource(src);
           hls.attachMedia(video);
 
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            setIsLoading(false);
             video.play().catch(() => {
-              // Autoplay was prevented, user will need to click play.
               setIsPlaying(false);
-              setIsLoading(false);
             });
           });
-
+          
           hls.on(Hls.Events.ERROR, (event, data) => {
             if (data.fatal) {
-              console.warn(`HLS fatal error: ${data.type}`, data);
+              console.warn(`HLS fatal error: ${data.type}`, data.details);
               switch (data.type) {
                 case Hls.ErrorTypes.NETWORK_ERROR:
                 case Hls.ErrorTypes.MEDIA_ERROR:
                   setError('No se pudo cargar la transmisión. Es posible que no esté disponible o sea incompatible.');
-                  setIsLoading(false);
                   break;
                 default:
-                  // For other fatal errors, we can also show a generic message
                   setError('Ocurrió un error inesperado al reproducir el video.');
-                  setIsLoading(false);
                   break;
               }
+              setIsLoading(false);
             }
           });
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
           video.src = src;
-          // Native HLS support on Safari/iOS devices
-           video.play().catch(() => {
-              setIsPlaying(false);
-              setIsLoading(false);
-           });
+          video.play().catch(() => setIsPlaying(false));
         } else {
           setError('Este formato de video no es compatible con su navegador.');
           setIsLoading(false);
@@ -100,6 +95,18 @@ export default function LivePlayer({ src }: LivePlayerProps) {
     };
   }, [src]);
 
+  const hideControls = useCallback(() => {
+    if (videoRef.current && !videoRef.current.paused) {
+      setShowControls(false);
+    }
+  }, []);
+
+  const resetControlsTimeout = useCallback(() => {
+    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    setShowControls(true);
+    controlsTimeoutRef.current = setTimeout(hideControls, 3000);
+  }, [hideControls]);
+  
   const handlePlayPause = useCallback(async () => {
     if (!videoRef.current || error) return;
     try {
@@ -110,21 +117,24 @@ export default function LivePlayer({ src }: LivePlayerProps) {
       }
     } catch (err) {
       console.warn("Video play/pause failed:", err);
-      // If play fails, ensure state is correct
       setIsPlaying(false);
     }
   }, [error]);
 
   const handleMuteToggle = useCallback(() => {
     if (videoRef.current) {
-      videoRef.current.muted = !videoRef.current.muted;
+      const newMutedState = !videoRef.current.muted;
+      videoRef.current.muted = newMutedState;
+      if (!newMutedState && videoRef.current.volume === 0) {
+        videoRef.current.volume = 0.5;
+      }
+      setIsMuted(newMutedState);
     }
   }, []);
 
   const handleFullScreenToggle = useCallback(async () => {
     const player = playerRef.current;
     if (!player) return;
-
     try {
       if (!document.fullscreenElement) {
         await player.requestFullscreen();
@@ -138,21 +148,11 @@ export default function LivePlayer({ src }: LivePlayerProps) {
         }
       }
     } catch (err) {
-      console.error(`Fullscreen Error: ${err instanceof Error ? err.message : String(err)}`);
+        if (err instanceof Error) {
+           console.error(`Fullscreen Error: ${err.message}`);
+        }
     }
   }, []);
-
-  const hideControls = useCallback(() => {
-    if (videoRef.current && !videoRef.current.paused) {
-      setShowControls(false);
-    }
-  }, []);
-
-  const resetControlsTimeout = useCallback(() => {
-    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    setShowControls(true);
-    controlsTimeoutRef.current = setTimeout(hideControls, 3000);
-  }, [hideControls]);
 
   const handlePlayerClick = useCallback(() => {
     setShowControls(s => !s);
@@ -168,37 +168,33 @@ export default function LivePlayer({ src }: LivePlayerProps) {
     const playerEl = playerRef.current;
     if (!video || !playerEl) return;
 
-    const onPlay = () => setIsPlaying(true);
-    const onPause = () => setIsPlaying(false);
-    const onVolumeChange = () => setIsMuted(video.muted || video.volume === 0);
-    const onWaiting = () => setIsLoading(true);
-    const onPlaying = () => {
+    const onPlay = () => {
       setIsPlaying(true);
       setIsLoading(false);
-      setError(null); // Critical: Clear any previous non-fatal errors on successful playback
+      setError(null);
       resetControlsTimeout();
     };
-    const onCanPlay = () => setIsLoading(false);
+    const onPause = () => setIsPlaying(false);
+    const onWaiting = () => setIsLoading(true);
+    const onPlaying = () => setIsLoading(false);
+    const onVolumeChange = () => setIsMuted(video.muted || video.volume === 0);
     const onFullScreenChange = () => setIsFullScreen(!!document.fullscreenElement);
-
     const onKeyDown = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).tagName === 'INPUT') return;
-      const key = e.key.toLowerCase();
-      if ([' ', 'k', 'f', 'm'].includes(key)) {
+      resetControlsTimeout();
+      if ([' ', 'k', 'f', 'm'].includes(e.key.toLowerCase())) {
         e.preventDefault();
-        resetControlsTimeout();
-        if (key === ' ' || key === 'k') handlePlayPause();
-        if (key === 'f') handleFullScreenToggle();
-        if (key === 'm') handleMuteToggle();
+        if (e.key === ' ' || e.key === 'k') handlePlayPause();
+        if (e.key === 'f') handleFullScreenToggle();
+        if (e.key === 'm') handleMuteToggle();
       }
     };
 
     video.addEventListener("play", onPlay);
     video.addEventListener("pause", onPause);
-    video.addEventListener("volumechange", onVolumeChange);
     video.addEventListener("waiting", onWaiting);
     video.addEventListener("playing", onPlaying);
-    video.addEventListener("canplay", onCanPlay);
+    video.addEventListener("volumechange", onVolumeChange);
     document.addEventListener("fullscreenchange", onFullScreenChange);
     playerEl.addEventListener("keydown", onKeyDown);
     playerEl.addEventListener('mousemove', resetControlsTimeout);
@@ -207,10 +203,9 @@ export default function LivePlayer({ src }: LivePlayerProps) {
     return () => {
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
-      video.removeEventListener("volumechange", onVolumeChange);
       video.removeEventListener("waiting", onWaiting);
       video.removeEventListener("playing", onPlaying);
-      video.removeEventListener("canplay", onCanPlay);
+      video.removeEventListener("volumechange", onVolumeChange);
       document.removeEventListener("fullscreenchange", onFullScreenChange);
       playerEl.removeEventListener("keydown", onKeyDown);
       playerEl.removeEventListener('mousemove', resetControlsTimeout);
@@ -229,7 +224,7 @@ export default function LivePlayer({ src }: LivePlayerProps) {
       onClick={handlePlayerClick}
       onDoubleClick={handleFullScreenToggle}
     >
-      <video ref={videoRef} className="max-h-full w-full object-contain" playsInline autoPlay muted />
+      <video ref={videoRef} className="max-h-full w-full object-contain" playsInline autoPlay muted={isMuted} />
 
       {error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20 text-white p-4 text-center">
@@ -256,7 +251,7 @@ export default function LivePlayer({ src }: LivePlayerProps) {
           </button>
         </div>
       )}
-
+      
       <div
         className={cn(
           "absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/80 to-transparent p-4 transition-all duration-300 ease-in-out",
@@ -269,7 +264,7 @@ export default function LivePlayer({ src }: LivePlayerProps) {
           <button onClick={handlePlayPause} className="hover:text-primary transition-colors p-1" aria-label={isPlaying ? "Pausar" : "Reproducir"}>
             {isPlaying ? <Pause size={28} /> : <Play size={28} />}
           </button>
-          <Badge variant="destructive" className="animate-pulse font-semibold">EN VIVO</Badge>
+          <Badge variant="destructive" className="font-semibold">EN VIVO</Badge>
           <div className="flex-1" />
           <button onClick={handleMuteToggle} className="hover:text-primary transition-colors p-1" aria-label={isMuted ? "Quitar silencio" : "Silenciar"}>
             <VolumeIcon size={28} />
