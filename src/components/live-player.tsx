@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Hls from 'hls.js';
-import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Loader2 } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Loader2, VideoOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
@@ -18,13 +18,16 @@ export default function LivePlayer({ src }: LivePlayerProps) {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !src) return;
 
-    let hls: Hls;
+    let hls: Hls | null = null;
+    setError(null);
+    setIsLoading(true);
 
     if (Hls.isSupported()) {
         hls = new Hls();
@@ -32,12 +35,17 @@ export default function LivePlayer({ src }: LivePlayerProps) {
         hls.attachMedia(video);
         hls.on(Hls.Events.ERROR, (event, data) => {
             if (data.fatal) {
-                console.error('HLS fatal error:', data);
+                console.warn(`HLS fatal error: ${data.type}`, data);
+                setError('No se pudo cargar la transmisión. Es posible que no esté disponible o sea incompatible.');
+                setIsLoading(false);
             }
         });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         // Native HLS support (e.g., Safari)
         video.src = src;
+    } else {
+        setError('Este formato de video no es compatible con su navegador.');
+        setIsLoading(false);
     }
 
     return () => {
@@ -48,21 +56,21 @@ export default function LivePlayer({ src }: LivePlayerProps) {
 }, [src]);
 
   const handlePlayPause = useCallback(async () => {
-    if (!videoRef.current) return;
+    if (!videoRef.current || error) return;
     try {
       if (videoRef.current.paused) {
         await videoRef.current.play();
       } else {
         videoRef.current.pause();
       }
-    } catch (error) {
-       if (error instanceof Error && (error.name === 'NotAllowedError' || error.name === 'AbortError')) {
+    } catch (err) {
+       if (err instanceof Error && (err.name === 'NotAllowedError' || err.name === 'AbortError')) {
         // This is expected in some cases, e.g., user interaction interruption
        } else {
-        console.error("Video play/pause failed:", error);
+        console.warn("Video play/pause failed:", err);
       }
     }
-  }, []);
+  }, [error]);
   
   const handleMuteToggle = useCallback(() => {
     if (videoRef.current) {
@@ -212,13 +220,21 @@ export default function LivePlayer({ src }: LivePlayerProps) {
         playsInline
       />
       
-      {isLoading && (
+      {error && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20 text-white p-4 text-center">
+            <VideoOff className="w-12 h-12 mb-4 text-red-500" />
+            <h3 className="text-lg font-semibold mb-1">Error de reproducción</h3>
+            <p className="text-sm text-white/80">{error}</p>
+        </div>
+      )}
+
+      {isLoading && !error && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10 pointer-events-none">
           <Loader2 className="w-12 h-12 text-white animate-spin" />
         </div>
       )}
 
-      {!isPlaying && !isLoading && (
+      {!isPlaying && !isLoading && !error && (
         <div className="absolute inset-0 flex items-center justify-center z-20">
           <button
             onClick={handleCenterPlayClick}
@@ -234,7 +250,7 @@ export default function LivePlayer({ src }: LivePlayerProps) {
         className={cn(
           "absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/70 to-transparent p-2",
           "transition-all duration-300 ease-in-out",
-          showControls ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"
+          (showControls && !error) ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"
         )}
         onClick={(e) => e.stopPropagation()}
       >
