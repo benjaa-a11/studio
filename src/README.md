@@ -53,7 +53,27 @@ This application is configured to connect to a Firebase project.
         ```
         - **`imdbID`**: **(Requerido)** El ID de IMDb de la película (ej: `tt0816692`). La aplicación obtendrá automáticamente todos los demás detalles (título, póster, director, etc.) desde la API de OMDb.
         - **`streamUrl`**: **(Requerido)** El enlace directo (`.mp4`) o de inserción (`iframe`) para el streaming de la película.
-        - **Campos Opcionales de Sobreescritura**: Puedes añadir cualquiera de los otros campos a tu documento de Firestore para sobreescribir los datos obtenidos de OMDb. Esto es útil para poner títulos o sinopsis en español.
+        
+        #### ¿Cómo poner los datos en español?
+        
+        La aplicación usa la API de OMDb para obtener los detalles de las películas, y esta API devuelve la información principalmente en inglés.
+        
+        ¡Pero no hay problema! El sistema está diseñado para darte control total. Simplemente **añade los campos que quieras en español a tu documento de Firestore, y estos sobreescribirán los datos en inglés.**
+        
+        **Ejemplo de un documento en Firestore:**
+        
+        ```json
+        {
+          "imdbID": "tt1375666",
+          "streamUrl": "https://...",
+          "format": "mp4",
+          "title": "El Origen",
+          "synopsis": "Dom Cobb es un ladrón, el mejor de todos, especialista en el peligroso arte de la extracción: el robo de valiosos secretos desde las profundidades del subconsciente...",
+          "category": ["Acción", "Aventura", "Ciencia Ficción"]
+        }
+        ```
+        
+        En este ejemplo, la aplicación mostrará el título y la sinopsis en español que tú definiste, mientras que el resto de los datos (año, director, actores, etc.) se seguirán obteniendo automáticamente de la API. Si no añades `title` o `synopsis`, se usarán las versiones en inglés.
 
     - Each document in the `mdc25` and `copaargentina` collections should have the following structure:
         ```json

@@ -53,7 +53,27 @@ This application is configured to connect to a Firebase project.
         ```
         - **`imdbID`**: **(Required)** The IMDb ID of the movie (e.g., `tt0816692`). The app will fetch all other details like title, poster, director, rating, etc., automatically from the OMDb API.
         - **`streamUrl`**: **(Required)** The direct link (`.mp4`) or embeddable link (`iframe`) for the movie stream.
-        - **Override Fields**: All other fields are optional. You can add them to your Firestore document to override the data fetched from OMDb. This is useful for providing Spanish titles or custom posters.
+        
+        #### How to Display Data in Spanish (or any other language)
+        
+        The app uses the OMDb API to fetch movie details, which provides data primarily in English.
+        
+        However, the system is designed to give you full control. Simply **add the fields you want in your preferred language to your Firestore document, and they will override the English data.**
+        
+        **Example of a Firestore document with Spanish overrides:**
+        
+        ```json
+        {
+          "imdbID": "tt1375666",
+          "streamUrl": "https://...",
+          "format": "mp4",
+          "title": "El Origen", 
+          "synopsis": "Dom Cobb es un ladrón, el mejor de todos...",
+          "category": ["Acción", "Aventura", "Ciencia Ficción"]
+        }
+        ```
+        
+        In this example, the app will display the Spanish title, synopsis, and categories you provided, while still automatically fetching other data like year, director, and actors from the API. If you don't provide these override fields, the English versions from the API will be used.
 
     - Each document in the `mdc25` and `copaargentina` collections should have the following structure:
         ```json
