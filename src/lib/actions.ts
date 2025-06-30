@@ -207,6 +207,22 @@ const _enrichMovieData = async (docId: string, firestoreMovie: any): Promise<Mov
   if (firestoreMovie.imdbID) {
     const omdbData = await _fetchOMDbData(firestoreMovie.imdbID);
     if (omdbData) {
+      let finalDuration = firestoreMovie.duration;
+      if (!finalDuration && omdbData.Runtime && omdbData.Runtime !== "N/A") {
+        const runtimeMinutes = parseInt(omdbData.Runtime, 10);
+        if (!isNaN(runtimeMinutes)) {
+          const hours = Math.floor(runtimeMinutes / 60);
+          const minutes = runtimeMinutes % 60;
+          if (hours > 0) {
+            finalDuration = `${hours}h ${minutes}m`;
+          } else {
+            finalDuration = `${minutes}m`;
+          }
+        } else {
+          finalDuration = omdbData.Runtime;
+        }
+      }
+
       return {
         id: docId,
         imdbID: firestoreMovie.imdbID,
@@ -216,12 +232,11 @@ const _enrichMovieData = async (docId: string, firestoreMovie: any): Promise<Mov
         category: firestoreMovie.category || omdbData.Genre?.split(', ') || [],
         synopsis: firestoreMovie.synopsis || omdbData.Plot,
         year: firestoreMovie.year || parseInt(omdbData.Year, 10),
-        duration: firestoreMovie.duration || omdbData.Runtime,
+        duration: finalDuration,
         format: firestoreMovie.format,
         director: firestoreMovie.director || omdbData.Director,
         actors: firestoreMovie.actors || omdbData.Actors,
         imdbRating: firestoreMovie.imdbRating || omdbData.imdbRating,
-        rated: firestoreMovie.rated || omdbData.Rated,
       };
     }
   }

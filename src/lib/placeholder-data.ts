@@ -28,7 +28,6 @@ export const placeholderMovies: Movie[] = [
     director: "Christopher Nolan",
     actors: "Matthew McConaughey, Anne Hathaway, Jessica Chastain",
     imdbRating: "8.7",
-    rated: "PG-13",
   },
   {
     id: "peli-2",
@@ -44,7 +43,6 @@ export const placeholderMovies: Movie[] = [
     director: "Christopher Nolan",
     actors: "Leonardo DiCaprio, Joseph Gordon-Levitt, Elliot Page",
     imdbRating: "8.8",
-    rated: "PG-13",
   },
   {
     id: "peli-3",
@@ -60,7 +58,6 @@ export const placeholderMovies: Movie[] = [
     director: "Christopher Nolan",
     actors: "Christian Bale, Heath Ledger, Aaron Eckhart",
     imdbRating: "9.0",
-    rated: "PG-13",
   },
 ];
 

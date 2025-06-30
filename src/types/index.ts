@@ -43,5 +43,4 @@ export type Movie = {
   director?: string;
   actors?: string;
   imdbRating?: string;
-  rated?: string;
 };
