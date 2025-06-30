@@ -276,24 +276,30 @@ export default function VideoPlayer({ src, posterUrl }: VideoPlayerProps) {
                 <VolumeIcon size={28} />
             </button>
             
-            <span className={cn("text-xs sm:text-sm font-mono select-none text-center tabular-nums", timeWidth)}>
-                {formatTime(progress, showHours)}
-            </span>
-            
-            <Slider
-                value={[progress]}
-                max={duration || 1}
-                step={1}
-                onValueChange={handleSeek}
-                onValueChangeStart={() => setIsSeeking(true)}
-                onValueChangeEnd={() => setIsSeeking(false)}
-                className="w-full flex-1 cursor-pointer"
-                aria-label="Video progress bar"
-            />
+            {isFullScreen ? (
+              <>
+                <span className={cn("text-xs sm:text-sm font-mono select-none text-center tabular-nums", timeWidth)}>
+                    {formatTime(progress, showHours)}
+                </span>
+                
+                <Slider
+                    value={[progress]}
+                    max={duration || 1}
+                    step={1}
+                    onValueChange={handleSeek}
+                    onValueChangeStart={() => setIsSeeking(true)}
+                    onValueChangeEnd={() => setIsSeeking(false)}
+                    className="w-full flex-1 cursor-pointer"
+                    aria-label="Video progress bar"
+                />
 
-            <span className={cn("text-xs sm:text-sm font-mono select-none text-center tabular-nums", timeWidth)}>
-                {formatTime(duration, showHours)}
-            </span>
+                <span className={cn("text-xs sm:text-sm font-mono select-none text-center tabular-nums", timeWidth)}>
+                    {formatTime(duration, showHours)}
+                </span>
+              </>
+            ) : (
+                <div className="flex-1" />
+            )}
             
             <button onClick={handleFullScreenToggle} className="hover:text-primary transition-colors p-1" aria-label={isFullScreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
               {isFullScreen ? <Minimize size={28} /> : <Maximize size={28} />}
