@@ -34,7 +34,7 @@ export default function VideoPlayer({ src, posterUrl }: VideoPlayerProps) {
 
   // State Management
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
