@@ -40,7 +40,7 @@ This application is configured to connect to a Firebase project.
     - Each document in the `peliculas` collection should have the following structure:
         ```json
         {
-            "imdbID": "tt0816692",
+            "tmdbID": "157336",
             "streamUrl": "https://... (enlace mp4 o iframe)",
             "format": "mp4" or "iframe",
             "title": "(Opcional) Título para sobreescribir",
@@ -51,29 +51,28 @@ This application is configured to connect to a Firebase project.
             "duration": "(Opcional) Duración para sobreescribir"
         }
         ```
-        - **`imdbID`**: **(Requerido)** El ID de IMDb de la película (ej: `tt0816692`). La aplicación obtendrá automáticamente todos los demás detalles (título, póster, director, etc.) desde la API de OMDb.
+        - **`tmdbID`**: **(Requerido)** El ID de TheMovieDB de la película (ej: `157336` para Interestelar). La aplicación obtendrá automáticamente todos los demás detalles (título, póster, director, etc.) en español desde la API de TMDb.
         - **`streamUrl`**: **(Requerido)** El enlace directo (`.mp4`) o de inserción (`iframe`) para el streaming de la película.
         
-        #### ¿Cómo poner los datos en español?
+        #### ¿Cómo funcionan los datos?
         
-        La aplicación usa la API de OMDb para obtener los detalles de las películas, y esta API devuelve la información principalmente en inglés.
+        La aplicación usa la API de TMDb para obtener los detalles de las películas, y esta API devuelve la información directamente en español.
         
-        ¡Pero no hay problema! El sistema está diseñado para darte control total. Simplemente **añade los campos que quieras en español a tu documento de Firestore, y estos sobreescribirán los datos en inglés.**
+        ¡Pero no hay problema! El sistema está diseñado para darte control total. Simplemente **añade los campos que quieras sobreescribir a tu documento de Firestore, y estos reemplazarán los datos de la API.**
         
         **Ejemplo de un documento en Firestore:**
         
         ```json
         {
-          "imdbID": "tt1375666",
+          "tmdbID": "27205",
           "streamUrl": "https://...",
           "format": "mp4",
-          "title": "El Origen",
+          "title": "El Origen (Título Personalizado)",
           "synopsis": "Dom Cobb es un ladrón, el mejor de todos, especialista en el peligroso arte de la extracción: el robo de valiosos secretos desde las profundidades del subconsciente...",
-          "category": ["Acción", "Aventura", "Ciencia Ficción"]
         }
         ```
         
-        En este ejemplo, la aplicación mostrará el título y la sinopsis en español que tú definiste, mientras que el resto de los datos (año, director, actores, etc.) se seguirán obteniendo automáticamente de la API. Si no añades `title` o `synopsis`, se usarán las versiones en inglés.
+        En este ejemplo, la aplicación mostrará el título y la sinopsis que tú definiste, mientras que el resto de los datos (año, director, actores, etc.) se seguirán obteniendo automáticamente de la API. Si no añades `title` o `synopsis`, se usarán las versiones en español de TMDb.
 
     - Each document in the `mdc25` and `copaargentina` collections should have the following structure:
         ```json

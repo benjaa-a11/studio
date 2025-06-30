@@ -40,10 +40,10 @@ This application is configured to connect to a Firebase project.
     - Each document in the `peliculas` collection should have the following structure:
         ```json
         {
-            "imdbID": "tt0816692",
+            "tmdbID": "157336",
             "streamUrl": "https://... (mp4 or iframe link)",
             "format": "mp4" or "iframe",
-            "title": "(Optional) Title to override IMDb's",
+            "title": "(Optional) Title to override TMDb's",
             "posterUrl": "(Optional) Poster URL to override",
             "synopsis": "(Optional) Synopsis to override",
             "category": ["(Optional) Array", "of", "categories"],
@@ -51,29 +51,28 @@ This application is configured to connect to a Firebase project.
             "duration": "(Optional) Duration string to override"
         }
         ```
-        - **`imdbID`**: **(Required)** The IMDb ID of the movie (e.g., `tt0816692`). The app will fetch all other details like title, poster, director, rating, etc., automatically from the OMDb API.
+        - **`tmdbID`**: **(Required)** The TheMovieDB ID of the movie (e.g., `157336` for Interstellar). The app will fetch all other details like title, poster, director, rating, etc., automatically from the TMDb API in Spanish.
         - **`streamUrl`**: **(Required)** The direct link (`.mp4`) or embeddable link (`iframe`) for the movie stream.
         
-        #### How to Display Data in Spanish (or any other language)
+        #### How to Display Data
         
-        The app uses the OMDb API to fetch movie details, which provides data primarily in English.
+        The app uses the TMDb API to fetch movie details, which provides data in Spanish by default.
         
-        However, the system is designed to give you full control. Simply **add the fields you want in your preferred language to your Firestore document, and they will override the English data.**
+        However, the system is designed to give you full control. Simply **add the fields you want to override to your Firestore document, and they will be used instead of the data from the API.**
         
-        **Example of a Firestore document with Spanish overrides:**
+        **Example of a Firestore document with a Spanish title override:**
         
         ```json
         {
-          "imdbID": "tt1375666",
+          "tmdbID": "27205",
           "streamUrl": "https://...",
           "format": "mp4",
-          "title": "El Origen", 
-          "synopsis": "Dom Cobb es un ladrón, el mejor de todos...",
-          "category": ["Acción", "Aventura", "Ciencia Ficción"]
+          "title": "El Origen (Título Personalizado)", 
+          "synopsis": "Una sinopsis personalizada en español..."
         }
         ```
         
-        In this example, the app will display the Spanish title, synopsis, and categories you provided, while still automatically fetching other data like year, director, and actors from the API. If you don't provide these override fields, the English versions from the API will be used.
+        In this example, the app will display the custom Spanish title and synopsis you provided, while still automatically fetching other data like year, director, and actors from the API. If you don't provide these override fields, the Spanish versions from the API will be used.
 
     - Each document in the `mdc25` and `copaargentina` collections should have the following structure:
         ```json

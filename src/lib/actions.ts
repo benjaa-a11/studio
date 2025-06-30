@@ -181,66 +181,87 @@ export const getAgendaMatches = async (): Promise<Match[]> => {
 
 // --- MOVIES ---
 
-const OMDb_API_KEY = "13b60bb5";
+const TMDB_API_KEY = "6e169a1817f02679d8c5eaf5f241c093";
+const TMDB_BASE_URL = "https://api.themoviedb.org/3";
+const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
 
-const _fetchOMDbData = cache(async (imdbID: string) => {
-  if (!imdbID) return null;
+const _fetchTMDbData = cache(async (tmdbID: string) => {
+  if (!tmdbID) return null;
   try {
-    const response = await fetch(`https://www.omdbapi.com/?i=${imdbID}&apikey=${OMDb_API_KEY}`);
+    const response = await fetch(`${TMDB_BASE_URL}/movie/${tmdbID}?api_key=${TMDB_API_KEY}&language=es-ES`);
     if (!response.ok) {
-      console.error(`Error fetching OMDb data for ${imdbID}: ${response.statusText}`);
+      console.error(`Error fetching TMDb data for ${tmdbID}: ${response.statusText}`);
       return null;
     }
     const data = await response.json();
-    if (data.Response === "False") {
-      console.error(`OMDb API error for ${imdbID}: ${data.Error}`);
+    if (data.success === false) {
+      console.error(`TMDb API error for ${tmdbID}: ${data.status_message}`);
       return null;
     }
     return data;
   } catch (error) {
-    console.error(`Error fetching from OMDb for ${imdbID}:`, error);
+    console.error(`Error fetching from TMDb for ${tmdbID}:`, error);
+    return null;
+  }
+});
+
+const _fetchTMDbCredits = cache(async (tmdbID: string) => {
+  if (!tmdbID) return null;
+  try {
+    const response = await fetch(`${TMDB_BASE_URL}/movie/${tmdbID}/credits?api_key=${TMDB_API_KEY}&language=es-ES`);
+    if (!response.ok) {
+      console.error(`Error fetching TMDb credits for ${tmdbID}: ${response.statusText}`);
+      return null;
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(`Error fetching credits from TMDb for ${tmdbID}:`, error);
     return null;
   }
 });
 
 const _enrichMovieData = async (docId: string, firestoreMovie: any): Promise<Movie> => {
-  if (firestoreMovie.imdbID) {
-    const omdbData = await _fetchOMDbData(firestoreMovie.imdbID);
-    if (omdbData) {
+  if (firestoreMovie.tmdbID) {
+    const [movieData, creditsData] = await Promise.all([
+      _fetchTMDbData(firestoreMovie.tmdbID),
+      _fetchTMDbCredits(firestoreMovie.tmdbID),
+    ]);
+
+    if (movieData) {
+      // Format duration
       let finalDuration = firestoreMovie.duration;
-      if (!finalDuration && omdbData.Runtime && omdbData.Runtime !== "N/A") {
-        const runtimeMinutes = parseInt(omdbData.Runtime, 10);
-        if (!isNaN(runtimeMinutes)) {
-          const hours = Math.floor(runtimeMinutes / 60);
-          const minutes = runtimeMinutes % 60;
-          if (hours > 0) {
-            finalDuration = `${hours}h ${minutes}m`;
-          } else {
-            finalDuration = `${minutes}m`;
-          }
+      if (!finalDuration && movieData.runtime) {
+        const hours = Math.floor(movieData.runtime / 60);
+        const minutes = movieData.runtime % 60;
+        if (hours > 0) {
+          finalDuration = `${hours}h ${minutes}m`;
         } else {
-          finalDuration = omdbData.Runtime;
+          finalDuration = `${minutes}m`;
         }
       }
 
+      // Get director and actors from credits
+      const director = creditsData?.crew?.find((person: any) => person.job === 'Director')?.name;
+      const actors = creditsData?.cast?.slice(0, 3).map((person: any) => person.name).join(', ');
+
       return {
         id: docId,
-        imdbID: firestoreMovie.imdbID,
-        title: firestoreMovie.title || omdbData.Title,
-        posterUrl: firestoreMovie.posterUrl || omdbData.Poster,
+        tmdbID: firestoreMovie.tmdbID,
+        title: firestoreMovie.title || movieData.title,
+        posterUrl: firestoreMovie.posterUrl || (movieData.poster_path ? `${TMDB_IMAGE_BASE_URL}${movieData.poster_path}` : 'https://placehold.co/500x750.png'),
         streamUrl: firestoreMovie.streamUrl,
-        category: firestoreMovie.category || omdbData.Genre?.split(', ') || [],
-        synopsis: firestoreMovie.synopsis || omdbData.Plot,
-        year: firestoreMovie.year || parseInt(omdbData.Year, 10),
+        category: firestoreMovie.category || movieData.genres?.map((g: any) => g.name) || [],
+        synopsis: firestoreMovie.synopsis || movieData.overview,
+        year: firestoreMovie.year || (movieData.release_date ? parseInt(movieData.release_date.split('-')[0], 10) : undefined),
         duration: finalDuration,
         format: firestoreMovie.format,
-        director: firestoreMovie.director || omdbData.Director,
-        actors: firestoreMovie.actors || omdbData.Actors,
-        imdbRating: firestoreMovie.imdbRating || omdbData.imdbRating,
+        director: firestoreMovie.director || director,
+        actors: firestoreMovie.actors || actors,
+        rating: firestoreMovie.rating || (movieData.vote_average ? movieData.vote_average.toFixed(1) : undefined),
       };
     }
   }
-  // Fallback to Firestore data if no imdbID or OMDb fetch fails
+  // Fallback to Firestore data if no tmdbID or API fetch fails
   return {
     id: docId,
     ...firestoreMovie,
