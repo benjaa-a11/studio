@@ -196,6 +196,7 @@ export default function VideoPlayer({ src, posterUrl }: VideoPlayerProps) {
 
   const VolumeIcon = isMuted ? VolumeX : Volume2;
   const showHours = duration >= 3600;
+  const timeWidth = showHours ? "w-20" : "w-14";
 
   return (
     <div 
@@ -266,33 +267,35 @@ export default function VideoPlayer({ src, posterUrl }: VideoPlayerProps) {
           showControls ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"
         )}
       >
-        {isFullScreen && (
-          <div className="px-2 sm:px-4">
-              <Slider
+        <div className="flex items-center gap-2 sm:gap-3 px-1 sm:px-2 pb-1 text-white">
+            <button onClick={handlePlayPause} className="hover:text-primary transition-colors p-1" aria-label={isPlaying ? 'Pause' : 'Play'}>
+              {isPlaying ? <Pause size={28} /> : <Play size={28} />}
+            </button>
+
+            <button onClick={handleMuteToggle} className="hover:text-primary transition-colors p-1" aria-label={isMuted ? 'Unmute' : 'Mute'}>
+                <VolumeIcon size={28} />
+            </button>
+            
+            <span className={cn("text-xs sm:text-sm font-mono select-none text-center tabular-nums", timeWidth)}>
+                {formatTime(progress, showHours)}
+            </span>
+            
+            <Slider
                 value={[progress]}
-                max={duration}
+                max={duration || 1}
                 step={1}
                 onValueChange={handleSeek}
                 onValueChangeStart={() => setIsSeeking(true)}
                 onValueChangeEnd={() => setIsSeeking(false)}
-                className="w-full h-2 cursor-pointer [&>span:first-child]:h-1 [&>span:first-child>span]:h-1"
-              />
-          </div>
-        )}
-        <div className="flex items-center gap-3 sm:gap-4 px-2 sm:px-4 pb-1 text-white">
-            <button onClick={handlePlayPause} className="hover:text-primary transition-colors p-1">
-              {isPlaying ? <Pause size={28} /> : <Play size={28} />}
-            </button>
-            <div className="text-xs sm:text-sm font-mono select-none flex items-center gap-1.5">
-                <span>{formatTime(progress, showHours)}</span>
-                <span className="text-white/70">/</span>
-                <span>{formatTime(duration, showHours)}</span>
-            </div>
-            <div className="flex-1" />
-            <button onClick={handleMuteToggle} className="hover:text-primary transition-colors p-1">
-                <VolumeIcon size={28} />
-            </button>
-            <button onClick={handleFullScreenToggle} className="hover:text-primary transition-colors p-1">
+                className="w-full flex-1 cursor-pointer"
+                aria-label="Video progress bar"
+            />
+
+            <span className={cn("text-xs sm:text-sm font-mono select-none text-center tabular-nums", timeWidth)}>
+                {formatTime(duration, showHours)}
+            </span>
+            
+            <button onClick={handleFullScreenToggle} className="hover:text-primary transition-colors p-1" aria-label={isFullScreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
               {isFullScreen ? <Minimize size={28} /> : <Maximize size={28} />}
             </button>
         </div>
