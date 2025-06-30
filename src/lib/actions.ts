@@ -181,6 +181,58 @@ export const getAgendaMatches = async (): Promise<Match[]> => {
 
 // --- MOVIES ---
 
+const OMDb_API_KEY = "13b60bb5";
+
+const _fetchOMDbData = cache(async (imdbID: string) => {
+  if (!imdbID) return null;
+  try {
+    const response = await fetch(`https://www.omdbapi.com/?i=${imdbID}&apikey=${OMDb_API_KEY}`);
+    if (!response.ok) {
+      console.error(`Error fetching OMDb data for ${imdbID}: ${response.statusText}`);
+      return null;
+    }
+    const data = await response.json();
+    if (data.Response === "False") {
+      console.error(`OMDb API error for ${imdbID}: ${data.Error}`);
+      return null;
+    }
+    return data;
+  } catch (error) {
+    console.error(`Error fetching from OMDb for ${imdbID}:`, error);
+    return null;
+  }
+});
+
+const _enrichMovieData = async (docId: string, firestoreMovie: any): Promise<Movie> => {
+  if (firestoreMovie.imdbID) {
+    const omdbData = await _fetchOMDbData(firestoreMovie.imdbID);
+    if (omdbData) {
+      return {
+        id: docId,
+        imdbID: firestoreMovie.imdbID,
+        title: firestoreMovie.title || omdbData.Title,
+        posterUrl: firestoreMovie.posterUrl || omdbData.Poster,
+        streamUrl: firestoreMovie.streamUrl,
+        category: firestoreMovie.category || omdbData.Genre?.split(', ') || [],
+        synopsis: firestoreMovie.synopsis || omdbData.Plot,
+        year: firestoreMovie.year || parseInt(omdbData.Year, 10),
+        duration: firestoreMovie.duration || omdbData.Runtime,
+        format: firestoreMovie.format,
+        director: firestoreMovie.director || omdbData.Director,
+        actors: firestoreMovie.actors || omdbData.Actors,
+        imdbRating: firestoreMovie.imdbRating || omdbData.imdbRating,
+        rated: firestoreMovie.rated || omdbData.Rated,
+      };
+    }
+  }
+  // Fallback to Firestore data if no imdbID or OMDb fetch fails
+  return {
+    id: docId,
+    ...firestoreMovie,
+  } as Movie;
+};
+
+
 const useMovieFallbackData = () => {
   console.warn("Firebase no disponible o colección de películas vacía. Usando datos de demostración.");
   return placeholderMovies;
@@ -196,11 +248,9 @@ export const getMovies = cache(async (): Promise<Movie[]> => {
       return useMovieFallbackData();
     }
     
-    const movies = movieSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Movie));
-    
+    const moviePromises = movieSnapshot.docs.map(doc => _enrichMovieData(doc.id, doc.data()));
+    const movies = await Promise.all(moviePromises);
+
     return movies;
   } catch (error) {
     console.error("Error al obtener películas de Firebase:", error);
@@ -214,7 +264,7 @@ export const getMovieById = async (id: string): Promise<Movie | null> => {
     const movieSnapshot = await getDoc(movieDoc);
 
     if (movieSnapshot.exists()) {
-      return { id: movieSnapshot.id, ...movieSnapshot.data() } as Movie;
+      return await _enrichMovieData(movieSnapshot.id, movieSnapshot.data());
     } else {
       const fallbackMovie = placeholderMovies.find(m => m.id === id);
       if (fallbackMovie) {
@@ -236,6 +286,6 @@ export const getMovieById = async (id: string): Promise<Movie | null> => {
 export const getMovieCategories = async (): Promise<string[]> => {
   const movies = await getMovies();
   if (!movies || movies.length === 0) return [];
-  const categories = new Set(movies.map(movie => movie.category));
+  const categories = new Set(movies.flatMap(movie => movie.category || []));
   return Array.from(categories).sort();
 };

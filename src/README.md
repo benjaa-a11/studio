@@ -40,18 +40,20 @@ This application is configured to connect to a Firebase project.
     - Each document in the `peliculas` collection should have the following structure:
         ```json
         {
-            "title": "Movie Title",
-            "posterUrl": "https://...",
-            "streamUrl": "https://... (mp4 or iframe link)",
+            "imdbID": "tt0816692",
+            "streamUrl": "https://... (enlace mp4 o iframe)",
             "format": "mp4" or "iframe",
-            "category": "Category Name",
-            "description": "A brief movie synopsis.",
-            "year": 2024,
-            "duration": "2h 15m"
+            "title": "(Opcional) Título para sobreescribir",
+            "posterUrl": "(Opcional) URL del póster para sobreescribir",
+            "synopsis": "(Opcional) Sinopsis para sobreescribir",
+            "category": ["(Opcional) Array", "de", "categorías"],
+            "year": "(Opcional) Año (número) para sobreescribir",
+            "duration": "(Opcional) Duración para sobreescribir"
         }
         ```
-        - **`format`**: (Optional) Specify `'mp4'` to use the advanced, custom video player. Otherwise, it will default to an `iframe` embed.
-        - **`streamUrl`**: For `mp4` format, this must be a direct link to the video file. For `iframe`, it should be the embeddable link.
+        - **`imdbID`**: **(Requerido)** El ID de IMDb de la película (ej: `tt0816692`). La aplicación obtendrá automáticamente todos los demás detalles (título, póster, director, etc.) desde la API de OMDb.
+        - **`streamUrl`**: **(Requerido)** El enlace directo (`.mp4`) o de inserción (`iframe`) para el streaming de la película.
+        - **Campos Opcionales de Sobreescritura**: Puedes añadir cualquiera de los otros campos a tu documento de Firestore para sobreescribir los datos obtenidos de OMDb. Esto es útil para poner títulos o sinopsis en español.
 
     - Each document in the `mdc25` and `copaargentina` collections should have the following structure:
         ```json
@@ -82,7 +84,7 @@ This application is configured to connect to a Firebase project.
     8.  Opcionalmente, añade el campo `matchDetails` de tipo `string`.
     9.  Haz clic en **"Guardar"**.
 
-5.  **Security Rules**: For production, ensure your Firestore security rules are properly configured to allow read access to the collections. A basic rule for public read access would be:
+4.  **Security Rules**: For production, ensure your Firestore security rules are properly configured to allow read access to the collections. A basic rule for public read access would be:
     ```
     rules_version = '2';
     service cloud.firestore {

@@ -40,18 +40,20 @@ This application is configured to connect to a Firebase project.
     - Each document in the `peliculas` collection should have the following structure:
         ```json
         {
-            "title": "Movie Title",
-            "posterUrl": "https://...",
+            "imdbID": "tt0816692",
             "streamUrl": "https://... (mp4 or iframe link)",
             "format": "mp4" or "iframe",
-            "category": "Category Name",
-            "description": "A brief movie synopsis.",
-            "year": 2024,
-            "duration": "2h 15m"
+            "title": "(Optional) Title to override IMDb's",
+            "posterUrl": "(Optional) Poster URL to override",
+            "synopsis": "(Optional) Synopsis to override",
+            "category": ["(Optional) Array", "of", "categories"],
+            "year": "(Optional) Year (number) to override",
+            "duration": "(Optional) Duration string to override"
         }
         ```
-        - **`format`**: (Optional) Specify `'mp4'` to use the advanced, custom video player. Otherwise, it will default to an `iframe` embed.
-        - **`streamUrl`**: For `mp4` format, this must be a direct link to the video file. For `iframe`, it should be the embeddable link.
+        - **`imdbID`**: **(Required)** The IMDb ID of the movie (e.g., `tt0816692`). The app will fetch all other details like title, poster, director, rating, etc., automatically from the OMDb API.
+        - **`streamUrl`**: **(Required)** The direct link (`.mp4`) or embeddable link (`iframe`) for the movie stream.
+        - **Override Fields**: All other fields are optional. You can add them to your Firestore document to override the data fetched from OMDb. This is useful for providing Spanish titles or custom posters.
 
     - Each document in the `mdc25` and `copaargentina` collections should have the following structure:
         ```json
