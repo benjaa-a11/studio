@@ -198,12 +198,12 @@ export const getAgendaMatches = async (): Promise<Match[]> => {
 
 // --- MOVIES ---
 
-const TMDB_API_KEY = "6e169a1817f02679d8c5eaf5f241c093";
+const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
 
 const _fetchTMDbData = cache(async (tmdbID: string) => {
-  if (!tmdbID) return null;
+  if (!tmdbID || !TMDB_API_KEY) return null;
   try {
     const response = await fetch(`${TMDB_BASE_URL}/movie/${tmdbID}?api_key=${TMDB_API_KEY}&language=es-ES`);
     if (!response.ok) {
@@ -223,7 +223,7 @@ const _fetchTMDbData = cache(async (tmdbID: string) => {
 });
 
 const _fetchTMDbCredits = cache(async (tmdbID: string) => {
-  if (!tmdbID) return null;
+  if (!tmdbID || !TMDB_API_KEY) return null;
   try {
     const response = await fetch(`${TMDB_BASE_URL}/movie/${tmdbID}/credits?api_key=${TMDB_API_KEY}&language=es-ES`);
     if (!response.ok) {

@@ -4,9 +4,32 @@ This is a Next.js application for streaming live TV channels, built with Firebas
 
 ## Getting Started
 
-First, run the development server:
+### 1. Environment Variables
+
+First, create a file named `.env.local` in the root of your project by copying the example `.env` file:
 
 ```bash
+cp .env .env.local
+```
+
+Now, open `.env.local` and fill in the required values for your Firebase project and the TMDb API.
+
+-   `NEXT_PUBLIC_FIREBASE_API_KEY`: Your Firebase API Key.
+-   `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`: Your Firebase Auth Domain.
+-   `NEXT_PUBLIC_FIREBASE_PROJECT_ID`: Your Firebase Project ID.
+-   `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`: Your Firebase Storage Bucket.
+-   `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`: Your Firebase Messaging Sender ID.
+-   `NEXT_PUBLIC_FIREBASE_APP_ID`: Your Firebase App ID.
+-   `TMDB_API_KEY`: Your TheMovieDB API key (v3 auth).
+
+**Important**: The `TMDB_API_KEY` is used server-side and will not be exposed to the client. The `NEXT_PUBLIC_` prefix is required for the Firebase config to be accessible on the client-side.
+
+### 2. Install Dependencies and Run
+
+Next, install the dependencies and run the development server:
+
+```bash
+npm install
 npm run dev
 # or
 yarn dev
@@ -20,12 +43,12 @@ Open [http://localhost:9002](http://localhost:9002) with your browser to see the
 
 This application is configured to connect to a Firebase project.
 
-1.  **Firebase Configuration**: The Firebase configuration is located in `src/lib/firebase.ts`. The placeholder values from the proposal have been used.
+1.  **Firebase Configuration**: The Firebase configuration is now securely managed via environment variables in your `.env.local` file.
 
 2.  **Firestore Database**: The application expects a Firestore database with four collections: `channels`, `peliculas`, `mdc25`, and `copaargentina`.
 
-3.  **Data Structure**: 
-    - Each document in the `channels` collection should have the following structure:
+3.  **Data Structure**:
+    -   Each document in the `channels` collection should have the following structure:
         ```json
         {
           "name": "Channel Name",
@@ -35,9 +58,9 @@ This application is configured to connect to a Firebase project.
           "description": "A brief channel description."
         }
         ```
-        - **`streamUrl`**: This is an array of strings. The user can manually switch to other sources in the array if the primary one fails.
+        -   **`streamUrl`**: This is an array of strings. The user can manually switch to other sources in the array if the primary one fails.
 
-    - Each document in the `peliculas` collection should have the following structure:
+    -   Each document in the `peliculas` collection should have the following structure:
         ```json
         {
             "tmdbID": "157336",
@@ -51,30 +74,30 @@ This application is configured to connect to a Firebase project.
             "duration": "(Optional) Duration string to override"
         }
         ```
-        - **`tmdbID`**: **(Required)** The TheMovieDB ID of the movie (e.g., `157336` for Interstellar). The app will fetch all other details like title, poster, director, rating, etc., automatically from the TMDb API in Spanish.
-        - **`streamUrl`**: **(Required)** The direct link (`.mp4`) or embeddable link (`iframe`) for the movie stream.
-        
+        -   **`tmdbID`**: **(Required)** The TheMovieDB ID of the movie (e.g., `157336` for Interstellar). The app will fetch all other details like title, poster, director, rating, etc., automatically from the TMDb API in Spanish.
+        -   **`streamUrl`**: **(Required)** The direct link (`.mp4`) or embeddable link (`iframe`) for the movie stream.
+
         #### How to Display Data
-        
+
         The app uses the TMDb API to fetch movie details, which provides data in Spanish by default.
-        
+
         However, the system is designed to give you full control. Simply **add the fields you want to override to your Firestore document, and they will be used instead of the data from the API.**
-        
+
         **Example of a Firestore document with a Spanish title override:**
-        
+
         ```json
         {
           "tmdbID": "27205",
           "streamUrl": "https://...",
           "format": "mp4",
-          "title": "El Origen (Título Personalizado)", 
+          "title": "El Origen (Título Personalizado)",
           "synopsis": "Una sinopsis personalizada en español..."
         }
         ```
-        
+
         In this example, the app will display the custom Spanish title and synopsis you provided, while still automatically fetching other data like year, director, and actors from the API. If you don't provide these override fields, the Spanish versions from the API will be used.
 
-    - Each document in the `mdc25` and `copaargentina` collections should have the following structure:
+    -   Each document in the `mdc25` and `copaargentina` collections should have the following structure:
         ```json
         {
             "team1": "Team A Name",
@@ -86,9 +109,9 @@ This application is configured to connect to a Firebase project.
             "matchDetails": "Fase de grupos · Grupo E · Jornada 2 de 3"
         }
         ```
-        - **`matchTimestamp`**: This is the most important field. It must be of type **`timestamp`** in Firestore. It determines when the match is shown. **Important:** When you select the date and time in the Firebase console, it will use your computer's local time zone. The application will correctly display it in Argentinian time (UTC-3). Matches will appear on the homepage **only if their start date is the current day** and will disappear 3 hours after they have started.
-        - **`channels`**: This must be an array of **strings**. Each string should be the document ID of a channel from your `channels` collection. The app will automatically fetch the channel name.
-        - **`matchDetails`**: This is an optional **`string`** field where you can add extra information about the match, such as the tournament stage (e.g., "Fase de grupos · Grupo E · Jornada 2 de 3").
+        -   **`matchTimestamp`**: This is the most important field. It must be of type **`timestamp`** in Firestore. It determines when the match is shown. **Important:** When you select the date and time in the Firebase console, it will use your computer's local time zone. The application will correctly display it in Argentinian time (UTC-3). Matches will appear on the homepage **only if their start date is the current day** and will disappear 3 hours after they have started.
+        -   **`channels`**: This must be an array of **strings**. Each string should be the document ID of a channel from your `channels` collection. The app will automatically fetch the channel name.
+        -   **`matchDetails`**: This is an optional **`string`** field where you can add extra information about the match, such as the tournament stage (e.g., "Fase de grupos · Grupo E · Jornada 2 de 3").
 
     ### How to Add a Match with a Timestamp
 

@@ -206,6 +206,7 @@ export default function VideoPlayer({ src, posterUrl }: VideoPlayerProps) {
       onMouseMove={resetControlsTimeout}
       onMouseLeave={() => isPlaying && setShowControls(false)}
       onClick={handleVideoClick}
+      onContextMenu={(e) => e.preventDefault()}
     >
       {isLoading && posterUrl && !error && (
         <div className="absolute inset-0 z-0">
@@ -221,6 +222,7 @@ export default function VideoPlayer({ src, posterUrl }: VideoPlayerProps) {
         onDoubleClick={handleFullScreenToggle}
         playsInline
         autoPlay
+        muted={isMuted}
       />
       
       {isFullScreen && (
