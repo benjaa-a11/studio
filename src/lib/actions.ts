@@ -115,19 +115,36 @@ export const getAgendaMatches = async (): Promise<Match[]> => {
     const allChannelsMap = new Map(allChannels.map(c => [c.id, { id: c.id, name: c.name, logoUrl: c.logoUrl }]));
     
     const now = new Date();
-    // Use Argentina's time zone to determine what "today" is
-    const argentinaTimeNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
-    const startOfToday = new Date(argentinaTimeNow.getFullYear(), argentinaTimeNow.getMonth(), argentinaTimeNow.getDate());
-    const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+    const timeZone = 'America/Argentina/Buenos_Aires';
+
+    // Get the current date parts in Argentina's timezone to avoid server timezone issues.
+    // This is a robust way to determine what "today" is in Argentina, regardless of server location.
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+    }).formatToParts(now);
+
+    const year = parseInt(parts.find(p => p.type === 'year')!.value, 10);
+    const month = parseInt(parts.find(p => p.type === 'month')!.value, 10);
+    const day = parseInt(parts.find(p => p.type === 'day')!.value, 10);
+
+    // Create Date objects representing the start and end of "today" in Argentina, converted to UTC.
+    // 00:00 in ART (UTC-3) is 03:00 in UTC.
+    const startOfTodayUTC = new Date(Date.UTC(year, month - 1, day, 3, 0, 0));
+    // 00:00 on the next day in ART is 03:00 UTC on the next day.
+    const endOfTodayUTC = new Date(Date.UTC(year, month - 1, day + 1, 3, 0, 0));
 
     const matchCollections = ["mdc25", "copaargentina"];
     let allMatches: Match[] = [];
 
     for (const coll of matchCollections) {
+      // Query Firestore using the calculated and reliable UTC timestamps
       const q = query(
           collection(db, coll),
-          where("matchTimestamp", ">=", Timestamp.fromDate(startOfToday)),
-          where("matchTimestamp", "<", Timestamp.fromDate(endOfToday))
+          where("matchTimestamp", ">=", Timestamp.fromDate(startOfTodayUTC)),
+          where("matchTimestamp", "<", Timestamp.fromDate(endOfTodayUTC))
       );
 
       const querySnapshot = await getDocs(q);
@@ -139,7 +156,7 @@ export const getAgendaMatches = async (): Promise<Match[]> => {
           const timeSinceStart = now.getTime() - matchTimestamp.getTime();
           // Hide match 2 hours and 15 minutes after it started (135 minutes)
           if (timeSinceStart > (135 * 60 * 1000)) {
-              return;
+              return; // Skip this match as it has finished
           }
 
           const channelOptions: ChannelOption[] = (data.channels || []).map((id: string) => 
