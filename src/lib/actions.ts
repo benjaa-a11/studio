@@ -201,6 +201,7 @@ export const getAgendaMatches = async (): Promise<Match[]> => {
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
+const TMDB_BACKDROP_BASE_URL = "https://image.tmdb.org/t/p/w1280";
 
 const _fetchTMDbData = cache(async (tmdbID: string) => {
   if (!tmdbID || !TMDB_API_KEY) return null;
@@ -266,6 +267,7 @@ const _enrichMovieData = async (docId: string, firestoreMovie: any): Promise<Mov
         tmdbID: firestoreMovie.tmdbID,
         title: firestoreMovie.title || movieData.title,
         posterUrl: firestoreMovie.posterUrl || (movieData.poster_path ? `${TMDB_IMAGE_BASE_URL}${movieData.poster_path}` : 'https://placehold.co/500x750.png'),
+        backdropUrl: movieData.backdrop_path ? `${TMDB_BACKDROP_BASE_URL}${movieData.backdrop_path}` : undefined,
         streamUrl: firestoreMovie.streamUrl,
         category: firestoreMovie.category || movieData.genres?.map((g: any) => g.name) || [],
         synopsis: firestoreMovie.synopsis || movieData.overview,
