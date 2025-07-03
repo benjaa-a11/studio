@@ -119,12 +119,14 @@ export default function LivePlayer({ src }: LivePlayerProps) {
           const Hls = (await import("hls.js")).default;
           if (Hls.isSupported()) {
             const hls = new Hls({
-              // Optimizations for faster startup
-              abrEwmaDefaultEstimate: 1500000,
-              liveSyncDurationCount: 2,
-              maxBufferLength: 10,
+              // A reasonable estimate for initial bandwidth
+              abrEwmaDefaultEstimate: 1500000, 
               
-              // Robustness settings
+              // More robust buffer settings to prevent stalling
+              liveSyncDurationCount: 3, // Keep 3 segments from the live edge
+              maxBufferLength: 30,      // Keep up to 30s of buffer
+
+              // Robustness for retrying failed loads
               fragLoadErrorMaxRetry: 5,
               manifestLoadErrorMaxRetry: 3,
             });
