@@ -119,8 +119,14 @@ export default function LivePlayer({ src }: LivePlayerProps) {
           const Hls = (await import("hls.js")).default;
           if (Hls.isSupported()) {
             const hls = new Hls({
-              fragLoadErrorMaxRetry: 6,
-              manifestLoadErrorMaxRetry: 4,
+              // Optimizations for faster startup
+              abrEwmaDefaultEstimate: 1500000,
+              liveSyncDurationCount: 2,
+              maxBufferLength: 10,
+              
+              // Robustness settings
+              fragLoadErrorMaxRetry: 5,
+              manifestLoadErrorMaxRetry: 3,
             });
 
             hlsInstanceRef.current = hls;
