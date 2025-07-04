@@ -280,18 +280,20 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-full px-1 sm:px-2">
-           <Slider
-              value={[progress]}
-              max={duration || 1}
-              step={1}
-              onValueChange={handleSeek}
-              onValueChangeStart={() => setIsSeeking(true)}
-              onValueChangeEnd={() => setIsSeeking(false)}
-              className="w-full cursor-pointer h-2.5"
-              aria-label="Video progress bar"
-          />
-        </div>
+        {isFullScreen && (
+          <div className="w-full px-1 sm:px-2">
+            <Slider
+                value={[progress]}
+                max={duration || 1}
+                step={1}
+                onValueChange={handleSeek}
+                onValueChangeStart={() => setIsSeeking(true)}
+                onValueChangeEnd={() => setIsSeeking(false)}
+                className="w-full cursor-pointer h-2.5"
+                aria-label="Video progress bar"
+            />
+          </div>
+        )}
         <div className="flex items-center gap-2 sm:gap-4 px-1 sm:px-2 text-white">
             <button onClick={handlePlayPause} className="hover:text-primary transition-colors p-1" aria-label={isPlaying ? 'Pausar' : 'Reproducir'}>
               {isPlaying ? <Pause size={24} /> : <Play size={24} />}
@@ -314,9 +316,11 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
               </PopoverContent>
             </Popover>
 
-            <span className={cn("font-mono select-none text-center tabular-nums text-xs sm:text-sm", timeWidth)}>
-                {formatTime(progress)} / {formatTime(duration)}
-            </span>
+            {isFullScreen && (
+              <span className={cn("font-mono select-none text-center tabular-nums text-xs sm:text-sm", timeWidth)}>
+                  {formatTime(progress)} / {formatTime(duration)}
+              </span>
+            )}
             
             <div className="flex-1" />
             
