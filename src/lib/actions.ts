@@ -67,7 +67,7 @@ export const getChannelsByIds = async (ids: string[]): Promise<Channel[]> => {
   }
 
   try {
-    // Firestore 'in' query is limited to 30 elements in Next.js 14, so we chunk the IDs.
+    // Firestore 'in' query is limited to 30 elements, so we chunk the IDs.
     const chunks: string[][] = [];
     for (let i = 0; i < ids.length; i += 30) {
         chunks.push(ids.slice(i, i + 30));
@@ -146,42 +146,66 @@ export const getAgendaMatches = cache(async (): Promise<Match[]> => {
     const teamIds = new Set<string>();
     const tournamentIds = new Set<string>();
     const channelIds = new Set<string>();
+    
+    const extractId = (field: any): string | undefined => {
+      if (!field) return undefined;
+      return typeof field === 'string' ? field : field.id;
+    };
 
     rawMatches.forEach(match => {
-        if (match.team1) teamIds.add(match.team1);
-        if (match.team2) teamIds.add(match.team2);
-        if (match.tournamentId) tournamentIds.add(match.tournamentId);
+        const team1Id = extractId(match.team1);
+        const team2Id = extractId(match.team2);
+        const tournamentId = extractId(match.tournamentId);
+
+        if (team1Id) teamIds.add(team1Id);
+        if (team2Id) teamIds.add(team2Id);
+        if (tournamentId) tournamentIds.add(tournamentId);
         if (match.channels) match.channels.forEach((c: string) => channelIds.add(c));
     });
 
-    // Fetch all teams from the collection group, as querying by documentId() is not supported directly with just the ID.
+    // Fetch all related data in parallel
     const teamDocsPromise = teamIds.size > 0 ? getDocs(collectionGroup(db, 'clubs')) : Promise.resolve({ docs: [] });
-    const tournamentDocsPromise = tournamentIds.size > 0 ? getDocs(query(collection(db, 'tournaments'), where(documentId(), 'in', Array.from(tournamentIds)))) : Promise.resolve({ docs: [] });
+    
+    const tournamentPromises = [];
+    const tournamentIdsArray = Array.from(tournamentIds);
+    for (let i = 0; i < tournamentIdsArray.length; i += 30) {
+        const chunk = tournamentIdsArray.slice(i, i + 30);
+        if (chunk.length > 0) {
+            tournamentPromises.push(getDocs(query(collection(db, 'tournaments'), where(documentId(), 'in', chunk))));
+        }
+    }
+    const tournamentsPromise = Promise.all(tournamentPromises);
+
     const channelsPromise = getChannelsByIds(Array.from(channelIds));
 
-    const [allTeamsSnapshot, tournamentDocs, channels] = await Promise.all([
+    const [allTeamsSnapshot, tournamentSnapshots, channels] = await Promise.all([
         teamDocsPromise,
-        tournamentDocsPromise,
+        tournamentsPromise,
         channelsPromise
     ]);
 
+    // Create maps for efficient lookup
     const teamsMap = new Map();
-    // Filter the teams in memory since we can't query a collection group by document ID without the full path
     allTeamsSnapshot.docs.forEach(doc => {
         if (teamIds.has(doc.id)) {
             teamsMap.set(doc.id, doc.data());
         }
     });
 
-    const tournamentsMap = new Map(tournamentDocs.docs.map(doc => [doc.id, doc.data()]));
+    const tournamentDocs = tournamentSnapshots.flatMap(snap => snap.docs);
+    const tournamentsMap = new Map(tournamentDocs.map(doc => [doc.id, doc.data()]));
     const channelsMap = new Map(channels.map(c => [c.id, { id: c.id, name: c.name, logoUrl: c.logoUrl }]));
     
     const allMatches: Match[] = rawMatches.map(data => {
         const matchTimestamp = (data.time as Timestamp).toDate();
         
-        const team1Data = teamsMap.get(data.team1);
-        const team2Data = teamsMap.get(data.team2);
-        const tournamentData = tournamentsMap.get(data.tournamentId);
+        const team1Id = extractId(data.team1);
+        const team2Id = extractId(data.team2);
+        const tournamentId = extractId(data.tournamentId);
+
+        const team1Data = teamsMap.get(team1Id);
+        const team2Data = teamsMap.get(team2Id);
+        const tournamentData = tournamentsMap.get(tournamentId);
 
         let tournamentLogo: Match['tournamentLogo'] = undefined;
         if (tournamentData?.logoUrl) {
