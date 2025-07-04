@@ -25,7 +25,7 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import React, { memo } from "react";
+import React, { memo, useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 
 
@@ -35,6 +35,12 @@ type MatchesHeroProps = {
 
 const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
     const { resolvedTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
 
     const renderButton = () => {
         if (!match.isWatchable) {
@@ -163,6 +169,13 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
         if (typeof match.tournamentLogo === 'string') {
             return match.tournamentLogo;
         }
+
+        // To prevent hydration mismatch, default to a specific theme on server/initial render
+        // and only switch on the client after mounting.
+        if (!mounted) {
+            return match.tournamentLogo.light; // Default to light theme logo
+        }
+        
         return resolvedTheme === 'dark' ? match.tournamentLogo.dark : match.tournamentLogo.light;
     };
     
@@ -191,20 +204,20 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
                     </div>
                 </div>
 
-                {match.matchDetails && (
+                {match.dates && (
                     <p className="text-xs text-muted-foreground mt-4 text-center">
-                        {match.matchDetails}
+                        {match.dates}
                     </p>
                 )}
                 
                 {match.isLive ? (
-                    <div className={cn("flex items-center gap-2 font-bold", match.matchDetails ? "mt-2" : "mt-4")}>
+                    <div className={cn("flex items-center gap-2 font-bold", match.dates ? "mt-2" : "mt-4")}>
                       <Badge variant="destructive" className="animate-pulse text-sm font-bold px-3 py-1">EN VIVO</Badge>
                     </div>
                   ) : (
                     <div className={cn(
                         "flex items-center gap-2 text-primary text-lg font-bold",
-                        match.matchDetails ? "mt-2" : "mt-4"
+                        match.dates ? "mt-2" : "mt-4"
                     )}>
                         <Clock className="h-5 w-5" />
                         <span>{match.time} hs</span>
