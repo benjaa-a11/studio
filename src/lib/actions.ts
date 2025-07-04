@@ -344,3 +344,23 @@ export const getMovieCategories = async (): Promise<string[]> => {
   const categories = new Set(movies.flatMap(movie => movie.category || []));
   return Array.from(categories).sort();
 };
+
+export const getSimilarMovies = cache(async (currentMovieId: string, categories: string[] = [], limit: number = 10): Promise<Movie[]> => {
+  if (!categories || categories.length === 0) {
+    return [];
+  }
+  
+  try {
+    const allMovies = await getMovies();
+    const similar = allMovies
+      .filter(movie => 
+        movie.id !== currentMovieId && 
+        movie.category?.some(cat => categories.includes(cat))
+      )
+      .slice(0, limit);
+    return similar;
+  } catch (error) {
+    console.error("Error fetching similar movies:", error);
+    return [];
+  }
+});
