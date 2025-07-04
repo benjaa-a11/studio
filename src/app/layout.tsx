@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from 'next/font/google';
+import { Poppins, PT_Sans } from 'next/font/google';
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
@@ -9,9 +9,16 @@ import { ChannelFilterProvider } from "@/hooks/use-channel-filters";
 import { MovieFilterProvider } from "@/hooks/use-movie-filters";
 import { ThemeProvider } from "@/components/theme-provider";
 
-const fontSans = Inter({
+const fontPoppins = Poppins({
   subsets: ['latin'],
-  variable: '--font-sans',
+  weight: ['400', '600', '700'],
+  variable: '--font-poppins',
+});
+
+const fontPtSans = PT_Sans({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-pt-sans',
 });
 
 export const metadata: Metadata = {
@@ -39,8 +46,8 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#030617' },
+    { media: '(prefers-color-scheme: light)', color: '#F7F8F9' },
+    { media: '(prefers-color-scheme: dark)', color: '#09090B' },
   ],
 }
 
@@ -57,7 +64,8 @@ export default async function RootLayout({
       <body
         className={cn(
           "min-h-screen bg-background font-sans antialiased flex flex-col",
-          fontSans.variable
+          fontPoppins.variable,
+          fontPtSans.variable
         )}
       >
         <script

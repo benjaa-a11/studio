@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Loader2, FastForward, Rewind, AlertCircle } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -49,10 +49,6 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
   const [isLoading, setIsLoading] = useState(true);
   const [isSeeking, setIsSeeking] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Animation State
-  const [showRewind, setShowRewind] = useState(false);
-  const [showForward, setShowForward] = useState(false);
 
   const resetControlsTimeout = useCallback(() => {
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
@@ -132,13 +128,6 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
   const seekBy = useCallback((amount: number) => {
     if (videoRef.current) {
       videoRef.current.currentTime = Math.max(0, Math.min(duration, videoRef.current.currentTime + amount));
-      if (amount > 0) {
-        setShowForward(true);
-        setTimeout(() => setShowForward(false), 700);
-      } else {
-        setShowRewind(true);
-        setTimeout(() => setShowRewind(false), 700);
-      }
     }
   }, [duration]);
 
@@ -257,13 +246,6 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
         onDoubleClick={handleFullScreenToggle}
         playsInline
       />
-      
-      {isFullScreen && (
-          <>
-            <div className="absolute left-0 top-0 h-full w-1/3 z-20" onDoubleClick={(e) => {e.stopPropagation(); seekBy(-10)}} />
-            <div className="absolute right-0 top-0 h-full w-1/3 z-20" onDoubleClick={(e) => {e.stopPropagation(); seekBy(10)}} />
-          </>
-      )}
 
       {error && !isLoading && (
          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-40 p-4 text-center pointer-events-none">
@@ -276,15 +258,6 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
       {isLoading && !error && (
         <div className="absolute inset-0 flex items-center justify-center bg-transparent z-10 pointer-events-none">
           <Loader2 className="w-12 h-12 text-white animate-spin" />
-        </div>
-      )}
-      
-      {(showRewind || showForward) && (
-        <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
-            <div className="flex items-center gap-2 text-white bg-black/40 p-4 rounded-full animate-fade-in-out">
-                {showRewind && <Rewind className="w-8 h-8" />}
-                {showForward && <FastForward className="w-8 h-8" />}
-            </div>
         </div>
       )}
 

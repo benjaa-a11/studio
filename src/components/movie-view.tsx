@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Plus, Check, ThumbsUp, Share2 } from "lucide-react";
 
