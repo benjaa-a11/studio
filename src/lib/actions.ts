@@ -154,17 +154,25 @@ export const getAgendaMatches = cache(async (): Promise<Match[]> => {
         if (match.channels) match.channels.forEach((c: string) => channelIds.add(c));
     });
 
-    const teamDocsPromise = teamIds.size > 0 ? getDocs(query(collectionGroup(db, 'clubs'), where(documentId(), 'in', Array.from(teamIds)))) : Promise.resolve({ docs: [] });
+    // Fetch all teams from the collection group, as querying by documentId() is not supported directly with just the ID.
+    const teamDocsPromise = teamIds.size > 0 ? getDocs(collectionGroup(db, 'clubs')) : Promise.resolve({ docs: [] });
     const tournamentDocsPromise = tournamentIds.size > 0 ? getDocs(query(collection(db, 'tournaments'), where(documentId(), 'in', Array.from(tournamentIds)))) : Promise.resolve({ docs: [] });
     const channelsPromise = getChannelsByIds(Array.from(channelIds));
 
-    const [teamDocs, tournamentDocs, channels] = await Promise.all([
+    const [allTeamsSnapshot, tournamentDocs, channels] = await Promise.all([
         teamDocsPromise,
         tournamentDocsPromise,
         channelsPromise
     ]);
 
-    const teamsMap = new Map(teamDocs.docs.map(doc => [doc.id, doc.data()]));
+    const teamsMap = new Map();
+    // Filter the teams in memory since we can't query a collection group by document ID without the full path
+    allTeamsSnapshot.docs.forEach(doc => {
+        if (teamIds.has(doc.id)) {
+            teamsMap.set(doc.id, doc.data());
+        }
+    });
+
     const tournamentsMap = new Map(tournamentDocs.docs.map(doc => [doc.id, doc.data()]));
     const channelsMap = new Map(channels.map(c => [c.id, { id: c.id, name: c.name, logoUrl: c.logoUrl }]));
     
