@@ -125,7 +125,7 @@ export default function MovieView({ movie, similarMovies }: MovieViewProps) {
                     </p>
                 </div>
                  
-                <div className="flex items-start justify-evenly sm:justify-start sm:gap-8 text-center border-y py-2 max-w-xs sm:max-w-sm">
+                <div className="flex items-start justify-center gap-8 text-center border-y py-3 w-full max-w-sm mx-auto">
                     <ActionButton 
                         icon={isFav ? <Check className="h-6 w-6 text-primary" /> : <Plus className="h-6 w-6" />}
                         label={isFav ? "En mi lista" : "Mi Lista"} 

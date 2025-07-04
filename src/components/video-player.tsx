@@ -5,12 +5,6 @@ import Image from "next/image";
 import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-
 
 type VideoPlayerProps = {
   src: string;
@@ -41,7 +35,6 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
   // State Management
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [volume, setVolume] = useState(1);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -72,21 +65,12 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
     }
   }, [error]);
 
-  const handleVolumeChange = (newVolume: number[]) => {
-    if (videoRef.current) {
-        const vol = newVolume[0];
-        videoRef.current.volume = vol;
-        setVolume(vol);
-        videoRef.current.muted = vol === 0;
-    }
-  };
-
   const handleMuteToggle = useCallback(() => {
     if (videoRef.current) {
       const currentMuted = videoRef.current.muted;
       if (currentMuted) {
         videoRef.current.muted = false;
-        videoRef.current.volume = lastVolumeRef.current;
+        videoRef.current.volume = lastVolumeRef.current > 0 ? lastVolumeRef.current : 1;
       } else {
         lastVolumeRef.current = videoRef.current.volume;
         videoRef.current.muted = true;
@@ -142,8 +126,7 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
     const onPause = () => { setIsPlaying(false); setShowControls(true); };
     const onVolumeChange = () => {
         if (!video) return;
-        setIsMuted(video.muted);
-        setVolume(video.muted ? 0 : video.volume);
+        setIsMuted(video.muted || video.volume === 0);
     };
     const onWaiting = () => !isSeeking && setIsLoading(true);
     const onPlaying = () => setIsLoading(false);
@@ -209,8 +192,7 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
     };
   }, [isSeeking, resetControlsTimeout, handlePlayPause, handleFullScreenToggle, handleMuteToggle, seekBy]);
 
-  const VolumeIcon = isMuted || volume === 0 ? VolumeX : Volume2;
-  const timeWidth = duration >= 3600 ? "w-20" : "w-14";
+  const VolumeIcon = isMuted ? VolumeX : Volume2;
   const areControlsVisible = showControls || !isPlaying || !!error;
   const backgroundImageUrl = backdropUrl || posterUrl;
 
@@ -280,53 +262,37 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        {isFullScreen && (
-          <div className="w-full px-1 sm:px-2">
-            <Slider
+        <div className="flex w-full items-center gap-2 text-white sm:gap-4">
+          <button onClick={handlePlayPause} className="hover:text-primary transition-colors p-1" aria-label={isPlaying ? 'Pausar' : 'Reproducir'}>
+            {isPlaying ? <Pause size={24} /> : <Play size={24} />}
+          </button>
+
+          <button onClick={handleMuteToggle} className="hover:text-primary transition-colors p-1" aria-label={isMuted ? 'Quitar silencio' : 'Silenciar'}>
+            <VolumeIcon size={24} />
+          </button>
+
+          {isFullScreen ? (
+            <>
+              <span className="font-mono select-none text-xs sm:text-sm tabular-nums w-16 text-right">{formatTime(progress)}</span>
+              <Slider
                 value={[progress]}
                 max={duration || 1}
                 step={1}
                 onValueChange={handleSeek}
                 onValueChangeStart={() => setIsSeeking(true)}
                 onValueChangeEnd={() => setIsSeeking(false)}
-                className="w-full cursor-pointer h-2.5"
-                aria-label="Video progress bar"
-            />
-          </div>
-        )}
-        <div className="flex items-center gap-2 sm:gap-4 px-1 sm:px-2 text-white">
-            <button onClick={handlePlayPause} className="hover:text-primary transition-colors p-1" aria-label={isPlaying ? 'Pausar' : 'Reproducir'}>
-              {isPlaying ? <Pause size={24} /> : <Play size={24} />}
-            </button>
+                className="flex-1"
+                aria-label="Barra de progreso del video"
+              />
+              <span className="font-mono select-none text-xs sm:text-sm tabular-nums w-16 text-left">{formatTime(duration)}</span>
+            </>
+          ) : (
+             <div className="flex-1" /> // Spacer for non-fullscreen
+          )}
 
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="hover:text-primary transition-colors p-1" aria-label="Volumen">
-                  <VolumeIcon size={24} />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-28 bg-background/80 backdrop-blur-md border-white/20" side="top" align="center">
-                <Slider
-                  value={[volume]}
-                  max={1}
-                  step={0.05}
-                  onValueChange={handleVolumeChange}
-                  aria-label="Control de volumen"
-                />
-              </PopoverContent>
-            </Popover>
-
-            {isFullScreen && (
-              <span className={cn("font-mono select-none text-center tabular-nums text-xs sm:text-sm", timeWidth)}>
-                  {formatTime(progress)} / {formatTime(duration)}
-              </span>
-            )}
-            
-            <div className="flex-1" />
-            
-            <button onClick={handleFullScreenToggle} className="hover:text-primary transition-colors p-1" aria-label={isFullScreen ? 'Salir de pantalla completa' : 'Pantalla completa'}>
-              {isFullScreen ? <Minimize size={24} /> : <Maximize size={24} />}
-            </button>
+          <button onClick={handleFullScreenToggle} className="hover:text-primary transition-colors p-1" aria-label={isFullScreen ? 'Salir de pantalla completa' : 'Pantalla completa'}>
+            {isFullScreen ? <Minimize size={24} /> : <Maximize size={24} />}
+          </button>
         </div>
       </div>
     </div>
