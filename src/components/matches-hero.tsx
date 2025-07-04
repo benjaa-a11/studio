@@ -25,14 +25,16 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import React, { memo } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useTheme } from "next-themes";
+
 
 type MatchesHeroProps = {
     matches: Match[];
 };
 
 const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
-    
+    const { theme } = useTheme();
+
     const renderButton = () => {
         if (!match.isWatchable) {
             return (
@@ -114,9 +116,11 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-[var(--radix-dropdown-menu-trigger-width)]">
-                            <DropdownMenuLabel>Opciones de transmisión</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            {desktopChannelLinks}
+                             <DropdownMenuLabel>Opciones de transmisión</DropdownMenuLabel>
+                             <DropdownMenuSeparator />
+                            <div className="flex flex-col divide-y divide-border/50">
+                                {desktopChannelLinks}
+                            </div>
                         </DropdownMenuContent>
                     </DropdownMenu>
 
@@ -152,7 +156,17 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
             </Button>
         );
     }
+
+    const getTournamentLogo = () => {
+        if (!match.tournamentLogo) return null;
+        if (typeof match.tournamentLogo === 'string') {
+            return match.tournamentLogo;
+        }
+        return theme === 'dark' ? match.tournamentLogo.dark : match.tournamentLogo.light;
+    };
     
+    const tournamentLogoUrl = getTournamentLogo();
+
     return (
         <Card className="w-[340px] sm:w-[380px] overflow-hidden shadow-lg flex-shrink-0 opacity-0 animate-fade-in-up">
             <CardContent className="p-6 flex flex-col items-center justify-center">
@@ -161,9 +175,15 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
                         <Image src={match.team1Logo || ''} alt={match.team1} width={64} height={64} sizes="64px" className="h-16 w-16 object-contain drop-shadow-sm" data-ai-hint="team logo" />
                         <h3 className="font-semibold truncate w-full">{match.team1}</h3>
                     </div>
+
                     <div className="h-12 w-12 flex-shrink-0 flex items-center justify-center font-bold text-sm text-muted-foreground text-center">
-                       {match.tournamentName}
+                       {tournamentLogoUrl ? (
+                            <Image src={tournamentLogoUrl} alt={match.tournamentName || 'Tournament'} width={48} height={48} sizes="48px" className="h-12 w-12 object-contain" data-ai-hint="tournament logo" />
+                       ) : (
+                           <span className="text-center">{match.tournamentName}</span>
+                       )}
                     </div>
+
                     <div className="flex flex-col items-center gap-2 text-center w-[100px]">
                         <Image src={match.team2Logo || ''} alt={match.team2} width={64} height={64} sizes="64px" className="h-16 w-16 object-contain drop-shadow-sm" data-ai-hint="team logo" />
                         <h3 className="font-semibold truncate w-full">{match.team2}</h3>

@@ -7,7 +7,7 @@ import LayoutWrapper from "@/components/layout-wrapper";
 import { getCategories, getMovieCategories } from "@/lib/actions";
 import { ChannelFilterProvider } from "@/hooks/use-channel-filters";
 import { MovieFilterProvider } from "@/hooks/use-movie-filters";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "next-themes";
 
 const fontPoppins = Poppins({
   subsets: ['latin'],
@@ -68,29 +68,12 @@ export default async function RootLayout({
           fontPtSans.variable
         )}
       >
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                function getInitialTheme() {
-                  try {
-                    const storedTheme = localStorage.getItem('plan-b-theme');
-                    if (storedTheme) return storedTheme;
-                  } catch (e) { /* ignore */ }
-                  return 'dark'; // Default theme
-                }
-                let theme = getInitialTheme();
-                if (theme === 'system') {
-                  theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                }
-                if (theme === 'dark') {
-                  document.documentElement.classList.add('dark');
-                }
-              })();
-            `,
-          }}
-        />
-        <ThemeProvider defaultTheme="dark" storageKey="plan-b-theme">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          storageKey="plan-b-theme"
+          enableSystem
+        >
           <ChannelFilterProvider initialCategories={channelCategories}>
             <MovieFilterProvider initialCategories={movieCategories}>
               <LayoutWrapper>{children}</LayoutWrapper>

@@ -3,9 +3,9 @@
 
 import { cache } from "react";
 import { db } from "./firebase";
-import { collection, getDocs, doc, getDoc, query, where, documentId, Timestamp } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, query, where, documentId, Timestamp, collectionGroup } from "firebase/firestore";
 import type { Channel, Match, ChannelOption, Movie } from "@/types";
-import { placeholderChannels, placeholderMovies, placeholderMdcMatches, placeholderCopaArgentinaMatches } from "./placeholder-data";
+import { placeholderChannels, placeholderMovies, placeholderMatches } from "./placeholder-data";
 
 // Helper function to use placeholder data as a fallback
 const useFallbackData = () => {
@@ -110,106 +110,111 @@ export const getChannelsByCategory = async (category: string, excludeId?: string
   }).slice(0, 4); // Return a max of 4 related channels
 };
 
-export const getAgendaMatches = async (): Promise<Match[]> => {
+export const getAgendaMatches = cache(async (): Promise<Match[]> => {
   try {
     const now = new Date();
     const timeZone = 'America/Argentina/Buenos_Aires';
     
-    // Get start and end of today in Argentina time, converted to UTC for Firestore
     const parts = new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(now);
     const year = parseInt(parts.find(p => p.type === 'year')!.value, 10);
     const month = parseInt(parts.find(p => p.type === 'month')!.value, 10);
     const day = parseInt(parts.find(p => p.type === 'day')!.value, 10);
     
-    // Firestore stores timestamps in UTC. We define today in Argentinian time (UTC-3).
-    // The start of the day in ART is 00:00, which is 03:00 UTC.
     const startOfTodayUTC = new Date(Date.UTC(year, month - 1, day, 3, 0, 0)); 
-    // The end of the day is 23:59:59 ART, which is the start of the next day 03:00 UTC.
     const endOfTodayUTC = new Date(Date.UTC(year, month - 1, day + 1, 3, 0, 0));
 
-    const fetchMatchesFromCollection = async (collectionName: string) => {
-        const matchesQuery = query(
-            collection(db, collectionName),
-            where("matchTimestamp", ">=", Timestamp.fromDate(startOfTodayUTC)),
-            where("matchTimestamp", "<", Timestamp.fromDate(endOfTodayUTC))
-        );
-        const matchesSnapshot = await getDocs(matchesQuery);
-        return matchesSnapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
-            .filter(data => {
-                const matchTimestamp = (data.matchTimestamp as Timestamp).toDate();
-                // Disappear 3 hours (180 minutes) after start.
-                const timeSinceStart = now.getTime() - matchTimestamp.getTime();
-                return timeSinceStart <= (180 * 60 * 1000); 
-            });
-    };
+    const agendaQuery = query(
+        collection(db, "agenda"),
+        where("time", ">=", Timestamp.fromDate(startOfTodayUTC)),
+        where("time", "<", Timestamp.fromDate(endOfTodayUTC))
+    );
+    const agendaSnapshot = await getDocs(agendaQuery);
 
-    let allRawMatches: any[] = [];
-    try {
-        const [mdcMatches, copaArgentinaMatches] = await Promise.all([
-            fetchMatchesFromCollection("mdc25"),
-            fetchMatchesFromCollection("copaargentina"),
-        ]);
-        allRawMatches = [...mdcMatches, ...copaArgentinaMatches];
+    const rawMatches = agendaSnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(data => {
+            const matchTimestamp = (data.time as Timestamp).toDate();
+            const timeSinceStart = now.getTime() - matchTimestamp.getTime();
+            return timeSinceStart <= (180 * 60 * 1000); 
+        });
 
-        // If firebase is empty or fails, use placeholder data
-        if (allRawMatches.length === 0) {
-            console.warn("No matches found in Firebase for today. Using placeholder data.");
-            allRawMatches = [...placeholderMdcMatches, ...placeholderCopaArgentinaMatches];
-        }
-
-    } catch (firebaseError) {
-        console.error("Error fetching matches from Firebase, using placeholder data.", firebaseError);
-        allRawMatches = [...placeholderMdcMatches, ...placeholderCopaArgentinaMatches];
+    if (rawMatches.length === 0) {
+        console.warn("No matches found in Firebase for today. Using placeholder data.");
+        return placeholderMatches;
     }
     
-    if (allRawMatches.length === 0) {
-        return [];
-    }
-
+    const teamIds = new Set<string>();
+    const tournamentIds = new Set<string>();
     const channelIds = new Set<string>();
-    allRawMatches.forEach(match => {
-        if (match.channels) {
-            match.channels.forEach((c: string) => channelIds.add(c));
-        }
+
+    rawMatches.forEach(match => {
+        if (match.team1) teamIds.add(match.team1);
+        if (match.team2) teamIds.add(match.team2);
+        if (match.tournamentId) tournamentIds.add(match.tournamentId);
+        if (match.channels) match.channels.forEach((c: string) => channelIds.add(c));
     });
 
-    const channels = await getChannelsByIds(Array.from(channelIds));
+    const teamDocsPromise = teamIds.size > 0 ? getDocs(query(collectionGroup(db, 'clubs'), where(documentId(), 'in', Array.from(teamIds)))) : Promise.resolve({ docs: [] });
+    const tournamentDocsPromise = tournamentIds.size > 0 ? getDocs(query(collection(db, 'tournaments'), where(documentId(), 'in', Array.from(tournamentIds)))) : Promise.resolve({ docs: [] });
+    const channelsPromise = getChannelsByIds(Array.from(channelIds));
+
+    const [teamDocs, tournamentDocs, channels] = await Promise.all([
+        teamDocsPromise,
+        tournamentDocsPromise,
+        channelsPromise
+    ]);
+
+    const teamsMap = new Map(teamDocs.docs.map(doc => [doc.id, doc.data()]));
+    const tournamentsMap = new Map(tournamentDocs.docs.map(doc => [doc.id, doc.data()]));
     const channelsMap = new Map(channels.map(c => [c.id, { id: c.id, name: c.name, logoUrl: c.logoUrl }]));
     
-    const allMatches: Match[] = allRawMatches.map(data => {
-        const matchTimestamp = (data.matchTimestamp as Timestamp).toDate();
+    const allMatches: Match[] = rawMatches.map(data => {
+        const matchTimestamp = (data.time as Timestamp).toDate();
+        
+        const team1Data = teamsMap.get(data.team1);
+        const team2Data = teamsMap.get(data.team2);
+        const tournamentData = tournamentsMap.get(data.tournamentId);
+
+        let tournamentLogo: Match['tournamentLogo'] = undefined;
+        if (tournamentData?.logoUrl) {
+            if (Array.isArray(tournamentData.logoUrl) && tournamentData.logoUrl.length > 1) {
+                tournamentLogo = { dark: tournamentData.logoUrl[0], light: tournamentData.logoUrl[1] };
+            } else if (Array.isArray(tournamentData.logoUrl) && tournamentData.logoUrl.length === 1) {
+                tournamentLogo = tournamentData.logoUrl[0];
+            }
+        }
+
         const channelOptions: ChannelOption[] = (data.channels || []).map((id: string) =>
             channelsMap.get(id)
         ).filter((c: ChannelOption | undefined): c is ChannelOption => !!c);
 
         const isLive = now.getTime() >= matchTimestamp.getTime();
-        // A match is watchable 30 minutes before it starts
         const isWatchable = matchTimestamp.getTime() - now.getTime() <= (30 * 60 * 1000);
 
         return {
             id: data.id,
-            team1: data.team1 || 'Equipo A',
-            team1Logo: data.team1Logo,
-            team2: data.team2 || 'Equipo B',
-            team2Logo: data.team2Logo,
+            team1: team1Data?.name || 'Equipo A',
+            team1Logo: team1Data?.logoUrl,
+            team2: team2Data?.name || 'Equipo B',
+            team2Logo: team2Data?.logoUrl,
             time: matchTimestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires', hour12: false }),
             isLive: isLive,
             isWatchable: isWatchable,
             channels: channelOptions,
-            matchDetails: data.matchDetails,
+            matchDetails: data.date,
             matchTimestamp: matchTimestamp,
-            tournamentName: data.tournamentName,
+            tournamentName: tournamentData?.name,
+            tournamentLogo: tournamentLogo,
         };
     });
 
     return allMatches.sort((a, b) => a.matchTimestamp.getTime() - b.matchTimestamp.getTime());
 
   } catch (error) {
-    console.error("Error al obtener partidos:", error);
-    return [];
+    console.error("Error al obtener partidos de la agenda:", error);
+    return placeholderMatches;
   }
-};
+});
 
 
 // --- MOVIES ---
@@ -410,5 +415,3 @@ export const getSimilarMovies = cache(async (currentMovieId: string, categories:
     return [];
   }
 });
-
-    

@@ -1,6 +1,6 @@
 # Plan B Streaming
 
-This is a Next.js application for streaming live TV channels, built with Firebase integration.
+This is a Next.js application for streaming live TV channels and movies, built with Firebase integration.
 
 ## Getting Started
 
@@ -20,12 +20,12 @@ Open [http://localhost:9002](http://localhost:9002) with your browser to see the
 
 This application is configured to connect to a Firebase project.
 
-1.  **Firebase Configuration**: The Firebase configuration is located in `src/lib/firebase.ts`. The placeholder values from the proposal have been used.
+1.  **Firebase Configuration**: The Firebase configuration is now securely managed via environment variables in your `.env.local` file.
 
-2.  **Firestore Database**: The application expects a Firestore database with four collections: `channels`, `peliculas`, `mdc25`, and `copaargentina`.
+2.  **Firestore Database**: The application expects a Firestore database with four main collections: `channels`, `peliculas`, `agenda`, `tournaments`, and `teams`.
 
-3.  **Data Structure**: 
-    - Each document in the `channels` collection should have the following structure:
+3.  **Data Structure**:
+    -   **`channels` Collection**: Each document represents a TV channel.
         ```json
         {
           "name": "Channel Name",
@@ -35,92 +35,66 @@ This application is configured to connect to a Firebase project.
           "description": "A brief channel description."
         }
         ```
-        - **`streamUrl`**: This is an array of strings. The user can manually switch between sources if the primary one fails.
 
-    - Each document in the `peliculas` collection should have the following structure:
+    -   **`peliculas` Collection**: Each document represents a movie.
         ```json
         {
             "tmdbID": "157336",
-            "streamUrl": "https://... (enlace mp4 o iframe)",
+            "streamUrl": "https://... (mp4 or iframe link)",
             "format": "mp4" or "iframe",
-            "title": "(Opcional) Título para sobreescribir",
-            "posterUrl": "(Opcional) URL del póster para sobreescribir",
-            "synopsis": "(Opcional) Sinopsis para sobreescribir",
-            "category": ["(Opcional) Array", "de", "categorías"],
-            "year": "(Opcional) Año (número) para sobreescribir",
-            "duration": "(Opcional) Duración para sobreescribir"
+            "title": "(Optional) Title to override TMDb's",
+            "posterUrl": "(Optional) Poster URL to override",
+            "synopsis": "(Optional) Synopsis to override"
         }
         ```
-        - **`tmdbID`**: **(Requerido)** El ID de TheMovieDB de la película (ej: `157336` para Interestelar). La aplicación obtendrá automáticamente todos los demás detalles (título, póster, director, etc.) en español desde la API de TMDb.
-        - **`streamUrl`**: **(Requerido)** El enlace directo (`.mp4`) o de inserción (`iframe`) para el streaming de la película.
+        -   **`(Required)` `tmdbID`**: The TheMovieDB ID of the movie. The app will fetch all other details automatically from the TMDb API.
         
-        #### ¿Cómo funcionan los datos?
-        
-        La aplicación usa la API de TMDb para obtener los detalles de las películas, y esta API devuelve la información directamente en español.
-        
-        ¡Pero no hay problema! El sistema está diseñado para darte control total. Simplemente **añade los campos que quieras sobreescribir a tu documento de Firestore, y estos reemplazarán los datos de la API.**
-        
-        **Ejemplo de un documento en Firestore:**
-        
+    -   **`agenda` Collection**: This collection holds all scheduled matches.
         ```json
         {
-          "tmdbID": "27205",
-          "streamUrl": "https://...",
-          "format": "mp4",
-          "title": "El Origen (Título Personalizado)",
-          "synopsis": "Dom Cobb es un ladrón, el mejor de todos, especialista en el peligroso arte de la extracción: el robo de valiosos secretos desde las profundidades del subconsciente...",
+            "team1": "team_id_1",
+            "team2": "team_id_2",
+            "time": "(Timestamp) June 20, 2025 at 4:00:00 PM (Your Local Time)",
+            "tournamentId": "tournament_id_1",
+            "channels": ["channel_id_1", "channel_id_2"],
+            "date": "Fase de grupos · Grupo E · Jornada 2 de 3"
         }
         ```
-        
-        En este ejemplo, la aplicación mostrará el título y la sinopsis que tú definiste, mientras que el resto de los datos (año, director, actores, etc.) se seguirán obteniendo automáticamente de la API. Si no añades `title` o `synopsis`, se usarán las versiones en español de TMDb.
+        -   **`team1`, `team2`**: The **document ID** of the respective team from the `teams` collection group.
+        -   **`time`**: **(Required)** This must be of type **`timestamp`** in Firestore. It determines when the match is shown. The application will correctly display it in Argentinian time (UTC-3). Matches appear on the homepage only if their start date is the current day and disappear 3 hours after they have started.
+        -   **`tournamentId`**: The **document ID** of the tournament from the `tournaments` collection.
+        -   **`channels`**: An array of **strings**, where each string is the document ID of a channel from your `channels` collection.
+        -   **`date`**: An optional **`string`** field for extra details (e.g., "Round 1 of 3").
 
-    - Each document in the `mdc25` and `copaargentina` collections should have the following structure:
+    -   **`tournaments` Collection**: Holds details for each competition.
         ```json
         {
-            "team1": "Team A Name",
-            "team1Logo": "https://...",
-            "team2": "Team B Name",
-            "team2Logo": "https://...",
-            "matchTimestamp": "(Timestamp) 20 de Junio, 2025 a las 16:00:00 (Hora de Argentina)",
-            "channels": ["dsports", "telefe"],
-            "matchDetails": "Fase de grupos · Grupo E · Jornada 2 de 3"
+            "name": "Tournament Name",
+            "logoUrl": ["https://... (dark theme logo)", "https://... (light theme logo)"]
         }
         ```
-        - **`matchTimestamp`**: Este es el campo más importante. Debe ser de tipo **`timestamp`** en Firestore y determina cuándo se muestra el partido. **Importante:** Al seleccionar la fecha y hora en la consola de Firebase, esta usará la zona horaria de tu computadora. La aplicación se encargará de mostrarla siempre en horario de Argentina (UTC-3). Los partidos aparecerán en la página de inicio **solo si su fecha de inicio es el día actual** y desaparecerán 3 horas después de haber comenzado.
-        - **`channels`**: Debe ser un **`array`** de **`strings`** (texto). Cada string debe ser el ID de un documento de tu colección `channels`. La aplicación buscará el nombre del canal automáticamente.
-        - **`matchDetails`**: Este es un campo opcional de tipo **`string`** (texto) donde puedes añadir información extra sobre el partido, como la fase del torneo (ej: "Fase de grupos · Grupo E · Jornada 2 de 3").
+        - The **document ID** of each tournament is used in the `agenda`.
+        - **`logoUrl`**: An **array** of strings. The first URL is for dark mode, the second for light mode. If only one URL is provided, it will be used for both themes.
 
+    -   **`teams` Collection**: This is structured as a collection group for better organization.
+        -   **Structure:** `teams` -> `{country_document}` -> `clubs` -> `{team_document}`
+        -   Each **team document** has the following structure:
+        ```json
+        {
+            "name": "Team Name",
+            "logoUrl": "https://...",
+            "country": "Country Name"
+        }
+        ```
+        -   The **document ID** of each team is used in the `agenda`.
 
-    ### ¿Cómo agregar un partido con Timestamp?
-
-    1.  Ve a tu **Colección `mdc25`** o **`copaargentina`** en Firestore.
-    2.  Crea un nuevo documento para tu partido.
-    3.  Añade los campos de los equipos y logos como de costumbre.
-    4.  Haz clic en **"Añadir campo"** y escribe `matchTimestamp` como nombre.
-    5.  En **Tipo**, selecciona **`timestamp`** en el menú desplegable.
-    6.  Aparecerá un selector de fecha y hora. Elige el día y la hora exactos de inicio del partido.
-    7.  Añade el campo `channels` como un `array` de strings.
-    8.  Opcionalmente, añade el campo `matchDetails` de tipo `string`.
-    9.  Haz clic en **"Guardar"**.
-
-4.  **Security Rules**: For production, ensure your Firestore security rules are properly configured to allow read access to the collections. A basic rule for public read access would be:
+4.  **Security Rules**: For production, ensure your Firestore security rules are properly configured to allow public read access.
     ```
     rules_version = '2';
     service cloud.firestore {
       match /databases/{database}/documents {
-        match /channels/{channelId} {
-          allow read: if true;
-          allow write: if false; // Or your admin logic
-        }
-        match /peliculas/{peliculaId} {
-          allow read: if true;
-          allow write: if false; // Or your admin logic
-        }
-        match /mdc25/{matchId} {
-          allow read: if true;
-          allow write: if false; // Or your admin logic
-        }
-        match /copaargentina/{matchId} {
+        // Allow reads on all collections for this example
+        match /{document=**} {
           allow read: if true;
           allow write: if false; // Or your admin logic
         }
