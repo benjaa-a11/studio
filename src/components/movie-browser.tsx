@@ -18,12 +18,22 @@ export default function MovieBrowser({
   const filteredMovies = useMemo(() => {
     return movies.filter((movie) => {
       if (!movie) return false;
-      const matchesCategory =
-        selectedCategory === "Todas" || (Array.isArray(movie.category) && movie.category.includes(selectedCategory));
+
       const matchesSearch =
         (movie.title?.toLowerCase() ?? "").includes(searchTerm.toLowerCase()) ||
         (movie.synopsis?.toLowerCase() ?? "").includes(searchTerm.toLowerCase());
-      return matchesCategory && matchesSearch;
+      
+      if (!matchesSearch) return false;
+
+      if (selectedCategory === "Todos") {
+        return true;
+      }
+      
+      if (Array.isArray(movie.category)) {
+        return movie.category.includes(selectedCategory);
+      }
+
+      return false;
     });
   }, [movies, searchTerm, selectedCategory]);
 

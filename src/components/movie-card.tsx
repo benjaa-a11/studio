@@ -19,7 +19,7 @@ const MovieCard = memo(function MovieCard({ movie, index = 0 }: MovieCardProps) 
     >
       <div className="aspect-[2/3] w-full relative bg-muted/50 flex items-center justify-center">
         
-        <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+        <div className="absolute inset-0 z-10 bg-black/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
         
         <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:scale-110">
             <Play className="h-12 w-12 fill-white text-white/90 drop-shadow-lg" />
