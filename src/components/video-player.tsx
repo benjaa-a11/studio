@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Loader2, AlertCircle } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Loader2, AlertCircle, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
 
@@ -30,7 +30,8 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastVolumeRef = useRef(1);
+  const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const seekIndicatorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // State Management
   const [isPlaying, setIsPlaying] = useState(false);
@@ -42,6 +43,7 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
   const [isLoading, setIsLoading] = useState(true);
   const [isSeeking, setIsSeeking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [seekIndicator, setSeekIndicator] = useState<'forward' | 'backward' | null>(null);
 
   const resetControlsTimeout = useCallback(() => {
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
@@ -51,30 +53,18 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
     }
   }, []);
 
-  const handlePlayPause = useCallback(async () => {
+  const handlePlayPause = useCallback(() => {
     if (!videoRef.current || error) return;
-    try {
-      if (videoRef.current.paused) {
-        await videoRef.current.play();
-      } else {
-        videoRef.current.pause();
-      }
-    } catch (err) {
-      console.error("Video play/pause failed:", err);
-      setIsPlaying(false);
+    if (videoRef.current.paused) {
+      videoRef.current.play();
+    } else {
+      videoRef.current.pause();
     }
   }, [error]);
 
   const handleMuteToggle = useCallback(() => {
     if (videoRef.current) {
-      const currentMuted = videoRef.current.muted;
-      if (currentMuted) {
-        videoRef.current.muted = false;
-        videoRef.current.volume = lastVolumeRef.current > 0 ? lastVolumeRef.current : 1;
-      } else {
-        lastVolumeRef.current = videoRef.current.volume;
-        videoRef.current.muted = true;
-      }
+      videoRef.current.muted = !videoRef.current.muted;
     }
   }, []);
   
@@ -84,23 +74,14 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
     try {
       if (!document.fullscreenElement) {
         await player.requestFullscreen();
-        if (screen.orientation && typeof screen.orientation.lock === "function") {
-          await screen.orientation.lock("landscape").catch(() => {});
-        }
       } else {
         if (document.exitFullscreen) await document.exitFullscreen();
-        if (screen.orientation && typeof screen.orientation.unlock === "function") screen.orientation.unlock();
       }
     } catch (err) {
-      console.error(`Fullscreen Error: ${err instanceof Error ? err.message : String(err)}`);
+      console.error("Fullscreen Error:", err);
     }
   }, []);
   
-  const handleVideoClick = useCallback(() => {
-    setShowControls(v => !v);
-    resetControlsTimeout();
-  }, [resetControlsTimeout]);
-
   const handleSeek = (value: number[]) => {
     if (videoRef.current) {
       const newTime = value[0];
@@ -114,51 +95,60 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
       videoRef.current.currentTime = Math.max(0, Math.min(duration, videoRef.current.currentTime + amount));
     }
   }, [duration]);
+  
+  const showSeekIndicator = useCallback((direction: 'forward' | 'backward') => {
+      setSeekIndicator(direction);
+      if (seekIndicatorTimeoutRef.current) clearTimeout(seekIndicatorTimeoutRef.current);
+      seekIndicatorTimeoutRef.current = setTimeout(() => {
+          setSeekIndicator(null);
+      }, 700);
+  }, []);
+
+  const handlePlayerAreaClick = useCallback((e: React.MouseEvent) => {
+    if (clickTimeoutRef.current) {
+        clearTimeout(clickTimeoutRef.current);
+        clickTimeoutRef.current = null;
+        // Double click
+        const rect = playerRef.current!.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        if (clickX < rect.width / 2) {
+            seekBy(-10);
+            showSeekIndicator('backward');
+        } else {
+            seekBy(10);
+            showSeekIndicator('forward');
+        }
+    } else {
+        clickTimeoutRef.current = setTimeout(() => {
+            // Single click
+            setShowControls(v => !v);
+            resetControlsTimeout();
+            clickTimeoutRef.current = null;
+        }, 250);
+    }
+  }, [playerRef, seekBy, showSeekIndicator, resetControlsTimeout]);
+
 
   // Main Effect for Player Setup and Listeners
   useEffect(() => {
     const video = videoRef.current;
-    const player = playerRef.current;
-    if (!video || !player) return;
+    if (!video) return;
 
-    // Event listeners
-    const onPlay = () => { setIsPlaying(true); resetControlsTimeout(); };
-    const onPause = () => { setIsPlaying(false); setShowControls(true); };
-    const onVolumeChange = () => {
-        if (!video) return;
-        setIsMuted(video.muted || video.volume === 0);
-    };
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    const onVolumeChange = () => setIsMuted(video.muted || video.volume === 0);
     const onWaiting = () => !isSeeking && setIsLoading(true);
     const onPlaying = () => setIsLoading(false);
-    const onEnded = () => { setIsPlaying(false); setShowControls(true); };
+    const onEnded = () => setIsPlaying(false);
     const onFullScreenChange = () => setIsFullScreen(!!document.fullscreenElement);
     const onTimeUpdate = () => !isSeeking && setProgress(video.currentTime);
     const onLoadedMetadata = () => { setDuration(video.duration); setIsLoading(false); };
     const onError = () => {
         if (!video.error) return;
-        switch (video.error.code) {
-          case video.error.MEDIA_ERR_ABORTED: setError("La reproducción de video fue abortada."); break;
-          case video.error.MEDIA_ERR_NETWORK: setError("Ocurrió un error de red al cargar el video."); break;
-          case video.error.MEDIA_ERR_DECODE: setError("Ocurrió un error al decodificar el video."); break;
-          case video.error.MEDIA_ERR_SRC_NOT_SUPPORTED: setError("El formato del video no es compatible o no se pudo encontrar."); break;
-          default: setError("Ocurrió un error inesperado al reproducir el video."); break;
-        }
+        setError("Ocurrió un error al reproducir el video.");
         setIsLoading(false);
     };
 
-    const onKeyDown = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement).tagName === 'INPUT' || e.ctrlKey || e.metaKey) return;
-      
-      switch(e.key.toLowerCase()) {
-        case " ": case "k": e.preventDefault(); handlePlayPause(); break;
-        case "f": e.preventDefault(); handleFullScreenToggle(); break;
-        case "m": e.preventDefault(); handleMuteToggle(); break;
-        case "arrowright": e.preventDefault(); seekBy(5); break;
-        case "arrowleft": e.preventDefault(); seekBy(-5); break;
-      }
-    };
-
-    // Attach listeners
     video.addEventListener("play", onPlay);
     video.addEventListener("pause", onPause);
     video.addEventListener("ended", onEnded);
@@ -169,13 +159,10 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
     video.addEventListener("loadedmetadata", onLoadedMetadata);
     video.addEventListener("error", onError);
     document.addEventListener("fullscreenchange", onFullScreenChange);
-    player.addEventListener("keydown", onKeyDown);
-
-    // Initial setup
+    
     resetControlsTimeout();
     video.play().catch(() => setIsPlaying(false)); 
 
-    // Cleanup
     return () => {
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
@@ -187,10 +174,11 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
       video.removeEventListener("loadedmetadata", onLoadedMetadata);
       video.removeEventListener("error", onError);
       document.removeEventListener("fullscreenchange", onFullScreenChange);
-      player.removeEventListener("keydown", onKeyDown);
       if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+      if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
+      if (seekIndicatorTimeoutRef.current) clearTimeout(seekIndicatorTimeoutRef.current);
     };
-  }, [isSeeking, resetControlsTimeout, handlePlayPause, handleFullScreenToggle, handleMuteToggle, seekBy]);
+  }, [isSeeking, resetControlsTimeout]);
 
   const VolumeIcon = isMuted ? VolumeX : Volume2;
   const areControlsVisible = showControls || !isPlaying || !!error;
@@ -199,8 +187,7 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
   return (
     <div 
       ref={playerRef} 
-      tabIndex={0}
-      className="relative w-full h-full bg-black flex items-center justify-center group/player overflow-hidden outline-none"
+      className="relative w-full h-full bg-black flex items-center justify-center group/player overflow-hidden"
       onMouseMove={resetControlsTimeout}
       onMouseLeave={() => isPlaying && setShowControls(false)}
       onContextMenu={(e) => e.preventDefault()}
@@ -224,10 +211,19 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
         ref={videoRef}
         src={src}
         className={cn("max-h-full w-full object-contain z-10", (isLoading || error) && "opacity-0")}
-        onClick={handleVideoClick}
-        onDoubleClick={handleFullScreenToggle}
+        onClick={handlePlayerAreaClick}
+        onDoubleClick={(e) => e.preventDefault()}
         playsInline
       />
+      
+      {seekIndicator && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+              <div className={cn("bg-black/50 text-white rounded-full p-3 sm:p-4 backdrop-blur-sm animate-fade-in-out flex items-center gap-1", seekIndicator === 'backward' && "flex-row-reverse")}>
+                  {seekIndicator === 'forward' ? <ChevronsRight className="h-8 w-8 sm:h-10 sm:w-10" /> : <ChevronsLeft className="h-8 w-8 sm:h-10 sm:w-10" />}
+                  <span className="font-sans text-sm font-semibold">10s</span>
+              </div>
+          </div>
+      )}
 
       {error && !isLoading && (
          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-40 p-4 text-center pointer-events-none">
@@ -248,7 +244,7 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
           <button
             onClick={(e) => { e.stopPropagation(); handlePlayPause(); }}
             className="bg-black/40 text-white rounded-full p-2 sm:p-4 backdrop-blur-sm transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-black"
-            aria-label="Play video"
+            aria-label="Reproducir video"
           >
             <Play size={64} className="fill-white pl-1" />
           </button>
@@ -264,16 +260,16 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
       >
         <div className="flex w-full items-center gap-2 text-white sm:gap-4">
           <button onClick={handlePlayPause} className="hover:text-primary transition-colors p-1" aria-label={isPlaying ? 'Pausar' : 'Reproducir'}>
-            {isPlaying ? <Pause size={24} /> : <Play size={24} />}
+            {isPlaying ? <Pause size={28} /> : <Play size={28} />}
           </button>
 
           <button onClick={handleMuteToggle} className="hover:text-primary transition-colors p-1" aria-label={isMuted ? 'Quitar silencio' : 'Silenciar'}>
-            <VolumeIcon size={24} />
+            <VolumeIcon size={28} />
           </button>
 
           {isFullScreen ? (
             <>
-              <span className="font-mono select-none text-xs sm:text-sm tabular-nums w-16 text-right">{formatTime(progress)}</span>
+              <span className="font-sans select-none text-xs sm:text-sm tabular-nums w-16 text-right">{formatTime(progress)}</span>
               <Slider
                 value={[progress]}
                 max={duration || 1}
@@ -284,14 +280,14 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
                 className="flex-1"
                 aria-label="Barra de progreso del video"
               />
-              <span className="font-mono select-none text-xs sm:text-sm tabular-nums w-16 text-left">{formatTime(duration)}</span>
+              <span className="font-sans select-none text-xs sm:text-sm tabular-nums w-16 text-left">{formatTime(duration)}</span>
             </>
           ) : (
-             <div className="flex-1" /> // Spacer for non-fullscreen
+             <div className="flex-1" />
           )}
 
           <button onClick={handleFullScreenToggle} className="hover:text-primary transition-colors p-1" aria-label={isFullScreen ? 'Salir de pantalla completa' : 'Pantalla completa'}>
-            {isFullScreen ? <Minimize size={24} /> : <Maximize size={24} />}
+            {isFullScreen ? <Minimize size={28} /> : <Maximize size={28} />}
           </button>
         </div>
       </div>
