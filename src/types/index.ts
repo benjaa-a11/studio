@@ -37,6 +37,7 @@ export type Movie = {
   posterUrl: string;
   backdropUrl?: string;
   streamUrl: string;
+  trailerUrl?: string;
   category: string[];
   synopsis: string;
   year?: number;

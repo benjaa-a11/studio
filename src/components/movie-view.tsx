@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Play, Plus, Check, ThumbsUp, Share2 } from "lucide-react";
+import { ArrowLeft, Plus, Check, ThumbsUp, Share2 } from "lucide-react";
 
 import type { Movie } from "@/types";
 import { Button } from '@/components/ui/button';
@@ -69,7 +69,7 @@ export default function MovieView({ movie, similarMovies }: MovieViewProps) {
   }
 
   return (
-    <div className="flex h-dvh w-full flex-col">
+    <div className="flex h-dvh w-full flex-col bg-background">
       <header className="flex h-16 shrink-0 items-center justify-between border-b px-4 md:px-6 pt-safe-top">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon" asChild>
@@ -84,7 +84,7 @@ export default function MovieView({ movie, similarMovies }: MovieViewProps) {
       </header>
        <div className="flex-1 overflow-y-auto">
          <main>
-            <div className="aspect-video relative w-full overflow-hidden rounded-b-lg bg-black shadow-2xl shadow-primary/10">
+            <div className="aspect-video relative w-full overflow-hidden bg-black shadow-lg shadow-primary/10">
               {movie.streamUrl ? (
                 movie.format === 'mp4' ? (
                   <VideoPlayer src={movie.streamUrl} posterUrl={movie.posterUrl} backdropUrl={movie.backdropUrl} />
@@ -105,9 +105,8 @@ export default function MovieView({ movie, similarMovies }: MovieViewProps) {
               )}
             </div>
               
-            <div className="container mx-auto p-4 space-y-6">
-                <p className="font-semibold tracking-wider uppercase text-muted-foreground text-sm">Película</p>
-                <h1 className="text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground">{movie.title}</h1>
+            <div className="container mx-auto p-4 md:p-6 space-y-6">
+                <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground">{movie.title}</h1>
                  
                 <div className="flex items-center gap-4 text-muted-foreground text-sm flex-wrap">
                   {movie.year && <span>{movie.year}</span>}
@@ -115,18 +114,18 @@ export default function MovieView({ movie, similarMovies }: MovieViewProps) {
                   {movie.rating && <Badge variant="outline" className="border-primary/50 text-base">{movie.rating} ★</Badge>}
                 </div>
                  
-                <p className="text-foreground/80 leading-relaxed text-base">{movie.synopsis}</p>
+                <p className="text-foreground/80 leading-relaxed text-base max-w-3xl">{movie.synopsis}</p>
                  
-                <div>
-                    <p className="text-sm text-muted-foreground">
+                <div className="space-y-1 text-sm">
+                    <p className="text-muted-foreground">
                         <span className="text-foreground/90 font-medium">Protagonistas:</span> {movie.actors || "No disponible"}
                     </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <p className="text-muted-foreground">
                         <span className="text-foreground/90 font-medium">Dirección:</span> {movie.director || "No disponible"}
                     </p>
                 </div>
                  
-                <div className="flex items-start justify-evenly text-center border-y py-2">
+                <div className="flex items-start justify-evenly sm:justify-start sm:gap-8 text-center border-y py-2 max-w-xs sm:max-w-sm">
                     <ActionButton 
                         icon={isFav ? <Check className="h-6 w-6 text-primary" /> : <Plus className="h-6 w-6" />}
                         label={isFav ? "En mi lista" : "Mi Lista"} 
@@ -149,7 +148,7 @@ export default function MovieView({ movie, similarMovies }: MovieViewProps) {
                   <Tabs defaultValue="similar">
                     <TabsList>
                       <TabsTrigger value="similar">Más títulos similares</TabsTrigger>
-                      <TabsTrigger value="trailers" disabled>Tráileres y más</TabsTrigger>
+                      <TabsTrigger value="trailers" disabled={!movie.trailerUrl}>Tráileres y más</TabsTrigger>
                     </TabsList>
                     <TabsContent value="similar" className="mt-4">
                        {similarMovies.length > 0 ? (
@@ -157,6 +156,20 @@ export default function MovieView({ movie, similarMovies }: MovieViewProps) {
                        ) : (
                           <p className="text-muted-foreground text-sm p-4 text-center">No se encontraron películas similares.</p>
                        )}
+                    </TabsContent>
+                     <TabsContent value="trailers" className="mt-4">
+                      {movie.trailerUrl && (
+                        <div className="aspect-video w-full max-w-3xl mx-auto rounded-lg overflow-hidden">
+                           <iframe
+                              key={movie.id + "-trailer"}
+                              src={movie.trailerUrl}
+                              title={`Tráiler de ${movie.title}`}
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              className="w-full h-full border-0"
+                           ></iframe>
+                        </div>
+                      )}
                     </TabsContent>
                   </Tabs>
                 </div>

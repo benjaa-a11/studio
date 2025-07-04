@@ -238,11 +238,40 @@ const _fetchTMDbCredits = cache(async (tmdbID: string) => {
   }
 });
 
+const _fetchTMDbVideos = cache(async (tmdbID: string) => {
+  if (!tmdbID || !TMDB_API_KEY) return null;
+  try {
+    const response = await fetch(`${TMDB_BASE_URL}/movie/${tmdbID}/videos?api_key=${TMDB_API_KEY}&language=es-ES,en-US`);
+    if (!response.ok) {
+      console.error(`Error fetching TMDb videos for ${tmdbID}: ${response.statusText}`);
+      return null;
+    }
+    const data = await response.json();
+    if (data.results && data.results.length > 0) {
+      // Prioritize official trailers in Spanish, then English, then any trailer
+      const trailers = data.results.filter((v: any) => v.site === 'YouTube' && v.type === 'Trailer');
+      const officialSpanishTrailer = trailers.find((v: any) => v.iso_639_1 === 'es' && v.official);
+      const spanishTrailer = trailers.find((v: any) => v.iso_639_1 === 'es');
+      const officialEnglishTrailer = trailers.find((v: any) => v.official);
+      const anyTrailer = trailers[0];
+
+      const bestTrailer = officialSpanishTrailer || spanishTrailer || officialEnglishTrailer || anyTrailer;
+      return bestTrailer ? bestTrailer.key : null;
+    }
+    return null;
+  } catch (error) {
+    console.error(`Error fetching videos from TMDb for ${tmdbID}:`, error);
+    return null;
+  }
+});
+
+
 const _enrichMovieData = async (docId: string, firestoreMovie: any): Promise<Movie> => {
   if (firestoreMovie.tmdbID) {
-    const [movieData, creditsData] = await Promise.all([
+    const [movieData, creditsData, videoKey] = await Promise.all([
       _fetchTMDbData(firestoreMovie.tmdbID),
       _fetchTMDbCredits(firestoreMovie.tmdbID),
+      _fetchTMDbVideos(firestoreMovie.tmdbID),
     ]);
 
     if (movieData) {
@@ -269,6 +298,7 @@ const _enrichMovieData = async (docId: string, firestoreMovie: any): Promise<Mov
         posterUrl: firestoreMovie.posterUrl || (movieData.poster_path ? `${TMDB_IMAGE_BASE_URL}${movieData.poster_path}` : 'https://placehold.co/500x750.png'),
         backdropUrl: movieData.backdrop_path ? `${TMDB_BACKDROP_BASE_URL}${movieData.backdrop_path}` : undefined,
         streamUrl: firestoreMovie.streamUrl,
+        trailerUrl: videoKey ? `https://www.youtube.com/embed/${videoKey}` : undefined,
         category: firestoreMovie.category || movieData.genres?.map((g: any) => g.name) || [],
         synopsis: firestoreMovie.synopsis || movieData.overview,
         year: firestoreMovie.year || (movieData.release_date ? parseInt(movieData.release_date.split('-')[0], 10) : undefined),
