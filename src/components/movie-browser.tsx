@@ -31,8 +31,8 @@ export default function MovieBrowser({
     <div className="space-y-8">
       {filteredMovies.length > 0 ? (
         <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-          {filteredMovies.map((movie) => (
-            <MovieCard key={movie.id} movie={movie} />
+          {filteredMovies.map((movie, index) => (
+            <MovieCard key={movie.id} movie={movie} index={index} />
           ))}
         </div>
       ) : (
