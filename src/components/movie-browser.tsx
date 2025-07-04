@@ -19,7 +19,7 @@ export default function MovieBrowser({
     return movies.filter((movie) => {
       if (!movie) return false;
       const matchesCategory =
-        selectedCategory === "Todas" || movie.category?.includes(selectedCategory);
+        selectedCategory === "Todas" || (Array.isArray(movie.category) && movie.category.includes(selectedCategory));
       const matchesSearch =
         (movie.title?.toLowerCase() ?? "").includes(searchTerm.toLowerCase()) ||
         (movie.synopsis?.toLowerCase() ?? "").includes(searchTerm.toLowerCase());
