@@ -74,8 +74,16 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
     try {
       if (!document.fullscreenElement) {
         await player.requestFullscreen();
+        if (screen.orientation && typeof screen.orientation.lock === "function") {
+          await screen.orientation.lock("landscape").catch(() => {});
+        }
       } else {
-        if (document.exitFullscreen) await document.exitFullscreen();
+        if (document.exitFullscreen) {
+            await document.exitFullscreen();
+        }
+        if (screen.orientation && typeof screen.orientation.unlock === "function") {
+          screen.orientation.unlock();
+        }
       }
     } catch (err) {
       console.error("Fullscreen Error:", err);
