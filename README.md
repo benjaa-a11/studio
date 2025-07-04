@@ -75,29 +75,31 @@ This application is configured to connect to a Firebase project.
     -   **`agenda` Collection**: This collection holds all scheduled matches.
         ```json
         {
-            "team1": "team_id_1",
-            "team2": "team_id_2",
+            "team1": "boca-juniors",
+            "team2": "river-plate",
             "time": "(Timestamp) June 20, 2025 at 4:00:00 PM (Your Local Time)",
-            "tournamentId": "tournament_id_1",
-            "channels": ["channel_id_1", "channel_id_2"],
-            "date": "Fase de grupos · Grupo E · Jornada 2 de 3"
+            "tournamentId": "liga-profesional-arg",
+            "channels": ["deportes-1", "deportes-2"],
+            "dates": "Fase de grupos · Grupo E · Jornada 2 de 3"
         }
         ```
         -   **`team1`, `team2`**: The **document ID** of the respective team from the `teams` collection group.
         -   **`time`**: **(Required)** This must be of type **`timestamp`** in Firestore. It determines when the match is shown. The application will correctly display it in Argentinian time (UTC-3). Matches appear on the homepage only if their start date is the current day and disappear 3 hours after they have started.
-        -   **`tournamentId`**: The **document ID** of the tournament from the `tournaments` collection.
+        -   **`tournamentId`**: **(Required)** A **string** that must exactly match the `id` field of a document in the `tournaments` collection.
         -   **`channels`**: An array of **strings**, where each string is the document ID of a channel from your `channels` collection.
-        -   **`date`**: An optional **`string`** field for extra details (e.g., "Round 1 of 3").
+        -   **`dates`**: An optional **`string`** field for extra details (e.g., "Round 1 of 3").
 
-    -   **`tournaments` Collection**: Holds details for each competition.
+    -   **`tournaments` Collection**: Holds details for each competition. The document ID can be anything for organizational purposes, but the linking happens via the `id` field inside.
         ```json
         {
-            "name": "Tournament Name",
+            "id": "liga-profesional-arg",
+            "name": "Liga Profesional Argentina",
             "logoUrl": ["https://... (dark theme logo)", "https://... (light theme logo)"]
         }
         ```
-        - The **document ID** of each tournament is used in the `agenda`.
-        - **`logoUrl`**: An **array** of strings. The first URL is for dark mode, the second for light mode. If only one URL is provided, it will be used for both themes.
+        -   **`id`**: **(Required)** The unique string ID for the tournament. This is the value you must use in the `tournamentId` field of your `agenda` documents.
+        -   **`name`**: The full name of the tournament.
+        -   **`logoUrl`**: An **array** of strings. The first URL is for dark mode, the second for light mode. If only one URL is provided, it will be used for both themes.
 
     -   **`teams` Collection**: This is structured as a collection group for better organization.
         -   **Structure:** `teams` -> `{country_document}` -> `clubs` -> `{team_document}`

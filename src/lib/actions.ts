@@ -171,7 +171,7 @@ export const getAgendaMatches = cache(async (): Promise<Match[]> => {
     for (let i = 0; i < tournamentIdsArray.length; i += 30) {
         const chunk = tournamentIdsArray.slice(i, i + 30);
         if (chunk.length > 0) {
-            tournamentPromises.push(getDocs(query(collection(db, 'tournaments'), where(documentId(), 'in', chunk))));
+            tournamentPromises.push(getDocs(query(collection(db, 'tournaments'), where("id", "in", chunk))));
         }
     }
     const tournamentsPromise = Promise.all(tournamentPromises);
@@ -193,7 +193,7 @@ export const getAgendaMatches = cache(async (): Promise<Match[]> => {
     });
 
     const tournamentDocs = tournamentSnapshots.flatMap(snap => snap.docs);
-    const tournamentsMap = new Map(tournamentDocs.map(doc => [doc.id, doc.data()]));
+    const tournamentsMap = new Map(tournamentDocs.map(doc => [doc.data().id, doc.data()]));
     const channelsMap = new Map(channels.map(c => [c.id, { id: c.id, name: c.name, logoUrl: c.logoUrl }]));
     
     const allMatches: Match[] = rawMatches.map(data => {
@@ -233,7 +233,7 @@ export const getAgendaMatches = cache(async (): Promise<Match[]> => {
             isLive: isLive,
             isWatchable: isWatchable,
             channels: channelOptions,
-            matchDetails: data.date,
+            matchDetails: data.dates,
             matchTimestamp: matchTimestamp,
             tournamentName: tournamentData?.name,
             tournamentLogo: tournamentLogo,
