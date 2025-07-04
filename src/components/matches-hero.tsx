@@ -24,7 +24,7 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { memo } from "react";
+import React, { memo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type MatchesHeroProps = {
@@ -67,7 +67,7 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
             );
 
             const mobileChannelLinks = match.channels.map((channel) => (
-                 <Link key={channel.id} href={`/canal/${channel.id}`} className="flex items-center gap-4 w-full text-left p-3 rounded-lg transition-colors hover:bg-muted">
+                 <Link key={channel.id} href={`/canal/${channel.id}`} className="flex items-center gap-4 w-full text-left px-6 py-4 transition-colors hover:bg-muted">
                     <div className="relative h-8 w-14 flex-shrink-0">
                         {channel.logoUrl ? (
                             <Image src={channel.logoUrl} alt={`Logo de ${channel.name}`} fill sizes="56px" className="object-contain" data-ai-hint="channel logo" />
@@ -81,20 +81,27 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
                 </Link>
             ));
             
-            const desktopChannelLinks = match.channels.map((channel) => (
-                <DropdownMenuItem key={channel.id} asChild className="p-0">
-                    <Link href={`/canal/${channel.id}`} className="flex items-center gap-3 w-full px-2 py-1.5">
-                        <div className="relative h-6 w-10 flex-shrink-0">
-                            {channel.logoUrl ? (
-                                <Image src={channel.logoUrl} alt={`Logo de ${channel.name}`} fill sizes="40px" className="object-contain" data-ai-hint="channel logo" />
-                            ) : (
-                                <div className="flex h-full w-full items-center justify-center rounded-sm bg-muted"><Clapperboard className="h-4 w-4 text-muted-foreground" /></div>
-                            )}
-                        </div>
-                        <span className="flex-grow">{channel.name}</span>
-                    </Link>
-                </DropdownMenuItem>
-            ));
+            const desktopChannelLinks = match.channels.flatMap((channel, index) => {
+                const item = (
+                    <DropdownMenuItem key={channel.id} asChild className="p-0">
+                        <Link href={`/canal/${channel.id}`} className="flex items-center gap-3 w-full px-2 py-1.5">
+                            <div className="relative h-6 w-10 flex-shrink-0">
+                                {channel.logoUrl ? (
+                                    <Image src={channel.logoUrl} alt={`Logo de ${channel.name}`} fill sizes="40px" className="object-contain" data-ai-hint="channel logo" />
+                                ) : (
+                                    <div className="flex h-full w-full items-center justify-center rounded-sm bg-muted"><Clapperboard className="h-4 w-4 text-muted-foreground" /></div>
+                                )}
+                            </div>
+                            <span className="flex-grow">{channel.name}</span>
+                        </Link>
+                    </DropdownMenuItem>
+                );
+
+                if (index < match.channels.length - 1) {
+                    return [item, <DropdownMenuSeparator key={`sep-${channel.id}`} />];
+                }
+                return [item];
+            });
 
             return (
                 <>
@@ -128,7 +135,7 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
                                 </SheetDescription>
                             </SheetHeader>
                             <ScrollArea className="flex-grow">
-                                <div className="flex flex-col gap-2 p-6">
+                                <div className="flex flex-col divide-y divide-border/50">
                                     {mobileChannelLinks}
                                 </div>
                             </ScrollArea>
