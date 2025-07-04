@@ -1,3 +1,4 @@
+
 "use client";
 import type { Match } from "@/types";
 import Image from "next/image";
@@ -33,7 +34,7 @@ type MatchesHeroProps = {
 };
 
 const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
-    const { theme } = useTheme();
+    const { resolvedTheme } = useTheme();
 
     const renderButton = () => {
         if (!match.isWatchable) {
@@ -162,7 +163,7 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
         if (typeof match.tournamentLogo === 'string') {
             return match.tournamentLogo;
         }
-        return theme === 'dark' ? match.tournamentLogo.dark : match.tournamentLogo.light;
+        return resolvedTheme === 'dark' ? match.tournamentLogo.dark : match.tournamentLogo.light;
     };
     
     const tournamentLogoUrl = getTournamentLogo();
@@ -232,8 +233,10 @@ export default function MatchesHero({ matches }: MatchesHeroProps) {
             {matches.length > 1 ? (
                 <ScrollArea className="w-full whitespace-nowrap rounded-lg">
                     <div className="flex w-max space-x-4 pb-4">
-                        {matches.map((match) => (
-                            <MatchCard key={match.id} match={match} />
+                        {matches.map((match, index) => (
+                            <div key={match.id} style={{ animationDelay: `${index * 80}ms` }}>
+                                <MatchCard match={match} />
+                            </div>
                         ))}
                     </div>
                     <ScrollBar orientation="horizontal" />
