@@ -2,8 +2,8 @@
 
 import { cache } from "react";
 import { db } from "./firebase";
-import { collection, getDocs, doc, getDoc, query, where, documentId, Timestamp } from "firebase/firestore";
-import type { Channel, Match, ChannelOption, Movie } from "@/types";
+import { collection, getDocs, doc, getDoc, query, where, documentId, Timestamp, collectionGroup } from "firebase/firestore";
+import type { Channel, Match, ChannelOption, Movie, Team } from "@/types";
 import { placeholderChannels, placeholderMovies } from "./placeholder-data";
 
 // Helper function to use placeholder data as a fallback
@@ -106,91 +106,120 @@ export const getChannelsByCategory = async (category: string, excludeId?: string
     const isSameCategory = channel.category === category;
     const isNotExcluded = excludeId ? channel.id !== excludeId : true;
     return isSameCategory && isNotExcluded;
-  }).slice(0, 5); // Return a max of 5 related channels
+  }).slice(0, 4); // Return a max of 4 related channels
 };
+
+const _getTeamsData = cache(async (teamIds: string[]): Promise<Map<string, Team>> => {
+  const teamsMap = new Map<string, Team>();
+  if (!teamIds || teamIds.length === 0) {
+    return teamsMap;
+  }
+  
+  try {
+    // collectionGroup query to get all documents in all 'equipos' subcollections.
+    const teamsQuery = query(collectionGroup(db, 'equipos'));
+    const querySnapshot = await getDocs(teamsQuery);
+
+    const allTeams = new Map<string, Team>();
+    querySnapshot.forEach(doc => {
+      allTeams.set(doc.id, { id: doc.id, ...doc.data() } as Team);
+    });
+    
+    // Filter the results in memory
+    teamIds.forEach(id => {
+      if (allTeams.has(id)) {
+        teamsMap.set(id, allTeams.get(id)!);
+      }
+    });
+
+  } catch (error) {
+    console.error("Error fetching teams data with collectionGroup:", error);
+  }
+  
+  return teamsMap;
+});
+
 
 export const getAgendaMatches = async (): Promise<Match[]> => {
   try {
-    const allChannels = await getChannels();
-    const allChannelsMap = new Map(allChannels.map(c => [c.id, { id: c.id, name: c.name, logoUrl: c.logoUrl }]));
-    
+    // 1. Get all matches for today
     const now = new Date();
     const timeZone = 'America/Argentina/Buenos_Aires';
-
-    // Get the current date parts in Argentina's timezone to avoid server timezone issues.
-    // This is a robust way to determine what "today" is in Argentina, regardless of server location.
-    const parts = new Intl.DateTimeFormat('en-US', {
-        timeZone,
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-    }).formatToParts(now);
-
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(now);
     const year = parseInt(parts.find(p => p.type === 'year')!.value, 10);
     const month = parseInt(parts.find(p => p.type === 'month')!.value, 10);
     const day = parseInt(parts.find(p => p.type === 'day')!.value, 10);
-
-    // Create Date objects representing the start and end of "today" in Argentina, converted to UTC.
-    // 00:00 in ART (UTC-3) is 03:00 in UTC.
     const startOfTodayUTC = new Date(Date.UTC(year, month - 1, day, 3, 0, 0));
-    // 00:00 on the next day in ART is 03:00 UTC on the next day.
     const endOfTodayUTC = new Date(Date.UTC(year, month - 1, day + 1, 3, 0, 0));
 
-    const matchCollections = ["mdc25", "copaargentina"];
-    let allMatches: Match[] = [];
+    const matchesQuery = query(
+      collection(db, "agenda"),
+      where("matchTimestamp", ">=", Timestamp.fromDate(startOfTodayUTC)),
+      where("matchTimestamp", "<", Timestamp.fromDate(endOfTodayUTC))
+    );
+    const matchesSnapshot = await getDocs(matchesQuery);
 
-    for (const coll of matchCollections) {
-      // Query Firestore using the calculated and reliable UTC timestamps
-      const q = query(
-          collection(db, coll),
-          where("matchTimestamp", ">=", Timestamp.fromDate(startOfTodayUTC)),
-          where("matchTimestamp", "<", Timestamp.fromDate(endOfTodayUTC))
-      );
-
-      const querySnapshot = await getDocs(q);
-
-      querySnapshot.forEach(docSnap => {
-          const data = docSnap.data();
-          const matchTimestamp = (data.matchTimestamp as Timestamp).toDate();
-          
-          const timeSinceStart = now.getTime() - matchTimestamp.getTime();
-          // Hide match 2 hours and 15 minutes after it started (135 minutes)
-          if (timeSinceStart > (135 * 60 * 1000)) {
-              return; // Skip this match as it has finished
-          }
-
-          const channelOptions: ChannelOption[] = (data.channels || []).map((id: string) => 
-              allChannelsMap.get(id)
-          ).filter((c: ChannelOption | undefined): c is ChannelOption => !!c);
-          
-          const isLive = now.getTime() >= matchTimestamp.getTime();
-          // Button is enabled 30 mins before match
-          const isWatchable = matchTimestamp.getTime() - now.getTime() <= (30 * 60 * 1000);
-
-          allMatches.push({
-              id: docSnap.id,
-              team1: data.team1,
-              team1Logo: data.team1Logo,
-              team2: data.team2,
-              team2Logo: data.team2Logo,
-              time: matchTimestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires', hour12: false }),
-              isLive: isLive,
-              isWatchable: isWatchable,
-              channels: channelOptions,
-              matchDetails: data.matchDetails,
-              matchTimestamp: matchTimestamp,
-              tournamentName: coll === 'mdc25' ? 'Copa del Mundo 2025' : 'Copa Argentina',
-              tournamentLogo: coll === 'mdc25' ? { light: '/mdc25-light.png', dark: '/mdc25-dark.png' } : { light: '/afa-light.png', dark: '/afa-dark.png' },
-          });
+    const rawMatches = matchesSnapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(data => {
+        const matchTimestamp = (data.matchTimestamp as Timestamp).toDate();
+        const timeSinceStart = now.getTime() - matchTimestamp.getTime();
+        return timeSinceStart <= (135 * 60 * 1000);
       });
+
+    if (rawMatches.length === 0) {
+      return [];
     }
-    
-    // Sort all combined matches by time
+
+    // 2. Collect all unique team and channel IDs from the matches
+    const teamIds = new Set<string>();
+    const channelIds = new Set<string>();
+    rawMatches.forEach(match => {
+      if (match.team1) teamIds.add(match.team1);
+      if (match.team2) teamIds.add(match.team2);
+      if (match.channels) match.channels.forEach((c: string) => channelIds.add(c));
+    });
+
+    // 3. Fetch all required teams and channels in parallel
+    const [teamsMap, channels] = await Promise.all([
+      _getTeamsData(Array.from(teamIds)),
+      getChannelsByIds(Array.from(channelIds)),
+    ]);
+    const channelsMap = new Map(channels.map(c => [c.id, { id: c.id, name: c.name, logoUrl: c.logoUrl }]));
+
+    // 4. Combine the data
+    const allMatches: Match[] = rawMatches.map(data => {
+      const matchTimestamp = (data.matchTimestamp as Timestamp).toDate();
+      const team1Data = teamsMap.get(data.team1);
+      const team2Data = teamsMap.get(data.team2);
+      
+      const channelOptions: ChannelOption[] = (data.channels || []).map((id: string) =>
+        channelsMap.get(id)
+      ).filter((c: ChannelOption | undefined): c is ChannelOption => !!c);
+
+      const isLive = now.getTime() >= matchTimestamp.getTime();
+      const isWatchable = matchTimestamp.getTime() - now.getTime() <= (30 * 60 * 1000);
+
+      return {
+        id: data.id,
+        team1: team1Data?.name || 'Equipo A',
+        team1Logo: team1Data?.logoUrl,
+        team2: team2Data?.name || 'Equipo B',
+        team2Logo: team2Data?.logoUrl,
+        time: matchTimestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires', hour12: false }),
+        isLive: isLive,
+        isWatchable: isWatchable,
+        channels: channelOptions,
+        matchDetails: data.matchDetails,
+        matchTimestamp: matchTimestamp,
+        tournamentName: data.tournamentName,
+      };
+    });
+
     return allMatches.sort((a, b) => a.matchTimestamp.getTime() - b.matchTimestamp.getTime());
 
   } catch (error) {
     console.error("Error al obtener partidos de Firebase:", error);
-    // Return empty array on error as there is no placeholder match data
     return [];
   }
 };
