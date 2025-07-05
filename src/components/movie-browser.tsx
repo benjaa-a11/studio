@@ -23,17 +23,11 @@ export default function MovieBrowser({
         (movie.title?.toLowerCase() ?? "").includes(searchTerm.toLowerCase()) ||
         (movie.synopsis?.toLowerCase() ?? "").includes(searchTerm.toLowerCase());
       
-      if (!matchesSearch) return false;
+      const matchesCategory =
+        selectedCategory === 'Todos' ||
+        (Array.isArray(movie.category) && movie.category.includes(selectedCategory));
 
-      if (selectedCategory === "Todos") {
-        return true;
-      }
-      
-      if (Array.isArray(movie.category)) {
-        return movie.category.includes(selectedCategory);
-      }
-
-      return false;
+      return matchesSearch && matchesCategory;
     });
   }, [movies, searchTerm, selectedCategory]);
 
