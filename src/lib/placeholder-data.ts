@@ -19,7 +19,7 @@ export const placeholderMatches: Match[] = [
     isLive: new Date().getHours() >= 21,
     isWatchable: true,
     channels: [{ id: 'deportes-1', name: 'DSports', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/5/5a/DSports.png' }],
-    matchDetails: 'Fase de Grupos · Jornada 1',
+    dates: 'Fase de Grupos · Jornada 1',
     matchTimestamp: createTimestamp(21, 0),
     tournamentName: 'Copa América 2024',
     tournamentLogo: {

@@ -23,7 +23,7 @@ export type Match = {
   isLive: boolean;
   isWatchable: boolean;
   channels: ChannelOption[];
-  matchDetails?: string;
+  dates?: string;
   matchTimestamp: Date;
   tournamentName?: string;
   tournamentLogo?: string | { light: string; dark: string };

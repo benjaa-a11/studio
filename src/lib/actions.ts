@@ -233,7 +233,7 @@ export const getAgendaMatches = cache(async (): Promise<Match[]> => {
             isLive: isLive,
             isWatchable: isWatchable,
             channels: channelOptions,
-            matchDetails: data.dates,
+            dates: data.dates,
             matchTimestamp: matchTimestamp,
             tournamentName: tournamentData?.name,
             tournamentLogo: tournamentLogo,
