@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import type { Movie } from "@/types";
 import MovieCard from "./movie-card";
 import { Clapperboard } from "lucide-react";
@@ -13,7 +13,13 @@ type MovieBrowserProps = {
 export default function MovieBrowser({
   movies,
 }: MovieBrowserProps) {
-  const { searchTerm, selectedCategory } = useMovieFilters();
+  const { searchTerm, selectedCategory, setSearchTerm, setSelectedCategory } = useMovieFilters();
+
+  useEffect(() => {
+    // Reset filters to default state every time the user visits the page
+    setSelectedCategory('Todos');
+    setSearchTerm('');
+  }, [setSelectedCategory, setSearchTerm]);
 
   const filteredMovies = useMemo(() => {
     return movies.filter((movie) => {
