@@ -164,15 +164,7 @@ export const getAgendaMatches = async (): Promise<Match[]> => {
     });
 
     // Fetch all related data in parallel
-    const teamPromises = [];
-    const teamIdsArray = Array.from(teamIds);
-    for (let i = 0; i < teamIdsArray.length; i += 30) {
-        const chunk = teamIdsArray.slice(i, i + 30);
-        if (chunk.length > 0) {
-            teamPromises.push(getDocs(query(collectionGroup(db, 'clubs'), where(documentId(), "in", chunk))));
-        }
-    }
-    const teamsPromise = Promise.all(teamPromises);
+    const teamsPromise = getDocs(collectionGroup(db, 'clubs'));
     
     const tournamentPromises = [];
     const tournamentIdsArray = Array.from(tournamentIds);
@@ -186,15 +178,14 @@ export const getAgendaMatches = async (): Promise<Match[]> => {
 
     const channelsPromise = getChannelsByIds(Array.from(channelIds));
 
-    const [teamSnapshots, tournamentSnapshots, channels] = await Promise.all([
+    const [teamsSnapshot, tournamentSnapshots, channels] = await Promise.all([
         teamsPromise,
         tournamentsPromise,
         channelsPromise
     ]);
 
     // Create maps for efficient lookup
-    const teamDocs = teamSnapshots.flatMap(snap => snap.docs);
-    const teamsMap = new Map(teamDocs.map(doc => [doc.id, doc.data()]));
+    const teamsMap = new Map(teamsSnapshot.docs.map(doc => [doc.id, doc.data()]));
 
     const tournamentDocs = tournamentSnapshots.flatMap(snap => snap.docs);
     const tournamentsMap = new Map(tournamentDocs.map(doc => [doc.data().id, doc.data()]));
