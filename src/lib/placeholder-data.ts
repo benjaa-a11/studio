@@ -84,18 +84,21 @@ export const placeholderRadios: Radio[] = [
     name: "Radio Mitre",
     logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Radio_Mitre_logo.svg/512px-Radio_Mitre_logo.svg.png",
     streamUrl: ["https://somosradio.vorterix.com/hls/radiomitre/playlist.m3u8"],
+    emisora: "AM 790",
   },
   {
     id: "radio-2",
     name: "La 100",
     logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/La_100_logo_2018.svg/512px-La_100_logo_2018.svg.png",
     streamUrl: ["https://somosradio.vorterix.com/hls/la100/playlist.m3u8"],
+    emisora: "FM 99.9",
   },
     {
     id: "radio-3",
     name: "Urbana Play",
     logoUrl: "https://i.imgur.com/Fx3411L.png",
     streamUrl: ["https://streaming.urbanaplayfm.com/master.m3u8"],
+    emisora: "FM 104.3",
   },
 ];
 

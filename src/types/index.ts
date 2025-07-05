@@ -53,4 +53,5 @@ export type Radio = {
   name: string;
   logoUrl: string;
   streamUrl: string[];
+  emisora?: string;
 };

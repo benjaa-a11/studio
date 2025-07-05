@@ -167,6 +167,9 @@ export default function AudioPlayer({ radio, currentStreamUrl }: AudioPlayerProp
 
         <div className="p-6 text-center space-y-2">
             <h1 className="text-2xl sm:text-3xl font-bold">{radio.name}</h1>
+            {radio.emisora && (
+                <p className="text-lg text-muted-foreground font-medium">{radio.emisora}</p>
+            )}
              {isPlaying && !isLoading && (
                 <p className="text-sm text-primary animate-pulse font-medium">Transmitiendo en vivo</p>
              )}
