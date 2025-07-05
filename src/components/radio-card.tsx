@@ -31,6 +31,7 @@ const RadioCard = memo(function RadioCard({ radio, index }: RadioCardProps) {
               sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
               className="object-contain p-4 transition-transform duration-300 group-hover:scale-105 drop-shadow-sm"
               data-ai-hint="radio logo"
+              unoptimized
             />
           ) : (
             <RadioIcon className="h-10 w-10 text-muted-foreground/60" />
