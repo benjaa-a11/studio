@@ -15,10 +15,15 @@ export default function MovieBrowser({
 }: MovieBrowserProps) {
   const { searchTerm, selectedCategory, setSearchTerm, setSelectedCategory } = useMovieFilters();
 
+  // By resetting the filters when the component unmounts, we ensure that
+  // the user always sees the full list of movies when they navigate to this page,
+  // without the jarring "flicker" of a client-side reset on page load.
   useEffect(() => {
-    // Reset filters to default state every time the user visits the page
-    setSelectedCategory('Todos');
-    setSearchTerm('');
+    // This return function is the cleanup function, which runs on unmount.
+    return () => {
+      setSelectedCategory('Todos');
+      setSearchTerm('');
+    };
   }, [setSelectedCategory, setSearchTerm]);
 
   const filteredMovies = useMemo(() => {
