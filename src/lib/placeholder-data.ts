@@ -1,4 +1,4 @@
-import type { Channel, Match, Movie } from "@/types";
+import type { Channel, Match, Movie, Radio } from "@/types";
 
 // Helper to create timestamps for today for placeholder data
 const createTimestamp = (hour: number, minute: number = 0) => {
@@ -77,6 +77,28 @@ export const placeholderMovies: Movie[] = [
     rating: "9.0",
   },
 ];
+
+export const placeholderRadios: Radio[] = [
+  {
+    id: "radio-1",
+    name: "Radio Mitre",
+    logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Radio_Mitre_logo.svg/512px-Radio_Mitre_logo.svg.png",
+    streamUrl: ["https://somosradio.vorterix.com/hls/radiomitre/playlist.m3u8"],
+  },
+  {
+    id: "radio-2",
+    name: "La 100",
+    logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/La_100_logo_2018.svg/512px-La_100_logo_2018.svg.png",
+    streamUrl: ["https://somosradio.vorterix.com/hls/la100/playlist.m3u8"],
+  },
+    {
+    id: "radio-3",
+    name: "Urbana Play",
+    logoUrl: "https://i.imgur.com/Fx3411L.png",
+    streamUrl: ["https://streaming.urbanaplayfm.com/master.m3u8"],
+  },
+];
+
 
 export const placeholderChannels: Channel[] = [
   {

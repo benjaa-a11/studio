@@ -45,7 +45,7 @@ This application is configured to connect to a Firebase project.
 
 1.  **Firebase Configuration**: The Firebase configuration is now securely managed via environment variables in your `.env.local` file.
 
-2.  **Firestore Database**: The application expects a Firestore database with four main collections: `channels`, `peliculas`, `agenda`, `tournaments`, and `teams`.
+2.  **Firestore Database**: The application expects a Firestore database with five main collections: `channels`, `radio`, `peliculas`, `agenda`, `tournaments`, and `teams`.
 
 3.  **Data Structure**:
     -   **`channels` Collection**: Each document represents a TV channel.
@@ -56,6 +56,14 @@ This application is configured to connect to a Firebase project.
           "streamUrl": ["https://... (primary link)", "https://... (fallback link)"],
           "category": "Category Name",
           "description": "A brief channel description."
+        }
+        ```
+    -   **`radio` Collection**: Each document represents a radio station.
+        ```json
+        {
+          "name": "Radio Name",
+          "logoUrl": "https://...",
+          "streamUrl": ["https://... (primary link)", "https://... (fallback link)"]
         }
         ```
 
