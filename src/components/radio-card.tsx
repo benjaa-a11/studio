@@ -17,7 +17,7 @@ const RadioCard = memo(function RadioCard({ radio, index }: RadioCardProps) {
       title={radio.name}
       style={{ animationDelay: `${index * 40}ms` }}
     >
-        <div className="aspect-square w-full relative bg-muted/50 flex items-center justify-center overflow-hidden rounded-lg">
+        <div className="aspect-square w-full relative bg-muted/50 flex items-center justify-center rounded-lg overflow-hidden">
           
           <div className="absolute inset-0 z-10 bg-black/50 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex items-center justify-center">
             <PlayCircle className="h-12 w-12 text-white/80 transform transition-transform duration-300 group-hover:scale-110" />
@@ -29,7 +29,7 @@ const RadioCard = memo(function RadioCard({ radio, index }: RadioCardProps) {
               alt={`Logo de ${radio.name}`}
               fill
               sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              className="object-contain p-4 transition-transform duration-300 group-hover:scale-105"
               data-ai-hint="radio logo"
               unoptimized
               priority={index < 8}
