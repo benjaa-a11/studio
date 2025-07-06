@@ -7,6 +7,47 @@ import { collection, getDocs, doc, getDoc, query, where, documentId, Timestamp, 
 import type { Channel, Match, ChannelOption, Movie, Radio } from "@/types";
 import { placeholderChannels, placeholderMovies, placeholderMatches, placeholderRadios } from "./placeholder-data";
 
+// Helper function to resolve .pls file to an actual stream URL
+const _resolvePlsUrl = async (url: string): Promise<string> => {
+    if (!url.endsWith('.pls')) {
+        return url;
+    }
+    console.log(`Resolving .pls URL: ${url}`);
+    try {
+        // Set a reasonable timeout for the fetch request
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            console.error(`Failed to fetch .pls file [${response.status}]: ${url}`);
+            return url;
+        }
+        const text = await response.text();
+        const lines = text.split('\n');
+        for (const line of lines) {
+            // Find the first File entry (usually File1)
+            if (line.trim().toLowerCase().startsWith('file1=')) {
+                const streamUrl = line.substring(line.indexOf('=') + 1).trim();
+                console.log(`Resolved .pls url ${url} to ${streamUrl}`);
+                return streamUrl;
+            }
+        }
+        console.warn(`.pls file did not contain a 'File1=' entry: ${url}`);
+        return url;
+    } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+            console.error(`Timeout fetching .pls url: ${url}`);
+        } else {
+            console.error(`Error resolving .pls url ${url}:`, error);
+        }
+        return url;
+    }
+};
+
+
 // Helper function to use placeholder data as a fallback
 const useFallbackData = () => {
   console.warn("Firebase no disponible o colección vacía. Usando datos de demostración.");
@@ -507,10 +548,14 @@ export const getRadios = async (): Promise<Radio[]> => {
       return useRadioFallbackData();
     }
     
-    const radios = radioSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Radio));
+    // Concurrently resolve all stream URLs
+    const radios = await Promise.all(radioSnapshot.docs.map(async (doc) => {
+      const radioData = { id: doc.id, ...doc.data() } as Radio;
+      if (radioData.streamUrl && Array.isArray(radioData.streamUrl)) {
+        radioData.streamUrl = await Promise.all(radioData.streamUrl.map(url => _resolvePlsUrl(url)));
+      }
+      return radioData;
+    }));
     
     return radios;
   } catch (error) {
@@ -525,11 +570,18 @@ export const getRadioById = async (id: string): Promise<Radio | null> => {
     const radioSnapshot = await getDoc(radioDoc);
 
     if (radioSnapshot.exists()) {
-      return { id: radioSnapshot.id, ...radioSnapshot.data() } as Radio;
+      const radioData = { id: radioSnapshot.id, ...radioSnapshot.data() } as Radio;
+      if (radioData.streamUrl && Array.isArray(radioData.streamUrl)) {
+        radioData.streamUrl = await Promise.all(radioData.streamUrl.map(url => _resolvePlsUrl(url)));
+      }
+      return radioData;
     } else {
       const fallbackRadio = placeholderRadios.find(r => r.id === id);
       if (fallbackRadio) {
         console.warn(`Radio con id ${id} no encontrada en Firebase. Usando dato de demostración.`);
+        if (fallbackRadio.streamUrl && Array.isArray(fallbackRadio.streamUrl)) {
+            fallbackRadio.streamUrl = await Promise.all(fallbackRadio.streamUrl.map(url => _resolvePlsUrl(url)));
+        }
         return fallbackRadio;
       }
       return null;
@@ -538,6 +590,9 @@ export const getRadioById = async (id: string): Promise<Radio | null> => {
     console.error(`Error al obtener radio con id ${id}:`, error);
     const fallbackRadio = placeholderRadios.find(r => r.id === id);
     if (fallbackRadio) {
+      if (fallbackRadio.streamUrl && Array.isArray(fallbackRadio.streamUrl)) {
+            fallbackRadio.streamUrl = await Promise.all(fallbackRadio.streamUrl.map(url => _resolvePlsUrl(url)));
+      }
       return fallbackRadio;
     }
     return null;
