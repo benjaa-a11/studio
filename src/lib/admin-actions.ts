@@ -484,14 +484,23 @@ export async function addMatch(prevState: FormState, formData: FormData): Promis
     }
 
     try {
-        const { date, time, ...rest } = validatedFields.data;
+        const { date, time, team1, team2, ...rest } = validatedFields.data;
         // Interpret the time as being in Argentina (UTC-3)
         const dateTimeString = `${date}T${time}:00-03:00`;
         const matchTimestamp = Timestamp.fromDate(new Date(dateTimeString));
 
-        const dataToSave = { ...rest, time: matchTimestamp };
+        const dataToSave = { team1, team2, ...rest, time: matchTimestamp };
+        
+        // Create a custom, readable ID for the match
+        const id = `${slugify(team1 as string)}-vs-${slugify(team2 as string)}-${date}`;
+        const matchRef = doc(db, 'agenda', id);
 
-        await addDoc(collection(db, 'agenda'), dataToSave);
+        const docSnap = await getDoc(matchRef);
+        if (docSnap.exists()) {
+          return { message: `Un partido con esta combinación de equipos y fecha ya existe (ID: ${id}).`, success: false };
+        }
+
+        await setDoc(matchRef, dataToSave);
         revalidatePath('/admin/agenda');
         revalidatePath('/');
         return { message: 'Partido añadido exitosamente.', success: true };
