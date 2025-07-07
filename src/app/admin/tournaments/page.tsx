@@ -1,21 +1,20 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Hammer } from "lucide-react";
+import { getTournaments } from "@/lib/actions";
+import TournamentDataTable from "@/components/admin/tournament-data-table";
 
-export default function AdminTournamentsPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function AdminTournamentsPage() {
+  const tournaments = await getTournaments(true);
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center gap-4">
-        <Hammer className="h-8 w-8 text-muted-foreground" />
-        <div>
-          <CardTitle>En Construcción</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            La gestión de torneos está en desarrollo.
-          </p>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <p>Esta sección permitirá administrar las competencias, incluyendo su nombre, ID único y logos para los temas claro y oscuro. Estos datos se usarán en la agenda deportiva.</p>
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Gestionar Torneos</h1>
+        <p className="text-muted-foreground">
+          Añade, edita o elimina las competencias y sus logos.
+        </p>
+      </div>
+      <TournamentDataTable data={tournaments} />
+    </div>
   );
 }

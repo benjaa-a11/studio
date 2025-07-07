@@ -1,21 +1,20 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Hammer } from "lucide-react";
+import { getTeams } from "@/lib/actions";
+import TeamDataTable from "@/components/admin/team-data-table";
 
-export default function AdminTeamsPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function AdminTeamsPage() {
+  const teams = await getTeams(true);
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center gap-4">
-        <Hammer className="h-8 w-8 text-muted-foreground" />
-        <div>
-          <CardTitle>En Construcción</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            La gestión de equipos está en desarrollo.
-          </p>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <p>Esta sección permitirá añadir y modificar los equipos que participan en los torneos, incluyendo su nombre, país y logo. Estos datos se usarán en la agenda deportiva.</p>
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Gestionar Equipos</h1>
+        <p className="text-muted-foreground">
+          Añade, edita o elimina los equipos de la aplicación.
+        </p>
+      </div>
+      <TeamDataTable data={teams} />
+    </div>
   );
 }

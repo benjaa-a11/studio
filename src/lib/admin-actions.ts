@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { db } from './firebase';
-import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, getDoc } from 'firebase/firestore';
 import { z } from 'zod';
 
 // Common state type for forms
@@ -252,4 +252,143 @@ export async function deleteMovie(id: string) {
     }
 }
 
+// --- TOURNAMENTS ---
+
+const TournamentSchema = z.object({
+  tournamentId: z.string().min(3, 'El ID debe tener al menos 3 caracteres.').regex(/^[a-z0-9-]+$/, 'Solo minúsculas, números y guiones.'),
+  name: z.string().min(1, 'El nombre es requerido.'),
+  logoUrlDark: z.string().url('URL de logo (tema oscuro) no válida.').optional().or(z.literal('')),
+  logoUrlLight: z.string().url('URL de logo (tema claro) no válida.').optional().or(z.literal('')),
+});
+
+export async function addTournament(prevState: FormState, formData: FormData): Promise<FormState> {
+  const validatedFields = TournamentSchema.safeParse(Object.fromEntries(formData.entries()));
+  
+  if (!validatedFields.success) {
+    return { message: 'Error de validación.', errors: validatedFields.error.flatten().fieldErrors, success: false };
+  }
+
+  const { tournamentId, name, logoUrlDark, logoUrlLight } = validatedFields.data;
+  const dataToSave = { id: tournamentId, name, logoUrl: [logoUrlDark, logoUrlLight].filter(Boolean) };
+
+  try {
+    await addDoc(collection(db, 'tournaments'), dataToSave);
+    revalidatePath('/admin/tournaments');
+    revalidatePath('/');
+    return { message: 'Torneo añadido exitosamente.', success: true, errors: {} };
+  } catch (error) {
+    console.error('Error adding tournament:', error);
+    return { message: 'Error del servidor al añadir el torneo.', success: false };
+  }
+}
+
+export async function updateTournament(id: string, prevState: FormState, formData: FormData): Promise<FormState> {
+    if (!id) return { message: 'ID de torneo no proporcionado.', success: false };
     
+    const validatedFields = TournamentSchema.safeParse(Object.fromEntries(formData.entries()));
+    if (!validatedFields.success) {
+        return { message: 'Error de validación.', errors: validatedFields.error.flatten().fieldErrors, success: false };
+    }
+    
+    const { tournamentId, name, logoUrlDark, logoUrlLight } = validatedFields.data;
+    const dataToSave = { id: tournamentId, name, logoUrl: [logoUrlDark, logoUrlLight].filter(Boolean) };
+
+    try {
+        await updateDoc(doc(db, 'tournaments', id), dataToSave);
+        revalidatePath('/admin/tournaments');
+        revalidatePath('/');
+        return { message: 'Torneo actualizado exitosamente.', success: true, errors: {} };
+    } catch (error) {
+        console.error('Error updating tournament:', error);
+        return { message: 'Error del servidor al actualizar el torneo.', success: false };
+    }
+}
+
+export async function deleteTournament(id: string) {
+    if (!id) return { message: 'ID de torneo no proporcionado.', success: false };
+    try {
+        await deleteDoc(doc(db, 'tournaments', id));
+        revalidatePath('/admin/tournaments');
+        revalidatePath('/');
+        return { message: 'Torneo eliminado exitosamente.', success: true };
+    } catch (error) {
+        console.error('Error deleting tournament:', error);
+        return { message: 'Error del servidor al eliminar el torneo.', success: false };
+    }
+}
+
+// --- TEAMS ---
+
+const TeamSchema = z.object({
+  name: z.string().min(1, { message: 'El nombre es requerido.' }),
+  logoUrl: z.string().url({ message: 'URL de logo no válida.' }),
+  country: z.string().min(1, { message: 'El país es requerido.' }),
+});
+
+const slugify = (text: string) => text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+
+export async function addTeam(prevState: FormState, formData: FormData): Promise<FormState> {
+    const validatedFields = TeamSchema.safeParse(Object.fromEntries(formData.entries()));
+
+    if (!validatedFields.success) {
+        return { message: 'Error de validación.', errors: validatedFields.error.flatten().fieldErrors, success: false };
+    }
+    
+    const { name, country, logoUrl } = validatedFields.data;
+    const countrySlug = slugify(country);
+    const teamSlug = slugify(name);
+    
+    const teamPath = `teams/${countrySlug}/clubs/${teamSlug}`;
+    const teamRef = doc(db, teamPath);
+
+    try {
+        const docSnap = await getDoc(teamRef);
+        if (docSnap.exists()) {
+            return { message: `El equipo con ID '${teamSlug}' ya existe en ese país.`, success: false };
+        }
+
+        await setDoc(teamRef, { name, logoUrl, country });
+        revalidatePath('/admin/teams');
+        revalidatePath('/');
+        return { message: 'Equipo añadido exitosamente.', success: true };
+    } catch (error) {
+        console.error('Error adding team:', error);
+        return { message: 'Error del servidor al añadir el equipo.', success: false };
+    }
+}
+
+export async function updateTeam(path: string, prevState: FormState, formData: FormData): Promise<FormState> {
+    if (!path) return { message: 'Ruta del equipo no proporcionada.', success: false };
+
+    const validatedFields = TeamSchema.safeParse(Object.fromEntries(formData.entries()));
+
+    if (!validatedFields.success) {
+        return { message: 'Error de validación.', errors: validatedFields.error.flatten().fieldErrors, success: false };
+    }
+    
+    // NOTE: Updating a team does not change its path/ID, as that could break relationships.
+    // The country and name are part of the data, but changing them doesn't move the document.
+    try {
+        await updateDoc(doc(db, path), validatedFields.data);
+        revalidatePath('/admin/teams');
+        revalidatePath('/');
+        return { message: 'Equipo actualizado exitosamente.', success: true };
+    } catch (error) {
+        console.error('Error updating team:', error);
+        return { message: 'Error del servidor al actualizar el equipo.', success: false };
+    }
+}
+
+export async function deleteTeam(path: string) {
+    if (!path) return { message: 'Ruta del equipo no proporcionada.', success: false };
+    
+    try {
+        await deleteDoc(doc(db, path));
+        revalidatePath('/admin/teams');
+        revalidatePath('/');
+        return { message: 'Equipo eliminado exitosamente.', success: true };
+    } catch (error) {
+        console.error('Error deleting team:', error);
+        return { message: 'Error del servidor al eliminar el equipo.', success: false };
+    }
+}

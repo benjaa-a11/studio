@@ -4,8 +4,8 @@
 import { cache } from "react";
 import { db } from "./firebase";
 import { collection, getDocs, doc, getDoc, query, where, documentId, Timestamp, collectionGroup } from "firebase/firestore";
-import type { Channel, Match, ChannelOption, Movie, Radio } from "@/types";
-import { placeholderChannels, placeholderMovies, placeholderRadios } from "./placeholder-data";
+import type { Channel, Match, ChannelOption, Movie, Radio, Tournament, Team } from "@/types";
+import { placeholderChannels, placeholderMovies, placeholderRadios, placeholderTournaments, placeholderTeams } from "./placeholder-data";
 
 // Helper function to resolve .pls file to an actual stream URL
 const _resolvePlsUrl = async (url: string): Promise<string | null> => {
@@ -611,4 +611,71 @@ export const getRadioById = async (id: string): Promise<Radio | null> => {
   }
 };
 
-    
+
+// --- TOURNAMENTS ---
+
+const useTournamentFallbackData = (includePlaceholders: boolean) => {
+    if (includePlaceholders) {
+      console.warn("Firebase no disponible o colección de torneos vacía. Usando datos de demostración.");
+      return placeholderTournaments;
+    }
+    return [];
+};
+
+export const getTournaments = async (includePlaceholders = false): Promise<Tournament[]> => {
+    try {
+        const tournamentsCollection = collection(db, "tournaments");
+        const tournamentSnapshot = await getDocs(query(tournamentsCollection));
+        
+        if (tournamentSnapshot.empty && includePlaceholders) {
+            return useTournamentFallbackData(true);
+        }
+        
+        const tournaments = tournamentSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              tournamentId: data.id,
+              name: data.name,
+              logoUrl: data.logoUrl || [],
+            } as Tournament;
+        });
+        
+        return tournaments;
+    } catch (error) {
+        console.error("Error al obtener torneos de Firebase:", error);
+        return useTournamentFallbackData(includePlaceholders);
+    }
+};
+
+// --- TEAMS ---
+
+const useTeamFallbackData = (includePlaceholders: boolean) => {
+    if (includePlaceholders) {
+      console.warn("Firebase no disponible o colección de equipos vacía. Usando datos de demostración.");
+      return placeholderTeams;
+    }
+    return [];
+};
+
+export const getTeams = async (includePlaceholders = false): Promise<Team[]> => {
+    try {
+        const teamsQuery = query(collectionGroup(db, 'clubs'));
+        const teamSnapshot = await getDocs(teamsQuery);
+
+        if (teamSnapshot.empty && includePlaceholders) {
+            return useTeamFallbackData(true);
+        }
+        
+        const teams = teamSnapshot.docs.map(doc => ({
+          id: doc.id,
+          path: doc.ref.path,
+          ...doc.data()
+        } as Team));
+        
+        return teams;
+    } catch (error) {
+        console.error("Error al obtener equipos de Firebase:", error);
+        return useTeamFallbackData(includePlaceholders);
+    }
+};
