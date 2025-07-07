@@ -2,7 +2,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Tv, Film, Radio, Shield, Users, CalendarDays } from "lucide-react";
-import { getChannels, getMovies, getRadios, getTeams, getTournaments, getAdminAgenda } from "@/lib/actions";
+import { getChannels, getMovies, getRadios, getTeams, getTournaments } from "@/lib/actions";
+import { getAdminAgenda } from "@/lib/admin-actions";
 
 export default async function AdminDashboard() {
   const [channels, movies, radios, teams, tournaments, agenda] = await Promise.all([
