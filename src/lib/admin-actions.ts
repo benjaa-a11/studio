@@ -485,7 +485,8 @@ export async function addMatch(prevState: FormState, formData: FormData): Promis
 
     try {
         const { date, time, ...rest } = validatedFields.data;
-        const dateTimeString = `${date}T${time}:00`;
+        // Interpret the time as being in Argentina (UTC-3)
+        const dateTimeString = `${date}T${time}:00-03:00`;
         const matchTimestamp = Timestamp.fromDate(new Date(dateTimeString));
 
         const dataToSave = { ...rest, time: matchTimestamp };
@@ -522,7 +523,8 @@ export async function updateMatch(id: string, prevState: FormState, formData: Fo
     
     try {
         const { date, time, ...rest } = validatedFields.data;
-        const dateTimeString = `${date}T${time}:00`;
+        // Interpret the time as being in Argentina (UTC-3)
+        const dateTimeString = `${date}T${time}:00-03:00`;
         const matchTimestamp = Timestamp.fromDate(new Date(dateTimeString));
 
         const dataToSave = { ...rest, time: matchTimestamp };
