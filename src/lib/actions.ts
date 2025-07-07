@@ -58,13 +58,13 @@ const useFallbackData = () => {
 };
 
 // Uncached version of getChannels to ensure data is always fresh
-export const getChannels = async (): Promise<Channel[]> => {
+export const getChannels = async (includePlaceholders = false): Promise<Channel[]> => {
   try {
     const channelsCollection = collection(db, "channels");
     const channelSnapshot = await getDocs(query(channelsCollection));
     
     if (channelSnapshot.empty) {
-      return useFallbackData();
+      return includePlaceholders ? useFallbackData() : [];
     }
     
     const channels = channelSnapshot.docs.map(doc => ({
@@ -75,7 +75,7 @@ export const getChannels = async (): Promise<Channel[]> => {
     return channels;
   } catch (error) {
     console.error("Error al obtener canales de Firebase:", error);
-    return useFallbackData();
+    return includePlaceholders ? useFallbackData() : [];
   }
 };
 
@@ -133,20 +133,20 @@ export const getChannelsByIds = async (ids: string[]): Promise<Channel[]> => {
   } catch (error) {
     console.error("Error fetching channels by IDs from Firebase:", error);
     // Fallback to placeholder data for any matching IDs
-    const allPlaceholderChannels = await getChannels();
+    const allPlaceholderChannels = await getChannels(true);
     const placeholderMap = new Map(allPlaceholderChannels.map(c => [c.id, c]));
     return ids.map(id => placeholderMap.get(id)).filter((c): c is Channel => !!c);
   }
 };
 
 export const getCategories = async (): Promise<string[]> => {
-  const channels = await getChannels();
+  const channels = await getChannels(true);
   const categories = new Set(channels.map(channel => channel.category));
   return Array.from(categories).sort();
 };
 
 export const getChannelsByCategory = async (category: string, excludeId?: string): Promise<Channel[]> => {
-  const allChannels = await getChannels();
+  const allChannels = await getChannels(true);
   return allChannels.filter(channel => {
     const isSameCategory = channel.category === category;
     const isNotExcluded = excludeId ? channel.id !== excludeId : true;
@@ -183,7 +183,6 @@ export const getAgendaMatches = async (): Promise<Match[]> => {
         });
 
     if (rawMatches.length === 0) {
-        console.warn("No matches found in Firebase for today. Using placeholder data.");
         return placeholderMatches;
     }
     
@@ -412,19 +411,22 @@ const _enrichMovieData = async (docId: string, firestoreMovie: any): Promise<Mov
 };
 
 
-const useMovieFallbackData = () => {
-  console.warn("Firebase no disponible o colección de películas vacía. Usando datos de demostración.");
-  return placeholderMovies;
+const useMovieFallbackData = (includePlaceholders: boolean) => {
+  if (includePlaceholders) {
+    console.warn("Firebase no disponible o colección de películas vacía. Usando datos de demostración.");
+    return placeholderMovies;
+  }
+  return [];
 };
 
 // Uncached version of getMovies to ensure data is always fresh
-export const getMovies = async (): Promise<Movie[]> => {
+export const getMovies = async (includePlaceholders = false): Promise<Movie[]> => {
   try {
     const moviesCollection = collection(db, "peliculas");
     const movieSnapshot = await getDocs(query(moviesCollection));
     
     if (movieSnapshot.empty) {
-      return useMovieFallbackData();
+      return useMovieFallbackData(includePlaceholders);
     }
     
     const moviePromises = movieSnapshot.docs.map(doc => _enrichMovieData(doc.id, doc.data()));
@@ -433,7 +435,7 @@ export const getMovies = async (): Promise<Movie[]> => {
     return movies;
   } catch (error) {
     console.error("Error al obtener películas de Firebase:", error);
-    return useMovieFallbackData();
+    return useMovieFallbackData(includePlaceholders);
   }
 };
 
@@ -485,7 +487,7 @@ export const getMoviesByIds = async (ids: string[]): Promise<Movie[]> => {
     
     if (firestoreMoviesData.length === 0) {
         // Fallback for demo purposes if IDs not in firestore
-        const allPlaceholderMovies = await getMovies();
+        const allPlaceholderMovies = await getMovies(true);
         const placeholderMap = new Map(allPlaceholderMovies.map(m => [m.id, m]));
         return ids.map(id => placeholderMap.get(id)).filter((m): m is Movie => !!m);
     }
@@ -501,14 +503,14 @@ export const getMoviesByIds = async (ids: string[]): Promise<Movie[]> => {
   } catch (error) {
     console.error("Error fetching movies by IDs from Firebase:", error);
     // Fallback to placeholder data for any matching IDs
-    const allPlaceholderMovies = await getMovies();
+    const allPlaceholderMovies = await getMovies(true);
     const placeholderMap = new Map(allPlaceholderMovies.map(m => [m.id, m]));
     return ids.map(id => placeholderMap.get(id)).filter((m): m is Movie => !!m);
   }
 };
 
 export const getMovieCategories = async (): Promise<string[]> => {
-  const movies = await getMovies();
+  const movies = await getMovies(true);
   if (!movies || movies.length === 0) return [];
   const categories = new Set(movies.flatMap(movie => movie.category || []));
   return Array.from(categories).sort();
@@ -520,7 +522,7 @@ export const getSimilarMovies = async (currentMovieId: string, categories: strin
   }
   
   try {
-    const allMovies = await getMovies();
+    const allMovies = await getMovies(true);
     const similar = allMovies
       .filter(movie => 
         movie.id !== currentMovieId && 
@@ -537,18 +539,21 @@ export const getSimilarMovies = async (currentMovieId: string, categories: strin
 
 // --- RADIOS ---
 
-const useRadioFallbackData = () => {
-  console.warn("Firebase no disponible o colección de radios vacía. Usando datos de demostración.");
-  return placeholderRadios;
+const useRadioFallbackData = (includePlaceholders: boolean) => {
+  if (includePlaceholders) {
+    console.warn("Firebase no disponible o colección de radios vacía. Usando datos de demostración.");
+    return placeholderRadios;
+  }
+  return [];
 };
 
-export const getRadios = async (): Promise<Radio[]> => {
+export const getRadios = async (includePlaceholders = false): Promise<Radio[]> => {
   try {
     const radiosCollection = collection(db, "radio");
     const radioSnapshot = await getDocs(query(radiosCollection));
     
     if (radioSnapshot.empty) {
-      return useRadioFallbackData();
+      return useRadioFallbackData(includePlaceholders);
     }
     
     // Concurrently resolve all stream URLs and filter out invalid ones
@@ -564,7 +569,7 @@ export const getRadios = async (): Promise<Radio[]> => {
     return radios;
   } catch (error) {
     console.error("Error al obtener radios de Firebase:", error);
-    return useRadioFallbackData();
+    return useRadioFallbackData(includePlaceholders);
   }
 };
 

@@ -4,7 +4,7 @@ export type Channel = {
   logoUrl: string;
   streamUrl: string[];
   category: string;
-  description: string;
+  description?: string;
 };
 
 export type ChannelOption = {
