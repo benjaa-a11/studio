@@ -36,7 +36,7 @@ import { Label } from '@/components/ui/label';
 import { useFormState, useFormStatus } from 'react-dom';
 import { addMatch, updateMatch, deleteMatch } from '@/lib/admin-actions';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Edit, Trash2, Loader2, Calendar as CalendarIcon } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Loader2, Calendar as CalendarIcon, CheckCircle, AlertCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '../ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar } from '../ui/calendar';
@@ -76,10 +76,27 @@ function MatchForm({ match, onFormSubmit, teams, tournamentOptions, channels }: 
 
   useEffect(() => {
     if(state.success) {
-        toast({ title: "Éxito", description: state.message });
+        toast({ 
+          title: (
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              <span className="font-semibold">Éxito</span>
+            </div>
+          ),
+          description: state.message 
+        });
         onFormSubmit();
     } else if (state.message && !Object.keys(state.errors ?? {}).length) {
-        toast({ variant: 'destructive', title: 'Error', description: state.message });
+        toast({ 
+          variant: 'destructive', 
+          title: (
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5" />
+              <span className="font-semibold">Error</span>
+            </div>
+          ), 
+          description: state.message 
+        });
     }
   }, [state, onFormSubmit, toast]);
 
@@ -251,9 +268,26 @@ export default function AgendaDataTable({ data, teams, tournamentOptions, channe
   const handleDelete = async (id: string) => {
     const result = await deleteMatch(id);
     if(result.success) {
-      toast({ title: "Partido eliminado", description: result.message });
+      toast({ 
+        title: (
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-green-500" />
+            <span className="font-semibold">Eliminado</span>
+          </div>
+        ),
+        description: result.message 
+      });
     } else {
-      toast({ variant: "destructive", title: "Error", description: result.message });
+      toast({ 
+        variant: "destructive", 
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5" />
+            <span className="font-semibold">Error</span>
+          </div>
+        ), 
+        description: result.message
+      });
     }
   }
 
@@ -272,20 +306,22 @@ export default function AgendaDataTable({ data, teams, tournamentOptions, channe
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{selectedMatch ? 'Editar Partido' : 'Programar Nuevo Partido'}</DialogTitle>
             <DialogDescription>
               {selectedMatch ? 'Modifica los detalles del partido existente.' : 'Completa el formulario para añadir un nuevo partido a la agenda.'}
             </DialogDescription>
           </DialogHeader>
-          <MatchForm 
-            match={selectedMatch} 
-            onFormSubmit={handleFormSubmit}
-            teams={teams}
-            tournamentOptions={tournamentOptions}
-            channels={channels}
-          />
+          <div className="flex-grow overflow-y-auto pr-4">
+              <MatchForm 
+                match={selectedMatch} 
+                onFormSubmit={handleFormSubmit}
+                teams={teams}
+                tournamentOptions={tournamentOptions}
+                channels={channels}
+              />
+          </div>
         </DialogContent>
       </Dialog>
       

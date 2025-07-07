@@ -32,21 +32,22 @@ export default function AdminSidebar({ className, isMobile = false }: AdminSideb
     if (isMobile) {
         return (
              <div className={cn("flex h-full flex-col", className)}>
-                <nav className="flex flex-col gap-2 p-4 text-base font-medium">
+                <div className="flex h-14 items-center border-b px-4">
                     <Link
-                        href="/"
-                        className="flex items-center gap-3 px-2.5 text-lg font-semibold mb-4"
+                        href="/admin"
+                        className="flex items-center gap-2 font-semibold"
                     >
                         <Tv className="h-6 w-6 text-primary" />
                         <span>Plan B Admin</span>
                     </Link>
-
+                </div>
+                <nav className="flex flex-col gap-1 p-2 text-base font-medium">
                     {navItems.map((item) => (
                         <Link
                             key={item.label}
                             href={item.href}
                             className={cn(
-                                "flex items-center gap-4 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+                                "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
                                 isActive(item.href) && "bg-muted text-primary"
                             )}
                         >
@@ -55,15 +56,6 @@ export default function AdminSidebar({ className, isMobile = false }: AdminSideb
                         </Link>
                     ))}
                 </nav>
-                <div className="mt-auto p-4 border-t">
-                     <Link
-                        href="/ajustes"
-                        className="flex items-center gap-4 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                      >
-                        <Settings className="h-5 w-5" />
-                        Ajustes
-                    </Link>
-                </div>
             </div>
         );
     }
@@ -72,7 +64,7 @@ export default function AdminSidebar({ className, isMobile = false }: AdminSideb
         <aside className={className}>
             <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
                  <Link
-                    href="/"
+                    href="/admin"
                     className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base"
                 >
                     <Tv className="h-4 w-4 transition-all group-hover:scale-110" />
@@ -96,22 +88,6 @@ export default function AdminSidebar({ className, isMobile = false }: AdminSideb
                             <TooltipContent side="right">{item.label}</TooltipContent>
                         </Tooltip>
                     ))}
-                </TooltipProvider>
-            </nav>
-            <nav className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-5">
-                <TooltipProvider>
-                    <Tooltip delayDuration={0}>
-                        <TooltipTrigger asChild>
-                            <Link
-                                href="/ajustes"
-                                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
-                            >
-                                <Settings className="h-5 w-5" />
-                                <span className="sr-only">Ajustes</span>
-                            </Link>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">Ajustes</TooltipContent>
-                    </Tooltip>
                 </TooltipProvider>
             </nav>
         </aside>

@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import Link from "next/link";
-import { Tv, Home, PanelLeft, LogOut } from "lucide-react";
+import { Home, PanelLeft, LogOut } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import AdminSidebar from "@/components/admin/admin-sidebar";
