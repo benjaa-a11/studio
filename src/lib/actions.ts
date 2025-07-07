@@ -361,54 +361,55 @@ const _fetchTMDbVideos = cache(async (tmdbID: string) => {
 
 
 const _enrichMovieData = async (docId: string, firestoreMovie: any): Promise<Movie> => {
-  if (firestoreMovie.tmdbID) {
-    const [movieData, creditsData, videoUrl] = await Promise.all([
-      _fetchTMDbData(firestoreMovie.tmdbID),
-      _fetchTMDbCredits(firestoreMovie.tmdbID),
-      _fetchTMDbVideos(firestoreMovie.tmdbID),
-    ]);
+  const [tmdbMovieData, tmdbCreditsData, tmdbVideoUrl] = firestoreMovie.tmdbID
+    ? await Promise.all([
+        _fetchTMDbData(firestoreMovie.tmdbID),
+        _fetchTMDbCredits(firestoreMovie.tmdbID),
+        _fetchTMDbVideos(firestoreMovie.tmdbID),
+      ])
+    : [null, null, null];
 
-    if (movieData) {
-      // Format duration
-      let finalDuration = firestoreMovie.duration;
-      if (!finalDuration && movieData.runtime) {
-        const hours = Math.floor(movieData.runtime / 60);
-        const minutes = movieData.runtime % 60;
-        if (hours > 0) {
-          finalDuration = `${hours}h ${minutes}m`;
-        } else {
-          finalDuration = `${minutes}m`;
-        }
-      }
+  // Logic to determine final values, prioritizing Firestore overrides
+  const title = firestoreMovie.title || tmdbMovieData?.title || 'Título no disponible';
+  
+  // THIS IS THE FIX. Ensure posterUrl is never an empty string.
+  const posterUrl = 
+    firestoreMovie.posterUrl || 
+    (tmdbMovieData?.poster_path ? `${TMDB_IMAGE_BASE_URL}${tmdbMovieData.poster_path}` : 'https://placehold.co/500x750.png');
 
-      // Get director and actors from credits
-      const director = creditsData?.crew?.find((person: any) => person.job === 'Director')?.name;
-      const actors = creditsData?.cast?.slice(0, 3).map((person: any) => person.name).join(', ');
-
-      return {
-        id: docId,
-        tmdbID: firestoreMovie.tmdbID,
-        title: firestoreMovie.title || movieData.title,
-        posterUrl: firestoreMovie.posterUrl || (movieData.poster_path ? `${TMDB_IMAGE_BASE_URL}${movieData.poster_path}` : 'https://placehold.co/500x750.png'),
-        backdropUrl: movieData.backdrop_path ? `${TMDB_BACKDROP_BASE_URL}${movieData.backdrop_path}` : undefined,
-        streamUrl: firestoreMovie.streamUrl,
-        trailerUrl: videoUrl,
-        category: firestoreMovie.category || movieData.genres?.map((g: any) => g.name) || [],
-        synopsis: firestoreMovie.synopsis || movieData.overview,
-        year: firestoreMovie.year || (movieData.release_date ? parseInt(movieData.release_date.split('-')[0], 10) : undefined),
-        duration: finalDuration || "N/A",
-        format: firestoreMovie.format,
-        director: firestoreMovie.director || director,
-        actors: firestoreMovie.actors || actors,
-        rating: firestoreMovie.rating || (movieData.vote_average ? movieData.vote_average.toFixed(1) : undefined),
-      };
-    }
+  const backdropUrl = tmdbMovieData?.backdrop_path ? `${TMDB_BACKDROP_BASE_URL}${tmdbMovieData.backdrop_path}` : undefined;
+  const synopsis = firestoreMovie.synopsis || tmdbMovieData?.overview || '';
+  const year = firestoreMovie.year || (tmdbMovieData?.release_date ? parseInt(tmdbMovieData.release_date.split('-')[0], 10) : undefined);
+  const category = firestoreMovie.category || tmdbMovieData?.genres?.map((g: any) => g.name) || [];
+  
+  let duration = firestoreMovie.duration;
+  if (!duration && tmdbMovieData?.runtime) {
+    const hours = Math.floor(tmdbMovieData.runtime / 60);
+    const minutes = tmdbMovieData.runtime % 60;
+    duration = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
   }
-  // Fallback to Firestore data if no tmdbID or API fetch fails
+
+  const director = firestoreMovie.director || tmdbCreditsData?.crew?.find((p: any) => p.job === 'Director')?.name;
+  const actors = firestoreMovie.actors || tmdbCreditsData?.cast?.slice(0, 3).map((p: any) => p.name).join(', ');
+  const rating = firestoreMovie.rating || (tmdbMovieData?.vote_average ? tmdbMovieData.vote_average.toFixed(1) : undefined);
+
   return {
     id: docId,
-    ...firestoreMovie,
-  } as Movie;
+    tmdbID: firestoreMovie.tmdbID,
+    streamUrl: firestoreMovie.streamUrl,
+    format: firestoreMovie.format,
+    trailerUrl: tmdbVideoUrl,
+    title,
+    posterUrl,
+    backdropUrl,
+    synopsis,
+    year,
+    category,
+    duration: duration || "N/A",
+    director,
+    actors,
+    rating,
+  };
 };
 
 
@@ -679,3 +680,5 @@ export const getTeams = async (includePlaceholders = false): Promise<Team[]> => 
         return useTeamFallbackData(includePlaceholders);
     }
 };
+
+    
