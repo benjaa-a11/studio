@@ -14,22 +14,7 @@ import { addMovie, updateMovie, deleteMovie } from '@/lib/admin-actions';
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Edit, Trash2, Loader2 } from 'lucide-react';
 import Image from 'next/image';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
-
-const MovieSchema = z.object({
-  tmdbID: z.string().min(1, 'El ID de TMDb es requerido.'),
-  streamUrl: z.string().url('Debe ser una URL válida.'),
-  format: z.enum(['mp4', 'iframe'], { required_error: 'Debe seleccionar un formato.' }),
-  title: z.string().optional(),
-  posterUrl: z.string().url('URL de póster no válida').optional().or(z.literal('')),
-  synopsis: z.string().optional(),
-});
-
-type MovieFormValues = z.infer<typeof MovieSchema>;
 
 const initialState = { message: '', errors: {}, success: false };
 
@@ -86,11 +71,12 @@ function MovieForm({ movie, onFormSubmit }: { movie?: Movie | null; onFormSubmit
         </div>
         <div className='p-4 border rounded-md bg-muted/50'>
             <h4 className="font-semibold mb-2 text-sm">Campos Opcionales</h4>
-            <p className="text-xs text-muted-foreground mb-4">Déjalos en blanco para usar los datos de TMDb automáticamente.</p>
+            <p className="text-xs text-muted-foreground mb-4">Déjalos en blanco para usar los datos de TMDb automáticamente. El ID del documento se generará a partir del título.</p>
              <div className="grid gap-4">
                  <div className="grid gap-2">
                     <Label htmlFor="title">Título (Opcional)</Label>
                     <Input id="title" name="title" defaultValue={movie?.title} />
+                     {state.errors?.title && <p className="text-sm font-medium text-destructive">{state.errors.title.join(', ')}</p>}
                 </div>
                 <div className="grid gap-2">
                     <Label htmlFor="posterUrl">URL de Póster (Opcional)</Label>
@@ -223,5 +209,3 @@ export default function MovieDataTable({ data }: { data: Movie[] }) {
     </div>
   );
 }
-
-    

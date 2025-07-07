@@ -144,7 +144,7 @@ export default function TournamentDataTable({ data }: { data: Tournament[] }) {
           <DialogHeader>
             <DialogTitle>{selectedTournament ? 'Editar Torneo' : 'Añadir Nuevo Torneo'}</DialogTitle>
             <DialogDescription>
-              {selectedTournament ? 'Modifica los detalles del torneo existente.' : 'Completa el formulario para añadir un nuevo torneo a la aplicación.'}
+              {selectedTournament ? 'Modifica los detalles del torneo existente.' : 'Completa el formulario para añadir un nuevo torneo a la aplicación. El ID se generará a partir del nombre.'}
             </DialogDescription>
           </DialogHeader>
           <TournamentForm tournament={selectedTournament} onFormSubmit={handleFormSubmit} />

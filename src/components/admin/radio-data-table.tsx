@@ -118,7 +118,7 @@ export default function RadioDataTable({ data }: { data: Radio[] }) {
           <DialogHeader>
             <DialogTitle>{selectedRadio ? 'Editar Radio' : 'Añadir Nueva Radio'}</DialogTitle>
             <DialogDescription>
-              {selectedRadio ? 'Modifica los detalles de la estación de radio existente.' : 'Completa el formulario para añadir una nueva estación de radio.'}
+              {selectedRadio ? 'Modifica los detalles de la estación de radio existente.' : 'Completa el formulario para añadir una nueva estación de radio. El ID se generará a partir del nombre.'}
             </DialogDescription>
           </DialogHeader>
           <RadioForm radio={selectedRadio} onFormSubmit={handleFormSubmit} />
@@ -185,5 +185,3 @@ export default function RadioDataTable({ data }: { data: Radio[] }) {
     </div>
   );
 }
-
-    

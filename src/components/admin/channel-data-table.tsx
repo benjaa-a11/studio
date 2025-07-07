@@ -148,7 +148,7 @@ export default function ChannelDataTable({ data }: { data: Channel[] }) {
           <DialogHeader>
             <DialogTitle>{selectedChannel ? 'Editar Canal' : 'Añadir Nuevo Canal'}</DialogTitle>
             <DialogDescription>
-              {selectedChannel ? 'Modifica los detalles del canal existente.' : 'Completa el formulario para añadir un nuevo canal a la aplicación.'}
+              {selectedChannel ? 'Modifica los detalles del canal existente.' : 'Completa el formulario para añadir un nuevo canal. El ID se generará a partir del nombre.'}
             </DialogDescription>
           </DialogHeader>
           <ChannelForm channel={selectedChannel} onFormSubmit={handleFormSubmit} />

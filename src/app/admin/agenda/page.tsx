@@ -1,25 +1,36 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Hammer, CheckCircle } from "lucide-react";
+import { getChannels, getTeams, getTournaments } from "@/lib/actions";
+import { getAdminAgenda } from "@/lib/admin-actions";
+import AgendaDataTable from "@/components/admin/agenda-data-table";
 
-export default function AdminAgendaPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function AdminAgendaPage() {
+  // Fetch all necessary data in parallel for the form
+  const [agenda, teams, tournaments, channels] = await Promise.all([
+    getAdminAgenda(),
+    getTeams(true),
+    getTournaments(true),
+    getChannels(true)
+  ]);
+
+  const teamOptions = teams.map(t => ({ value: t.id, label: t.name }));
+  const tournamentOptions = tournaments.map(t => ({ value: t.tournamentId, label: t.name }));
+  const channelOptions = channels.map(c => ({ value: c.id, label: c.name }));
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center gap-4">
-        <Hammer className="h-8 w-8 text-muted-foreground" />
-        <div>
-          <CardTitle>En Construcción</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            La gestión de la agenda deportiva está en desarrollo.
-          </p>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <p>Esta sección permitirá crear, programar y editar los partidos y eventos que aparecen en la página de inicio. Podrás enlazar equipos, torneos y canales de transmisión.</p>
-         <div className="mt-4 flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
-            <CheckCircle className="h-4 w-4" />
-            <span>La gestión de Equipos y Torneos ya está disponible.</span>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Gestionar Agenda</h1>
+        <p className="text-muted-foreground">
+          Crea, edita o elimina los partidos y eventos deportivos.
+        </p>
+      </div>
+      <AgendaDataTable 
+        data={agenda}
+        teamOptions={teamOptions}
+        tournamentOptions={tournamentOptions}
+        channelOptions={channelOptions}
+      />
+    </div>
   );
 }

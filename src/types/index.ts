@@ -29,6 +29,20 @@ export type Match = {
   tournamentLogo?: string | { light: string; dark: string };
 };
 
+export type AdminAgendaMatch = {
+  id: string;
+  team1: string;
+  team2: string;
+  tournamentId: string;
+  channels: string[];
+  dates?: string;
+  time: Date;
+  // Enriched data for display
+  team1Name?: string;
+  team2Name?: string;
+  tournamentName?: string;
+}
+
 export type Movie = {
   id: string;
   imdbID?: string;
