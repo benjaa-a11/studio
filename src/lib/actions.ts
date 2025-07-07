@@ -5,7 +5,7 @@ import { cache } from "react";
 import { db } from "./firebase";
 import { collection, getDocs, doc, getDoc, query, where, documentId, Timestamp, collectionGroup } from "firebase/firestore";
 import type { Channel, Match, ChannelOption, Movie, Radio } from "@/types";
-import { placeholderChannels, placeholderMovies, placeholderMatches, placeholderRadios } from "./placeholder-data";
+import { placeholderChannels, placeholderMovies, placeholderRadios } from "./placeholder-data";
 
 // Helper function to resolve .pls file to an actual stream URL
 const _resolvePlsUrl = async (url: string): Promise<string | null> => {
@@ -63,8 +63,8 @@ export const getChannels = async (includePlaceholders = false): Promise<Channel[
     const channelsCollection = collection(db, "channels");
     const channelSnapshot = await getDocs(query(channelsCollection));
     
-    if (channelSnapshot.empty) {
-      return includePlaceholders ? useFallbackData() : [];
+    if (channelSnapshot.empty && includePlaceholders) {
+      return useFallbackData();
     }
     
     const channels = channelSnapshot.docs.map(doc => ({
@@ -75,7 +75,8 @@ export const getChannels = async (includePlaceholders = false): Promise<Channel[
     return channels;
   } catch (error) {
     console.error("Error al obtener canales de Firebase:", error);
-    return includePlaceholders ? useFallbackData() : [];
+    if (includePlaceholders) return useFallbackData();
+    return [];
   }
 };
 
@@ -88,7 +89,7 @@ export const getChannelById = async (id: string): Promise<Channel | null> => {
       return { id: channelSnapshot.id, ...channelSnapshot.data() } as Channel;
     } else {
        // Fallback for demo purposes if ID not in firestore
-      const fallbackChannel = placeholderChannels.find(c => c.id === id);
+      const fallbackChannel = (await getChannels(true)).find(c => c.id === id);
       if (fallbackChannel) {
         console.warn(`Canal con id ${id} no encontrado en Firebase. Usando dato de demostración.`);
         return fallbackChannel;
@@ -97,7 +98,7 @@ export const getChannelById = async (id: string): Promise<Channel | null> => {
     }
   } catch (error) {
     console.error(`Error al obtener canal con id ${id}:`, error);
-     const fallbackChannel = placeholderChannels.find(c => c.id === id);
+     const fallbackChannel = (await getChannels(true)).find(c => c.id === id);
       if (fallbackChannel) {
         return fallbackChannel;
       }
@@ -154,7 +155,7 @@ export const getChannelsByCategory = async (category: string, excludeId?: string
   }).slice(0, 4); // Return a max of 4 related channels
 };
 
-export const getAgendaMatches = async (): Promise<Match[]> => {
+export const getAgendaMatches = cache(async (): Promise<Match[]> => {
   try {
     const now = new Date();
     const timeZone = 'America/Argentina/Buenos_Aires';
@@ -183,7 +184,7 @@ export const getAgendaMatches = async (): Promise<Match[]> => {
         });
 
     if (rawMatches.length === 0) {
-        return placeholderMatches;
+        return [];
     }
     
     const teamIds = new Set<string>();
@@ -284,9 +285,9 @@ export const getAgendaMatches = async (): Promise<Match[]> => {
 
   } catch (error) {
     console.error("Error al obtener partidos de la agenda:", error);
-    return placeholderMatches;
+    return [];
   }
-};
+});
 
 
 // --- MOVIES ---
@@ -425,8 +426,8 @@ export const getMovies = async (includePlaceholders = false): Promise<Movie[]> =
     const moviesCollection = collection(db, "peliculas");
     const movieSnapshot = await getDocs(query(moviesCollection));
     
-    if (movieSnapshot.empty) {
-      return useMovieFallbackData(includePlaceholders);
+    if (movieSnapshot.empty && includePlaceholders) {
+      return useMovieFallbackData(true);
     }
     
     const moviePromises = movieSnapshot.docs.map(doc => _enrichMovieData(doc.id, doc.data()));
@@ -447,7 +448,7 @@ export const getMovieById = async (id: string): Promise<Movie | null> => {
     if (movieSnapshot.exists()) {
       return await _enrichMovieData(movieSnapshot.id, movieSnapshot.data());
     } else {
-      const fallbackMovie = placeholderMovies.find(m => m.id === id);
+      const fallbackMovie = (await getMovies(true)).find(m => m.id === id);
       if (fallbackMovie) {
         console.warn(`Película con id ${id} no encontrada en Firebase. Usando dato de demostración.`);
         return fallbackMovie;
@@ -456,7 +457,7 @@ export const getMovieById = async (id: string): Promise<Movie | null> => {
     }
   } catch (error) {
     console.error(`Error al obtener película con id ${id}:`, error);
-    const fallbackMovie = placeholderMovies.find(m => m.id === id);
+    const fallbackMovie = (await getMovies(true)).find(m => m.id === id);
     if (fallbackMovie) {
       return fallbackMovie;
     }
@@ -552,8 +553,8 @@ export const getRadios = async (includePlaceholders = false): Promise<Radio[]> =
     const radiosCollection = collection(db, "radio");
     const radioSnapshot = await getDocs(query(radiosCollection));
     
-    if (radioSnapshot.empty) {
-      return useRadioFallbackData(includePlaceholders);
+    if (radioSnapshot.empty && includePlaceholders) {
+      return useRadioFallbackData(true);
     }
     
     // Concurrently resolve all stream URLs and filter out invalid ones
@@ -593,7 +594,7 @@ export const getRadioById = async (id: string): Promise<Radio | null> => {
       return await processRadioData({ id: radioSnapshot.id, ...radioSnapshot.data() });
     }
     
-    const fallbackRadio = placeholderRadios.find(r => r.id === id);
+    const fallbackRadio = (await getRadios(true)).find(r => r.id === id);
     if (fallbackRadio) {
       console.warn(`Radio con id ${id} no encontrada en Firebase. Usando dato de demostración.`);
       return await processRadioData(fallbackRadio);
@@ -602,7 +603,7 @@ export const getRadioById = async (id: string): Promise<Radio | null> => {
     return null;
   } catch (error) {
     console.error(`Error al obtener radio con id ${id}:`, error);
-    const fallbackRadio = placeholderRadios.find(r => r.id === id);
+    const fallbackRadio = (await getRadios(true)).find(r => r.id === id);
     if (fallbackRadio) {
       return await processRadioData(fallbackRadio);
     }

@@ -1,14 +1,24 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { getMovies } from "@/lib/actions";
+import MovieDataTable from "@/components/admin/movie-data-table";
 
-export default function AdminPlaceholderPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function AdminMoviesPage() {
+  // Fetch all movies for the admin panel. 
+  // We include placeholders to allow editing them if the DB is empty.
+  const movies = await getMovies(true);
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>En Construcción</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-muted-foreground">Esta sección del panel de administración está en desarrollo.</p>
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Gestionar Películas</h1>
+        <p className="text-muted-foreground">
+          Añade, edita o elimina las películas de la aplicación.
+        </p>
+      </div>
+      <MovieDataTable data={movies} />
+    </div>
   );
 }
+
+    
