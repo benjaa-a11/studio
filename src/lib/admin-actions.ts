@@ -1,8 +1,9 @@
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
 import { db } from './firebase';
-import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, getDoc, query, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, getDoc, query, getDocs, Timestamp, deleteField } from 'firebase/firestore';
 import { z } from 'zod';
 import type { AdminAgendaMatch } from '@/types';
 
@@ -13,8 +14,21 @@ export type FormState = {
   success: boolean;
 };
 
-// Helper to create URL-friendly slugs
-const slugify = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+// Helper to create URL-friendly slugs, now handles accents and special characters
+const slugify = (text: string) => {
+  const a = 'àáâäæãåāăąçćčđďèéêëēėęěğǵḧîïíīįìłḿñńǹňôöòóœøōõőṕŕřßśšşșťțûüùúūǘůűųẃẍÿýžźż·/_,:;'
+  const b = 'aaaaaaaaaacccddeeeeeeeegghiiiiiilmnnnnoooooooooprrssssssttuuuuuuuuuwxyyzzz------'
+  const p = new RegExp(a.split('').join('|'), 'g')
+
+  return text.toString().toLowerCase()
+    .replace(/\s+/g, '-') // Replace spaces with -
+    .replace(p, c => b.charAt(a.indexOf(c))) // Replace special characters
+    .replace(/&/g, '-and-') // Replace & with 'and'
+    .replace(/[^\w\-]+/g, '') // Remove all non-word chars
+    .replace(/\-\-+/g, '-') // Replace multiple - with single -
+    .replace(/^-+/, '') // Trim - from start of text
+    .replace(/-+$/, '') // Trim - from end of text
+}
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
@@ -226,10 +240,10 @@ export async function addMovie(prevState: FormState, formData: FormData): Promis
         };
     }
     
-    let { title, tmdbID } = validatedFields.data;
+    let { tmdbID, streamUrl, format, title, posterUrl, synopsis } = validatedFields.data;
+    let finalTitle = title; 
 
-    // Fetch title from TMDb if not provided
-    if (!title) {
+    if (!finalTitle) {
         if (!TMDB_API_KEY) {
             return { message: 'La clave de API de TMDb no está configurada. Se requiere un título.', success: false };
         }
@@ -237,24 +251,34 @@ export async function addMovie(prevState: FormState, formData: FormData): Promis
             const response = await fetch(`${TMDB_BASE_URL}/movie/${tmdbID}?api_key=${TMDB_API_KEY}&language=es-ES`);
             if (!response.ok) throw new Error('Failed to fetch movie title from TMDb');
             const movieData = await response.json();
-            title = movieData.title;
-            if (!title) throw new Error('No se pudo obtener el título de TMDb');
+            finalTitle = movieData.title;
+            if (!finalTitle) throw new Error('No se pudo obtener el título de TMDb');
         } catch (error) {
              console.error("Error fetching title from TMDb:", error);
              return { message: 'No se pudo obtener el título de TMDb. Por favor, añádelo manualmente.', success: false };
         }
     }
     
-    const id = slugify(title);
+    const id = slugify(finalTitle);
     const movieRef = doc(db, 'peliculas', id);
 
     try {
         const docSnap = await getDoc(movieRef);
         if (docSnap.exists()) {
-          return { message: `Una película con el ID '${id}' (del título '${title}') ya existe.`, success: false };
+          return { message: `Una película con el ID '${id}' (del título '${finalTitle}') ya existe.`, success: false };
         }
+        
+        const dataToSave: { [key: string]: any } = {
+            tmdbID,
+            streamUrl,
+            format,
+        };
+        
+        if (title) dataToSave.title = title;
+        if (posterUrl) dataToSave.posterUrl = posterUrl;
+        if (synopsis) dataToSave.synopsis = synopsis;
 
-        await setDoc(movieRef, validatedFields.data);
+        await setDoc(movieRef, dataToSave);
         revalidatePath('/admin/movies');
         revalidatePath('/peliculas');
         return { message: 'Película añadida exitosamente.', success: true, errors: {} };
@@ -277,9 +301,20 @@ export async function updateMovie(id: string, prevState: FormState, formData: Fo
         };
     }
 
+    const { tmdbID, streamUrl, format, title, posterUrl, synopsis } = validatedFields.data;
+    
+    const dataToUpdate: { [key: string]: any } = {
+        tmdbID,
+        streamUrl,
+        format,
+        title: title || deleteField(),
+        posterUrl: posterUrl || deleteField(),
+        synopsis: synopsis || deleteField(),
+    };
+
     try {
         const movieRef = doc(db, 'peliculas', id);
-        await updateDoc(movieRef, validatedFields.data);
+        await updateDoc(movieRef, dataToUpdate);
         revalidatePath('/admin/movies');
         revalidatePath('/peliculas');
         revalidatePath(`/pelicula/${id}`);
