@@ -1,6 +1,8 @@
+
 "use client"
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Home, Tv, Film, Radio, CalendarDays, Shield, Users, Settings } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -19,9 +21,10 @@ const navItems = [
 type AdminSidebarProps = {
   className?: string;
   isMobile?: boolean;
+  onLinkClick?: () => void;
 };
 
-export default function AdminSidebar({ className, isMobile = false }: AdminSidebarProps) {
+export default function AdminSidebar({ className, isMobile = false, onLinkClick }: AdminSidebarProps) {
     const pathname = usePathname();
 
     const isActive = (href: string) => {
@@ -36,8 +39,9 @@ export default function AdminSidebar({ className, isMobile = false }: AdminSideb
                     <Link
                         href="/admin"
                         className="flex items-center gap-2 font-semibold"
+                        onClick={onLinkClick}
                     >
-                        <Tv className="h-6 w-6 text-primary" />
+                        <Image src="/icon.png" alt="Plan B Admin Logo" width={28} height={28} />
                         <span>Plan B Admin</span>
                     </Link>
                 </div>
@@ -46,6 +50,7 @@ export default function AdminSidebar({ className, isMobile = false }: AdminSideb
                         <Link
                             key={item.label}
                             href={item.href}
+                            onClick={onLinkClick}
                             className={cn(
                                 "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
                                 isActive(item.href) && "bg-muted text-primary"
@@ -65,9 +70,9 @@ export default function AdminSidebar({ className, isMobile = false }: AdminSideb
             <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
                  <Link
                     href="/admin"
-                    className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base"
+                    className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full md:h-8 md:w-8"
                 >
-                    <Tv className="h-4 w-4 transition-all group-hover:scale-110" />
+                    <Image src="/icon.png" alt="Plan B Admin Logo" width={24} height={24} className="transition-all group-hover:scale-110" />
                     <span className="sr-only">Plan B Streaming</span>
                 </Link>
                 <TooltipProvider>
