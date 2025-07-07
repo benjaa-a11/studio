@@ -1,11 +1,12 @@
 import { ReactNode } from "react";
 import Link from "next/link";
-import { Tv, Home, PanelLeft } from "lucide-react";
+import { Tv, Home, PanelLeft, LogOut } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { logout } from "@/lib/auth-actions";
 
 // This is a dedicated root layout for the /admin section.
 // It ensures the admin panel is completely separate from the main app,
@@ -47,6 +48,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                       <span>Ver Sitio</span>
                     </Link>
                  </Button>
+                 <form action={logout}>
+                    <Button variant="destructive" size="sm">
+                      <LogOut className="h-4 w-4 mr-2" />
+                      <span>Salir</span>
+                    </Button>
+                 </form>
               </header>
               <main className="flex-1 items-start gap-4 p-4 sm:px-6 sm:py-6 md:gap-8">
                 {children}
