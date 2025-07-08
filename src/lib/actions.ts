@@ -62,22 +62,22 @@ const useFallbackData = () => {
 export const getChannels = async (includePlaceholders = false): Promise<Channel[]> => {
   try {
     const channelsCollection = collection(db, "channels");
-    // This query fetches only the channels that are NOT hidden.
-    // Firestore's `!=` operator correctly excludes documents where `isHidden` is true,
-    // while including documents where it's false or the field doesn't exist.
-    const q = query(channelsCollection, where("isHidden", "!=", true));
-    const channelSnapshot = await getDocs(q);
+    const channelSnapshot = await getDocs(query(channelsCollection));
     
     if (channelSnapshot.empty && includePlaceholders) {
       return useFallbackData();
     }
     
-    const channels = channelSnapshot.docs.map(doc => ({
+    const allChannels = channelSnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     } as Channel));
     
-    return channels;
+    // Server-side filter to ensure channels are visible unless explicitly hidden.
+    // This shows channels where `isHidden` is `false` or the field does not exist.
+    const visibleChannels = allChannels.filter(channel => channel.isHidden !== true);
+    
+    return visibleChannels;
   } catch (error) {
     console.error("Error al obtener canales de Firebase:", error);
     if (includePlaceholders) return useFallbackData();
@@ -175,7 +175,7 @@ export const getChannelsByCategory = async (category: string, excludeId?: string
   return allChannels.filter(channel => {
     const isSameCategory = channel.category === category;
     const isNotExcluded = excludeId ? channel.id !== excludeId : true;
-    return isSameCategory && isNotExcluded && !channel.isHidden;
+    return isSameCategory && isNotExcluded;
   }).slice(0, 4); // Return a max of 4 related channels
 };
 
