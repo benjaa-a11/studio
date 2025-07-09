@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useActionState } from 'react';
 import type { Movie } from '@/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
 import { addMovie, updateMovie, deleteMovie } from '@/lib/admin-actions';
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Edit, Trash2, Loader2, CheckCircle, AlertCircle, MoreVertical } from 'lucide-react';
@@ -33,23 +33,29 @@ function SubmitButton({ isEditing }: { isEditing: boolean }) {
 
 function MovieForm({ movie, onFormSubmit }: { movie?: Movie | null; onFormSubmit: () => void }) {
   const formAction = movie?.id ? updateMovie.bind(null, movie.id) : addMovie;
-  const [state, dispatch] = useFormState(formAction, initialState);
+  const [state, dispatch] = useActionState(formAction, initialState);
   const { toast } = useToast();
 
   useEffect(() => {
+    if (!state.message) return;
+
     if (state.success) {
         toast({
             title: <div className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /><span>Éxito</span></div>,
             description: state.message,
         });
         onFormSubmit();
-    } else if (state.message) {
+    } else {
         toast({
             variant: 'destructive',
             title: <div className="flex items-center gap-2"><AlertCircle className="h-5 w-5" /><span>Error</span></div>,
             description: state.message,
         });
     }
+    // Reset state after showing toast
+    state.message = '';
+    state.success = false;
+    state.errors = {};
   }, [state, onFormSubmit, toast]);
 
   return (
@@ -205,7 +211,7 @@ export default function MovieDataTable({ data }: { data: Movie[] }) {
             </DialogDescription>
           </DialogHeader>
           <div className="flex-grow overflow-y-auto pr-6 -mr-6">
-            <MovieForm movie={selectedMovie} onFormSubmit={handleFormSubmit} />
+            <MovieForm key={selectedMovie?.id || 'new'} movie={selectedMovie} onFormSubmit={handleFormSubmit} />
           </div>
         </DialogContent>
       </Dialog>

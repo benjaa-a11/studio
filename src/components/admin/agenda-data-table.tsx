@@ -24,7 +24,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Badge } from '../ui/badge';
 
 // Icons
-import { PlusCircle, Edit, Trash2, CheckCircle, AlertCircle, MoreVertical, ArrowLeft } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, CheckCircle, AlertCircle, MoreVertical, ArrowLeft, Clock } from 'lucide-react';
 
 const initialState = { message: '', errors: {}, success: false };
 
@@ -55,22 +55,24 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
     const formAction = match?.id ? updateMatch.bind(null, match.id) : addMatch;
-    const [state, dispatch] = useActionState(formAction, initialState);
+    const [state, dispatch, isPending] = useActionState(formAction, initialState);
     const { toast } = useToast();
 
     useEffect(() => {
-        if (state.success === false && state.message) {
-            toast({
-                variant: 'destructive',
-                title: <div className="flex items-center gap-2"><AlertCircle className="h-5 w-5" /><span>Error</span></div>,
-                description: state.message
-            });
-        } else if (state.success === true && state.message) {
-             toast({
-                title: <div className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /><span>Éxito</span></div>,
-                description: state.message
-            });
-            onFormSubmit();
+        if (state.message) {
+            if (state.success) {
+                toast({
+                    title: <div className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /><span>Éxito</span></div>,
+                    description: state.message
+                });
+                onFormSubmit();
+            } else {
+                 toast({
+                    variant: 'destructive',
+                    title: <div className="flex items-center gap-2"><AlertCircle className="h-5 w-5" /><span>Error</span></div>,
+                    description: state.message
+                });
+            }
         }
     }, [state, onFormSubmit, toast]);
 
@@ -353,7 +355,7 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
                                 <Button type="button" variant="outline">Cancelar</Button>
                             </DialogClose>
                             {step === 7 && (
-                                <Button type="submit" disabled={!formData.team1 || !formData.team2}>
+                                <Button type="submit" disabled={!formData.team1 || !formData.team2 || isPending}>
                                     {match ? 'Guardar Cambios' : 'Añadir Partido'}
                                 </Button>
                             )}
