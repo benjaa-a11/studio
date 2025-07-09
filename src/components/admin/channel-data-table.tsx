@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -22,6 +21,12 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
     AlertDialog,
     AlertDialogAction,
     AlertDialogCancel,
@@ -38,10 +43,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { useFormState, useFormStatus } from 'react-dom';
 import { addChannel, updateChannel, deleteChannel } from '@/lib/admin-actions';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Edit, Trash2, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Loader2, CheckCircle, AlertCircle, MoreVertical } from 'lucide-react';
 import Image from 'next/image';
 import { Checkbox } from '../ui/checkbox';
 import { Badge } from '../ui/badge';
+import { Card, CardContent } from '../ui/card';
 
 const initialState = { message: '', errors: {}, success: false };
 
@@ -142,6 +148,41 @@ function ChannelForm({ channel, onFormSubmit }: { channel?: Channel | null; onFo
   );
 }
 
+function AdminChannelCard({ channel, onEdit, onDelete }: { channel: Channel; onEdit: (channel: Channel) => void; onDelete: (id: string, name: string) => void; }) {
+    return (
+        <Card className="opacity-0 animate-fade-in-up">
+            <CardContent className="p-4 flex items-center gap-4">
+                <Image src={channel.logoUrl} alt={channel.name} width={48} height={48} className="object-contain rounded-md border p-1 h-12 w-12" unoptimized/>
+                <div className="flex-1 space-y-1">
+                    <p className="font-semibold">{channel.name}</p>
+                    <p className="text-sm text-muted-foreground">{channel.category}</p>
+                    <Badge variant={channel.isHidden ? "secondary" : "outline"}>
+                        {channel.isHidden ? "Oculto" : "Visible"}
+                    </Badge>
+                </div>
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Abrir menú</span>
+                            <MoreVertical className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onEdit(channel)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            <span>Editar</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onDelete(channel.id, channel.name)} className="text-destructive">
+                             <Trash2 className="mr-2 h-4 w-4" />
+                            <span>Eliminar</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </CardContent>
+        </Card>
+    );
+}
+
 export default function ChannelDataTable({ data }: { data: Channel[] }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
@@ -209,13 +250,14 @@ export default function ChannelDataTable({ data }: { data: Channel[] }) {
               {selectedChannel ? 'Modifica los detalles del canal existente.' : 'Completa el formulario para añadir un nuevo canal. El ID se generará a partir del nombre.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-grow overflow-y-auto pr-4">
+          <div className="flex-grow overflow-y-auto pr-6 -mr-6">
             <ChannelForm channel={selectedChannel} onFormSubmit={handleFormSubmit} />
           </div>
         </DialogContent>
       </Dialog>
       
-      <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+      {/* Desktop Table */}
+      <div className="hidden md:block rounded-lg border bg-card text-card-foreground shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
@@ -228,7 +270,7 @@ export default function ChannelDataTable({ data }: { data: Channel[] }) {
           </TableHeader>
           <TableBody>
             {data && data.length > 0 ? data.map((channel) => (
-              <TableRow key={channel.id}>
+              <TableRow key={channel.id} className="opacity-0 animate-fade-in-up">
                 <TableCell>
                   <Image src={channel.logoUrl} alt={channel.name} width={40} height={40} className="object-contain rounded-md border p-1" unoptimized/>
                 </TableCell>
@@ -252,9 +294,9 @@ export default function ChannelDataTable({ data }: { data: Channel[] }) {
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                               <AlertDialogHeader>
-                                  <AlertDialogTitle>¿Estás seguro de eliminar este canal?</AlertDialogTitle>
+                                  <AlertDialogTitle>¿Eliminar el canal {channel.name}?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                      Esta acción no se puede deshacer. Se eliminará el canal <strong>{channel.name}</strong> permanentemente.
+                                      Esta acción no se puede deshacer.
                                   </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -278,6 +320,48 @@ export default function ChannelDataTable({ data }: { data: Channel[] }) {
           </TableBody>
         </Table>
       </div>
+
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-4">
+        {data && data.length > 0 ? (
+          data.map((channel, index) => (
+             <AdminChannelCard
+                key={channel.id}
+                channel={channel}
+                onEdit={handleEditClick}
+                onDelete={(id, name) => {
+                   const trigger = document.createElement('button');
+                   document.body.appendChild(trigger);
+                   const dialog = (
+                       <AlertDialog open={true} onOpenChange={(open) => !open && trigger.remove()}>
+                           <AlertDialogContent>
+                               <AlertDialogHeader>
+                                   <AlertDialogTitle>¿Eliminar el canal {name}?</AlertDialogTitle>
+                                   <AlertDialogDescription>
+                                       Esta acción no se puede deshacer.
+                                   </AlertDialogDescription>
+                               </AlertDialogHeader>
+                               <AlertDialogFooter>
+                                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                   <AlertDialogAction onClick={() => handleDelete(id)} className="bg-destructive hover:bg-destructive/90">
+                                       Eliminar
+                                   </AlertDialogAction>
+                               </AlertDialogFooter>
+                           </AlertDialogContent>
+                       </AlertDialog>
+                   );
+                   const { createRoot } = require('react-dom/client');
+                   createRoot(trigger).render(dialog);
+                }}
+            />
+          ))
+        ) : (
+          <div className="text-center py-10">
+            <p>No hay canales para mostrar.</p>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }
