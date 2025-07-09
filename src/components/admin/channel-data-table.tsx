@@ -1,42 +1,13 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import type { Channel } from '@/types';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from '@/components/ui/dialog';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -67,31 +38,17 @@ function ChannelForm({ channel, onFormSubmit }: { channel?: Channel | null; onFo
   const { toast } = useToast();
 
   useEffect(() => {
-    if(state.success) {
+    if (state.success) {
         toast({
-            title: (
-                <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                        <p className="font-semibold text-foreground">Éxito</p>
-                        <p className="text-sm text-muted-foreground mt-1">{state.message}</p>
-                    </div>
-                </div>
-            )
+            title: <div className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /><span>Éxito</span></div>,
+            description: state.message,
         });
         onFormSubmit();
-    } else if (state.message && !Object.keys(state.errors ?? {}).length) {
+    } else if (state.message) {
         toast({
             variant: 'destructive',
-            title: (
-                <div className="flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-destructive-foreground mt-0.5 flex-shrink-0" />
-                    <div>
-                        <p className="font-semibold text-destructive-foreground">Error</p>
-                        <p className="text-sm text-destructive-foreground/80 mt-1">{state.message}</p>
-                    </div>
-                </div>
-            )
+            title: <div className="flex items-center gap-2"><AlertCircle className="h-5 w-5" /><span>Error</span></div>,
+            description: state.message,
         });
     }
   }, [state, onFormSubmit, toast]);
@@ -148,7 +105,7 @@ function ChannelForm({ channel, onFormSubmit }: { channel?: Channel | null; onFo
   );
 }
 
-function AdminChannelCard({ channel, onEdit, onDelete }: { channel: Channel; onEdit: (channel: Channel) => void; onDelete: (id: string, name: string) => void; }) {
+function AdminChannelCard({ channel, onEdit, onDelete }: { channel: Channel; onEdit: (channel: Channel) => void; onDelete: (channel: Channel) => void; }) {
     return (
         <Card className="opacity-0 animate-fade-in-up">
             <CardContent className="p-4 flex items-center gap-4">
@@ -172,7 +129,7 @@ function AdminChannelCard({ channel, onEdit, onDelete }: { channel: Channel; onE
                             <Edit className="mr-2 h-4 w-4" />
                             <span>Editar</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onDelete(channel.id, channel.name)} className="text-destructive">
+                        <DropdownMenuItem onClick={() => onDelete(channel)} className="text-destructive">
                              <Trash2 className="mr-2 h-4 w-4" />
                             <span>Eliminar</span>
                         </DropdownMenuItem>
@@ -184,52 +141,48 @@ function AdminChannelCard({ channel, onEdit, onDelete }: { channel: Channel; onE
 }
 
 export default function ChannelDataTable({ data }: { data: Channel[] }) {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const { toast } = useToast();
 
   const handleEditClick = (channel: Channel) => {
     setSelectedChannel(channel);
-    setIsDialogOpen(true);
+    setIsFormOpen(true);
   };
 
   const handleAddClick = () => {
     setSelectedChannel(null);
-    setIsDialogOpen(true);
+    setIsFormOpen(true);
+  };
+
+  const handleDeleteClick = (channel: Channel) => {
+    setSelectedChannel(channel);
+    setIsAlertOpen(true);
   };
   
-  const handleDelete = async (id: string) => {
-    const result = await deleteChannel(id);
+  const confirmDelete = async () => {
+    if (!selectedChannel) return;
+
+    const result = await deleteChannel(selectedChannel.id);
     if(result.success) {
       toast({
-        title: (
-            <div className="flex items-start gap-3">
-                <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                <div>
-                    <p className="font-semibold text-foreground">Canal Eliminado</p>
-                    <p className="text-sm text-muted-foreground mt-1">{result.message}</p>
-                </div>
-            </div>
-        )
+        title: <div className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /><span>Canal Eliminado</span></div>,
+        description: result.message
       });
     } else {
       toast({
         variant: 'destructive',
-        title: (
-            <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-destructive-foreground mt-0.5 flex-shrink-0" />
-                <div>
-                    <p className="font-semibold text-destructive-foreground">Error</p>
-                    <p className="text-sm text-destructive-foreground/80 mt-1">{result.message}</p>
-                </div>
-            </div>
-        )
+        title: <div className="flex items-center gap-2"><AlertCircle className="h-5 w-5" /><span>Error</span></div>,
+        description: result.message
       });
     }
-  }
+    setIsAlertOpen(false);
+    setSelectedChannel(null);
+  };
 
   const handleFormSubmit = () => {
-    setIsDialogOpen(false);
+    setIsFormOpen(false);
     setSelectedChannel(null);
   };
 
@@ -242,7 +195,7 @@ export default function ChannelDataTable({ data }: { data: Channel[] }) {
         </Button>
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="sm:max-w-xl max-h-[90dvh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{selectedChannel ? 'Editar Canal' : 'Añadir Nuevo Canal'}</DialogTitle>
@@ -256,6 +209,23 @@ export default function ChannelDataTable({ data }: { data: Channel[] }) {
         </DialogContent>
       </Dialog>
       
+       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>¿Eliminar el canal {selectedChannel?.name}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                      Esta acción no se puede deshacer.
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setSelectedChannel(null)}>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+                      Eliminar
+                  </AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
+
       {/* Desktop Table */}
       <div className="hidden md:block rounded-lg border bg-card text-card-foreground shadow-sm">
         <Table>
@@ -286,27 +256,9 @@ export default function ChannelDataTable({ data }: { data: Channel[] }) {
                       <Button variant="ghost" size="icon" onClick={() => handleEditClick(channel)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                  <Trash2 className="h-4 w-4" />
-                              </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                              <AlertDialogHeader>
-                                  <AlertDialogTitle>¿Eliminar el canal {channel.name}?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                      Esta acción no se puede deshacer.
-                                  </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDelete(channel.id)} className="bg-destructive hover:bg-destructive/90">
-                                      Eliminar
-                                  </AlertDialogAction>
-                              </AlertDialogFooter>
-                          </AlertDialogContent>
-                      </AlertDialog>
+                       <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteClick(channel)}>
+                          <Trash2 className="h-4 w-4" />
+                      </Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -324,35 +276,12 @@ export default function ChannelDataTable({ data }: { data: Channel[] }) {
       {/* Mobile Cards */}
       <div className="md:hidden space-y-4">
         {data && data.length > 0 ? (
-          data.map((channel, index) => (
+          data.map((channel) => (
              <AdminChannelCard
                 key={channel.id}
                 channel={channel}
                 onEdit={handleEditClick}
-                onDelete={(id, name) => {
-                   const trigger = document.createElement('button');
-                   document.body.appendChild(trigger);
-                   const dialog = (
-                       <AlertDialog open={true} onOpenChange={(open) => !open && trigger.remove()}>
-                           <AlertDialogContent>
-                               <AlertDialogHeader>
-                                   <AlertDialogTitle>¿Eliminar el canal {name}?</AlertDialogTitle>
-                                   <AlertDialogDescription>
-                                       Esta acción no se puede deshacer.
-                                   </AlertDialogDescription>
-                               </AlertDialogHeader>
-                               <AlertDialogFooter>
-                                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                   <AlertDialogAction onClick={() => handleDelete(id)} className="bg-destructive hover:bg-destructive/90">
-                                       Eliminar
-                                   </AlertDialogAction>
-                               </AlertDialogFooter>
-                           </AlertDialogContent>
-                       </AlertDialog>
-                   );
-                   const { createRoot } = require('react-dom/client');
-                   createRoot(trigger).render(dialog);
-                }}
+                onDelete={handleDeleteClick}
             />
           ))
         ) : (

@@ -1,42 +1,13 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import type { Team } from '@/types';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from '@/components/ui/dialog';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useFormState, useFormStatus } from 'react-dom';
@@ -64,34 +35,18 @@ function TeamForm({ team, onFormSubmit }: { team?: Team | null; onFormSubmit: ()
   const { toast } = useToast();
 
   useEffect(() => {
-    if(state.message) {
-        if (state.success) {
-            toast({
-                title: (
-                    <div className="flex items-start gap-3">
-                        <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                        <div>
-                            <p className="font-semibold text-foreground">Éxito</p>
-                            <p className="text-sm text-muted-foreground mt-1">{state.message}</p>
-                        </div>
-                    </div>
-                )
-            });
-            onFormSubmit();
-        } else {
-            toast({
-                variant: 'destructive',
-                title: (
-                    <div className="flex items-start gap-3">
-                        <AlertCircle className="h-5 w-5 text-destructive-foreground mt-0.5 flex-shrink-0" />
-                        <div>
-                            <p className="font-semibold text-destructive-foreground">Error</p>
-                            <p className="text-sm text-destructive-foreground/80 mt-1">{state.message}</p>
-                        </div>
-                    </div>
-                )
-            });
-        }
+    if (state.success) {
+        toast({
+            title: <div className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /><span>Éxito</span></div>,
+            description: state.message,
+        });
+        onFormSubmit();
+    } else if (state.message) {
+        toast({
+            variant: 'destructive',
+            title: <div className="flex items-center gap-2"><AlertCircle className="h-5 w-5" /><span>Error</span></div>,
+            description: state.message,
+        });
     }
   }, [state, onFormSubmit, toast]);
 
@@ -126,7 +81,7 @@ function TeamForm({ team, onFormSubmit }: { team?: Team | null; onFormSubmit: ()
   );
 }
 
-function AdminTeamCard({ team, onEdit, onDelete }: { team: Team; onEdit: (team: Team) => void; onDelete: (path: string, name: string) => void; }) {
+function AdminTeamCard({ team, onEdit, onDelete }: { team: Team; onEdit: (team: Team) => void; onDelete: (team: Team) => void; }) {
     return (
         <Card className="opacity-0 animate-fade-in-up">
             <CardContent className="p-4 flex items-center gap-4">
@@ -147,7 +102,7 @@ function AdminTeamCard({ team, onEdit, onDelete }: { team: Team; onEdit: (team: 
                             <Edit className="mr-2 h-4 w-4" />
                             <span>Editar</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onDelete(team.path, team.name)} className="text-destructive">
+                        <DropdownMenuItem onClick={() => onDelete(team)} className="text-destructive">
                              <Trash2 className="mr-2 h-4 w-4" />
                             <span>Eliminar</span>
                         </DropdownMenuItem>
@@ -159,52 +114,47 @@ function AdminTeamCard({ team, onEdit, onDelete }: { team: Team; onEdit: (team: 
 }
 
 export default function TeamDataTable({ data }: { data: Team[] }) {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const { toast } = useToast();
 
   const handleEditClick = (team: Team) => {
     setSelectedTeam(team);
-    setIsDialogOpen(true);
+    setIsFormOpen(true);
   };
 
   const handleAddClick = () => {
     setSelectedTeam(null);
-    setIsDialogOpen(true);
+    setIsFormOpen(true);
   };
   
-  const handleDelete = async (path: string) => {
-    const result = await deleteTeam(path);
+  const handleDeleteClick = (team: Team) => {
+    setSelectedTeam(team);
+    setIsAlertOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedTeam) return;
+    const result = await deleteTeam(selectedTeam.path);
     if(result.success) {
       toast({
-        title: (
-            <div className="flex items-start gap-3">
-                <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                <div>
-                    <p className="font-semibold text-foreground">Equipo Eliminado</p>
-                    <p className="text-sm text-muted-foreground mt-1">{result.message}</p>
-                </div>
-            </div>
-        )
+        title: <div className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /><span>Equipo Eliminado</span></div>,
+        description: result.message
       });
     } else {
       toast({
         variant: 'destructive',
-        title: (
-            <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-destructive-foreground mt-0.5 flex-shrink-0" />
-                <div>
-                    <p className="font-semibold text-destructive-foreground">Error</p>
-                    <p className="text-sm text-destructive-foreground/80 mt-1">{result.message}</p>
-                </div>
-            </div>
-        )
+        title: <div className="flex items-center gap-2"><AlertCircle className="h-5 w-5" /><span>Error</span></div>,
+        description: result.message
       });
     }
-  }
+    setIsAlertOpen(false);
+    setSelectedTeam(null);
+  };
 
   const handleFormSubmit = () => {
-    setIsDialogOpen(false);
+    setIsFormOpen(false);
     setSelectedTeam(null);
   };
 
@@ -217,7 +167,7 @@ export default function TeamDataTable({ data }: { data: Team[] }) {
         </Button>
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="sm:max-w-xl max-h-[90dvh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{selectedTeam ? 'Editar Equipo' : 'Añadir Nuevo Equipo'}</DialogTitle>
@@ -231,6 +181,23 @@ export default function TeamDataTable({ data }: { data: Team[] }) {
         </DialogContent>
       </Dialog>
       
+       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>¿Eliminar el equipo {selectedTeam?.name}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                      Esta acción no se puede deshacer.
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setSelectedTeam(null)}>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+                      Eliminar
+                  </AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
+
       {/* Desktop Table */}
       <div className="hidden md:block rounded-lg border bg-card text-card-foreground shadow-sm">
         <Table>
@@ -255,27 +222,9 @@ export default function TeamDataTable({ data }: { data: Team[] }) {
                       <Button variant="ghost" size="icon" onClick={() => handleEditClick(team)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                  <Trash2 className="h-4 w-4" />
-                              </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                              <AlertDialogHeader>
-                                  <AlertDialogTitle>¿Eliminar el equipo {team.name}?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                      Esta acción no se puede deshacer.
-                                  </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDelete(team.path)} className="bg-destructive hover:bg-destructive/90">
-                                      Eliminar
-                                  </AlertDialogAction>
-                              </AlertDialogFooter>
-                          </AlertDialogContent>
-                      </AlertDialog>
+                       <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteClick(team)}>
+                          <Trash2 className="h-4 w-4" />
+                      </Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -293,35 +242,12 @@ export default function TeamDataTable({ data }: { data: Team[] }) {
         {/* Mobile Cards */}
       <div className="md:hidden space-y-4">
         {data && data.length > 0 ? (
-          data.map((team, index) => (
+          data.map((team) => (
              <AdminTeamCard
                 key={team.id}
                 team={team}
                 onEdit={handleEditClick}
-                onDelete={(path, name) => {
-                   const trigger = document.createElement('button');
-                   document.body.appendChild(trigger);
-                   const dialog = (
-                       <AlertDialog open={true} onOpenChange={(open) => !open && trigger.remove()}>
-                           <AlertDialogContent>
-                               <AlertDialogHeader>
-                                   <AlertDialogTitle>¿Eliminar el equipo {name}?</AlertDialogTitle>
-                                   <AlertDialogDescription>
-                                       Esta acción no se puede deshacer.
-                                   </AlertDialogDescription>
-                               </AlertDialogHeader>
-                               <AlertDialogFooter>
-                                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                   <AlertDialogAction onClick={() => handleDelete(path)} className="bg-destructive hover:bg-destructive/90">
-                                       Eliminar
-                                   </AlertDialogAction>
-                               </AlertDialogFooter>
-                           </AlertDialogContent>
-                       </AlertDialog>
-                   );
-                   const { createRoot } = require('react-dom/client');
-                   createRoot(trigger).render(dialog);
-                }}
+                onDelete={handleDeleteClick}
             />
           ))
         ) : (

@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 // UI Components
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -24,7 +24,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Badge } from '../ui/badge';
 
 // Icons
-import { PlusCircle, Edit, Trash2, Loader2, CheckCircle, AlertCircle, MoreVertical, ArrowLeft, Clock, Tv, Radio } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, CheckCircle, AlertCircle, MoreVertical, ArrowLeft } from 'lucide-react';
 
 const initialState = { message: '', errors: {}, success: false };
 
@@ -41,7 +41,6 @@ type MatchWizardProps = {
 
 function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: MatchWizardProps) {
     const [step, setStep] = useState(1);
-    const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
     const [formData, setFormData] = useState<Partial<AdminAgendaMatch>>({
         tournamentId: match?.tournamentId || '',
         team1: match?.team1 || '',
@@ -76,8 +75,8 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
     }, [state, onFormSubmit, toast]);
 
 
-    const nextStep = () => { setDirection('forward'); setStep(s => s + 1); };
-    const prevStep = () => { setDirection('backward'); setStep(s => s - 1); };
+    const nextStep = () => { setStep(s => s + 1); };
+    const prevStep = () => { setStep(s => s - 1); };
 
     const handleSelect = (field: keyof AdminAgendaMatch, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -366,7 +365,7 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
     );
 }
 
-function AdminAgendaCard({ match, onEdit, onDelete }: { match: AdminAgendaMatch; onEdit: (match: AdminAgendaMatch) => void; onDelete: (id: string, name: string) => void; }) {
+function AdminAgendaCard({ match, onEdit, onDelete }: { match: AdminAgendaMatch; onEdit: (match: AdminAgendaMatch) => void; onDelete: (match: AdminAgendaMatch) => void; }) {
     const isLive = match.time <= new Date() && new Date().getTime() - match.time.getTime() <= 180 * 60 * 1000;
     
     return (
@@ -392,7 +391,7 @@ function AdminAgendaCard({ match, onEdit, onDelete }: { match: AdminAgendaMatch;
                             <Edit className="mr-2 h-4 w-4" />
                             <span>Editar</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onDelete(match.id, `${match.team1Name} vs ${match.team2Name}`)} className="text-destructive">
+                        <DropdownMenuItem onClick={() => onDelete(match)} className="text-destructive">
                              <Trash2 className="mr-2 h-4 w-4" />
                             <span>Eliminar</span>
                         </DropdownMenuItem>
@@ -410,22 +409,30 @@ export default function AgendaDataTable({ data, teams, tournaments, channels }: 
     channels: Channel[];
     tournamentOptions: { value: string; label: string; }[];
 }) {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<AdminAgendaMatch | null>(null);
   const { toast } = useToast();
 
   const handleEditClick = (match: AdminAgendaMatch) => {
     setSelectedMatch(match);
-    setIsDialogOpen(true);
+    setIsFormOpen(true);
   };
 
   const handleAddClick = () => {
     setSelectedMatch(null);
-    setIsDialogOpen(true);
+    setIsFormOpen(true);
   };
+
+  const handleDeleteClick = (match: AdminAgendaMatch) => {
+    setSelectedMatch(match);
+    setIsAlertOpen(true);
+  }
   
-  const handleDelete = async (id: string) => {
-    const result = await deleteMatch(id);
+  const confirmDelete = async () => {
+    if (!selectedMatch) return;
+
+    const result = await deleteMatch(selectedMatch.id);
     if(result.success) {
       toast({ 
         title: <div className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /><span>Eliminado</span></div>,
@@ -438,37 +445,14 @@ export default function AgendaDataTable({ data, teams, tournaments, channels }: 
         description: result.message
       });
     }
+    setIsAlertOpen(false);
+    setSelectedMatch(null);
   }
 
   const handleFormSubmit = () => {
-    setIsDialogOpen(false);
+    setIsFormOpen(false);
     setSelectedMatch(null);
   };
-  
-   const handleDeleteClick = (id: string, name: string) => {
-        const trigger = document.createElement('button');
-        document.body.appendChild(trigger);
-        const dialog = (
-            <AlertDialog open={true} onOpenChange={(open) => !open && trigger.remove()}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>¿Eliminar este partido?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Se eliminará el partido de <strong>{name}</strong>. Esta acción no se puede deshacer.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(id)} className="bg-destructive hover:bg-destructive/90">
-                            Eliminar
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        );
-        const { createRoot } = require('react-dom/client');
-        createRoot(trigger).render(dialog);
-    };
 
   return (
     <div>
@@ -479,7 +463,7 @@ export default function AgendaDataTable({ data, teams, tournaments, channels }: 
         </Button>
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { if(!isOpen) handleFormSubmit(); else setIsDialogOpen(true); }}>
+      <Dialog open={isFormOpen} onOpenChange={(isOpen) => { if(!isOpen) handleFormSubmit(); else setIsFormOpen(true); }}>
         <MatchWizard
             key={selectedMatch ? selectedMatch.id : 'new'}
             match={selectedMatch}
@@ -490,6 +474,23 @@ export default function AgendaDataTable({ data, teams, tournaments, channels }: 
         />
       </Dialog>
       
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>¿Eliminar este partido?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                      Se eliminará el partido entre <strong>{selectedMatch?.team1Name} y {selectedMatch?.team2Name}</strong>. Esta acción no se puede deshacer.
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setSelectedMatch(null)}>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+                      Eliminar
+                  </AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
+
        {/* Responsive Layout */}
       <div className="hidden md:block rounded-lg border bg-card text-card-foreground shadow-sm">
         <Table>
@@ -518,27 +519,9 @@ export default function AgendaDataTable({ data, teams, tournaments, channels }: 
                           <Button variant="ghost" size="icon" onClick={() => handleEditClick(match)}>
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                      <Trash2 className="h-4 w-4" />
-                                  </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                      <AlertDialogTitle>¿Eliminar este partido?</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                          Se eliminará el partido entre <strong>{match.team1Name} y {match.team2Name}</strong>. Esta acción no se puede deshacer.
-                                      </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                      <AlertDialogAction onClick={() => handleDelete(match.id)} className="bg-destructive hover:bg-destructive/90">
-                                          Eliminar
-                                      </AlertDialogAction>
-                                  </AlertDialogFooter>
-                              </AlertDialogContent>
-                          </AlertDialog>
+                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteClick(match)}>
+                              <Trash2 className="h-4 w-4" />
+                          </Button>
                       </div>
                     </TableCell>
                   </TableRow>

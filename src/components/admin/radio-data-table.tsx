@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -5,13 +6,8 @@ import type { Radio } from '@/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -40,31 +36,17 @@ function RadioForm({ radio, onFormSubmit }: { radio?: Radio | null; onFormSubmit
   const { toast } = useToast();
 
   useEffect(() => {
-    if(state.success) {
+    if (state.success) {
         toast({
-            title: (
-                <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                        <p className="font-semibold text-foreground">Éxito</p>
-                        <p className="text-sm text-muted-foreground mt-1">{state.message}</p>
-                    </div>
-                </div>
-            )
+            title: <div className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /><span>Éxito</span></div>,
+            description: state.message,
         });
         onFormSubmit();
-    } else if (state.message && !Object.keys(state.errors ?? {}).length) {
+    } else if (state.message) {
         toast({
             variant: 'destructive',
-            title: (
-                <div className="flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-destructive-foreground mt-0.5 flex-shrink-0" />
-                    <div>
-                        <p className="font-semibold text-destructive-foreground">Error</p>
-                        <p className="text-sm text-destructive-foreground/80 mt-1">{state.message}</p>
-                    </div>
-                </div>
-            )
+            title: <div className="flex items-center gap-2"><AlertCircle className="h-5 w-5" /><span>Error</span></div>,
+            description: state.message,
         });
     }
   }, [state, onFormSubmit, toast]);
@@ -103,7 +85,7 @@ function RadioForm({ radio, onFormSubmit }: { radio?: Radio | null; onFormSubmit
   );
 }
 
-function AdminRadioCard({ radio, onEdit, onDelete }: { radio: Radio; onEdit: (radio: Radio) => void; onDelete: (id: string, name: string) => void; }) {
+function AdminRadioCard({ radio, onEdit, onDelete }: { radio: Radio; onEdit: (radio: Radio) => void; onDelete: (radio: Radio) => void; }) {
     return (
         <Card className="opacity-0 animate-fade-in-up">
             <CardContent className="p-4 flex items-center gap-4">
@@ -124,7 +106,7 @@ function AdminRadioCard({ radio, onEdit, onDelete }: { radio: Radio; onEdit: (ra
                             <Edit className="mr-2 h-4 w-4" />
                             <span>Editar</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onDelete(radio.id, radio.name)} className="text-destructive">
+                        <DropdownMenuItem onClick={() => onDelete(radio)} className="text-destructive">
                              <Trash2 className="mr-2 h-4 w-4" />
                             <span>Eliminar</span>
                         </DropdownMenuItem>
@@ -136,52 +118,47 @@ function AdminRadioCard({ radio, onEdit, onDelete }: { radio: Radio; onEdit: (ra
 }
 
 export default function RadioDataTable({ data }: { data: Radio[] }) {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [selectedRadio, setSelectedRadio] = useState<Radio | null>(null);
   const { toast } = useToast();
 
   const handleEditClick = (radio: Radio) => {
     setSelectedRadio(radio);
-    setIsDialogOpen(true);
+    setIsFormOpen(true);
   };
 
   const handleAddClick = () => {
     setSelectedRadio(null);
-    setIsDialogOpen(true);
+    setIsFormOpen(true);
   };
   
-  const handleDelete = async (id: string) => {
-    const result = await deleteRadio(id);
+  const handleDeleteClick = (radio: Radio) => {
+    setSelectedRadio(radio);
+    setIsAlertOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedRadio) return;
+    const result = await deleteRadio(selectedRadio.id);
     if(result.success) {
       toast({
-        title: (
-            <div className="flex items-start gap-3">
-                <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                <div>
-                    <p className="font-semibold text-foreground">Radio Eliminada</p>
-                    <p className="text-sm text-muted-foreground mt-1">{result.message}</p>
-                </div>
-            </div>
-        )
+        title: <div className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /><span>Radio Eliminada</span></div>,
+        description: result.message
       });
     } else {
       toast({
         variant: 'destructive',
-        title: (
-            <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-destructive-foreground mt-0.5 flex-shrink-0" />
-                <div>
-                    <p className="font-semibold text-destructive-foreground">Error</p>
-                    <p className="text-sm text-destructive-foreground/80 mt-1">{result.message}</p>
-                </div>
-            </div>
-        )
+        title: <div className="flex items-center gap-2"><AlertCircle className="h-5 w-5" /><span>Error</span></div>,
+        description: result.message
       });
     }
-  }
+    setIsAlertOpen(false);
+    setSelectedRadio(null);
+  };
 
   const handleFormSubmit = () => {
-    setIsDialogOpen(false);
+    setIsFormOpen(false);
     setSelectedRadio(null);
   };
 
@@ -194,7 +171,7 @@ export default function RadioDataTable({ data }: { data: Radio[] }) {
         </Button>
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="sm:max-w-xl max-h-[90dvh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{selectedRadio ? 'Editar Radio' : 'Añadir Nueva Radio'}</DialogTitle>
@@ -208,6 +185,23 @@ export default function RadioDataTable({ data }: { data: Radio[] }) {
         </DialogContent>
       </Dialog>
       
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>¿Eliminar la radio {selectedRadio?.name}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                      Esta acción no se puede deshacer.
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setSelectedRadio(null)}>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+                      Eliminar
+                  </AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
+
       {/* Desktop Table */}
       <div className="hidden md:block rounded-lg border bg-card text-card-foreground shadow-sm">
         <Table>
@@ -232,27 +226,9 @@ export default function RadioDataTable({ data }: { data: Radio[] }) {
                       <Button variant="ghost" size="icon" onClick={() => handleEditClick(radio)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                  <Trash2 className="h-4 w-4" />
-                              </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                              <AlertDialogHeader>
-                                  <AlertDialogTitle>¿Eliminar la radio {radio.name}?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                      Esta acción no se puede deshacer.
-                                  </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDelete(radio.id)} className="bg-destructive hover:bg-destructive/90">
-                                      Eliminar
-                                  </AlertDialogAction>
-                              </AlertDialogFooter>
-                          </AlertDialogContent>
-                      </AlertDialog>
+                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteClick(radio)}>
+                          <Trash2 className="h-4 w-4" />
+                      </Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -270,35 +246,12 @@ export default function RadioDataTable({ data }: { data: Radio[] }) {
        {/* Mobile Cards */}
       <div className="md:hidden space-y-4">
         {data && data.length > 0 ? (
-          data.map((radio, index) => (
+          data.map((radio) => (
              <AdminRadioCard
                 key={radio.id}
                 radio={radio}
                 onEdit={handleEditClick}
-                onDelete={(id, name) => {
-                   const trigger = document.createElement('button');
-                   document.body.appendChild(trigger);
-                   const dialog = (
-                       <AlertDialog open={true} onOpenChange={(open) => !open && trigger.remove()}>
-                           <AlertDialogContent>
-                               <AlertDialogHeader>
-                                   <AlertDialogTitle>¿Eliminar la radio {name}?</AlertDialogTitle>
-                                   <AlertDialogDescription>
-                                       Esta acción no se puede deshacer.
-                                   </AlertDialogDescription>
-                               </AlertDialogHeader>
-                               <AlertDialogFooter>
-                                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                   <AlertDialogAction onClick={() => handleDelete(id)} className="bg-destructive hover:bg-destructive/90">
-                                       Eliminar
-                                   </AlertDialogAction>
-                               </AlertDialogFooter>
-                           </AlertDialogContent>
-                       </AlertDialog>
-                   );
-                   const { createRoot } = require('react-dom/client');
-                   createRoot(trigger).render(dialog);
-                }}
+                onDelete={handleDeleteClick}
             />
           ))
         ) : (
