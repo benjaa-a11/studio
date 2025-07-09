@@ -1,8 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { useActionState } from 'react';
+import { useState, useEffect, useMemo, useActionState } from 'react';
 import type { AdminAgendaMatch, Channel, Team, Tournament } from '@/types';
 import Image from 'next/image';
 import { addMatch, updateMatch, deleteMatch } from '@/lib/admin-actions';
@@ -74,7 +73,7 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
             });
             onFormSubmit();
         }
-    }, [state.success, state.message, onFormSubmit, toast]);
+    }, [state, onFormSubmit, toast]);
 
 
     const nextStep = () => { setDirection('forward'); setStep(s => s + 1); };
@@ -138,8 +137,8 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
                         <div className={cn("absolute inset-0 transition-all duration-300", selectedCountry ? "opacity-0 -translate-x-full" : "opacity-100 translate-x-0")}>
                              <ScrollArea className="h-full">
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-1">
-                                    {Object.keys(teamsByCountry).map(country => (
-                                        <button key={country} type="button" onClick={() => setSelectedCountry(country)} className="group flex flex-col items-center gap-2 p-3 rounded-lg border text-center transition-all hover:border-primary hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                                    {Object.keys(teamsByCountry).sort().map(country => (
+                                        <button key={country} type="button" onClick={() => setSelectedCountry(country)} className="group flex flex-col items-center justify-center gap-2 p-3 rounded-lg border text-center transition-all hover:border-primary hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary h-24">
                                             <span className="text-sm font-semibold">{country}</span>
                                         </button>
                                     ))}
@@ -209,7 +208,7 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
                         <div className={cn("absolute inset-0 transition-all duration-300", selectedCategory ? "opacity-0 -translate-x-full" : "opacity-100 translate-x-0")}>
                              <ScrollArea className="h-full">
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-1">
-                                    {Object.keys(channelsByCategory).map(category => (
+                                    {Object.keys(channelsByCategory).sort().map(category => (
                                         <button key={category} type="button" onClick={() => setSelectedCategory(category)} className="group flex flex-col items-center justify-center gap-2 p-3 rounded-lg border text-center transition-all hover:border-primary hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary h-24">
                                             <span className="text-sm font-semibold">{category}</span>
                                         </button>
@@ -269,9 +268,9 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
 
         // Step 7: Final Review and Submit
         if (step === 7) {
-            const team1 = teams.find(t => t.id === formData.team1);
-            const team2 = teams.find(t => t.id === formData.team2);
-            const tournament = tournaments.find(t => t.tournamentId === formData.tournamentId);
+            const team1Data = teams.find(t => t.id === formData.team1);
+            const team2Data = teams.find(t => t.id === formData.team2);
+            const tournamentData = tournaments.find(t => t.tournamentId === formData.tournamentId);
             const isLive = formData.time && formData.time <= new Date();
 
             return (
@@ -282,11 +281,11 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
                        <Card className="w-[340px] overflow-hidden shadow-lg flex-shrink-0 flex flex-col">
                             <div className="p-3 bg-muted/40 border-b flex justify-between items-center gap-2">
                                 <div className="flex items-center gap-2 min-w-0">
-                                    {tournament?.logoUrl?.[0] && (
-                                        <Image unoptimized src={tournament.logoUrl[0]} alt={tournament.name} width={24} height={24} className="h-6 w-6 object-contain flex-shrink-0" />
+                                    {tournamentData?.logoUrl?.[0] && (
+                                        <Image unoptimized src={tournamentData.logoUrl[0]} alt={tournamentData.name} width={24} height={24} className="h-6 w-6 object-contain flex-shrink-0" />
                                     )}
                                     <div className="flex-1 min-w-0">
-                                        <p className="font-semibold text-xs truncate">{tournament?.name}</p>
+                                        <p className="font-semibold text-xs truncate">{tournamentData?.name}</p>
                                         {formData.dates && (
                                             <p className="text-xs text-muted-foreground truncate">{formData.dates}</p>
                                         )}
@@ -305,15 +304,15 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
                             <CardContent className="p-6 flex-grow flex flex-col items-center justify-center">
                                 <div className="flex items-center justify-around w-full gap-4">
                                     <div className="flex flex-col items-center gap-2 text-center flex-1">
-                                        <Image unoptimized src={team1?.logoUrl || 'https://placehold.co/128x128.png'} alt={team1?.name || ''} width={64} height={64} className="h-16 w-16 object-contain drop-shadow-sm" />
-                                        <h3 className="font-semibold text-base text-center">{team1?.name}</h3>
+                                        <Image unoptimized src={team1Data?.logoUrl || 'https://placehold.co/128x128.png'} alt={team1Data?.name || ''} width={64} height={64} className="h-16 w-16 object-contain drop-shadow-sm" />
+                                        <h3 className="font-semibold text-base text-center">{team1Data?.name}</h3>
                                     </div>
                                     
                                     <div className="text-muted-foreground font-bold text-lg">VS</div>
                                     
                                     <div className="flex flex-col items-center gap-2 text-center flex-1">
-                                        <Image unoptimized src={team2?.logoUrl || 'https://placehold.co/128x128.png'} alt={team2?.name || ''} width={64} height={64} className="h-16 w-16 object-contain drop-shadow-sm" />
-                                        <h3 className="font-semibold text-base text-center">{team2?.name}</h3>
+                                        <Image unoptimized src={team2Data?.logoUrl || 'https://placehold.co/128x128.png'} alt={team2Data?.name || ''} width={64} height={64} className="h-16 w-16 object-contain drop-shadow-sm" />
+                                        <h3 className="font-semibold text-base text-center">{team2Data?.name}</h3>
                                     </div>
                                 </div>
                             </CardContent>
@@ -326,23 +325,21 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
         return null;
     }
     
-    // This form wrapper is the key to solving the submission issues.
-    // It's a single form that persists across all steps.
     return (
-        <form action={() => dispatch(formData as AdminAgendaMatch)}>
-            <DialogContent className="sm:max-w-2xl w-[95vw] max-h-[90vh] flex flex-col">
-                <DialogHeader>
-                    <DialogTitle>{match ? 'Editar Partido' : 'Programar Nuevo Partido'}</DialogTitle>
-                    <DialogDescription>
-                        {match ? 'Modifica los detalles del partido existente.' : 'Sigue los pasos para programar un nuevo partido.'}
-                    </DialogDescription>
-                </DialogHeader>
-
+        <DialogContent className="sm:max-w-2xl w-[95vw] max-h-[90vh] flex flex-col">
+            <DialogHeader>
+                <DialogTitle>{match ? 'Editar Partido' : 'Programar Nuevo Partido'}</DialogTitle>
+                <DialogDescription>
+                    {match ? 'Modifica los detalles del partido existente.' : 'Sigue los pasos para programar un nuevo partido.'}
+                </DialogDescription>
+            </DialogHeader>
+            
+            <form action={() => dispatch(formData as AdminAgendaMatch)} className="flex-grow flex flex-col overflow-hidden">
                 <div className="flex-grow overflow-y-auto pr-6 -mr-6 min-h-[450px]">
                     {renderStep()}
                 </div>
 
-                <DialogFooter className="mt-4">
+                <DialogFooter className="mt-4 flex-shrink-0">
                     <div className="w-full flex justify-between items-center">
                         <div>
                              {step > 1 && (
@@ -364,8 +361,8 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
                         </div>
                     </div>
                 </DialogFooter>
-            </DialogContent>
-        </form>
+            </form>
+        </DialogContent>
     );
 }
 
@@ -484,6 +481,7 @@ export default function AgendaDataTable({ data, teams, tournaments, channels }: 
 
       <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { if(!isOpen) handleFormSubmit(); else setIsDialogOpen(true); }}>
         <MatchWizard
+            key={selectedMatch ? selectedMatch.id : 'new'}
             match={selectedMatch}
             onFormSubmit={handleFormSubmit}
             teams={teams}
@@ -575,5 +573,3 @@ export default function AgendaDataTable({ data, teams, tournaments, channels }: 
     </div>
   );
 }
-
-    
