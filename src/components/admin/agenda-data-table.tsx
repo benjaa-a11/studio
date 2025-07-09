@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -60,22 +61,21 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
     const { toast } = useToast();
 
     useEffect(() => {
-        if (state.message) {
-            if (state.success) {
-                toast({
-                    title: <div className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /><span>Éxito</span></div>,
-                    description: state.message
-                });
-                onFormSubmit();
-            } else {
-                toast({
-                    variant: 'destructive',
-                    title: <div className="flex items-center gap-2"><AlertCircle className="h-5 w-5" /><span>Error</span></div>,
-                    description: state.message || 'Ocurrió un error inesperado.'
-                });
-            }
+        if (state.success === false && state.message) {
+            toast({
+                variant: 'destructive',
+                title: <div className="flex items-center gap-2"><AlertCircle className="h-5 w-5" /><span>Error</span></div>,
+                description: state.message
+            });
+        } else if (state.success === true && state.message) {
+             toast({
+                title: <div className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /><span>Éxito</span></div>,
+                description: state.message
+            });
+            onFormSubmit();
         }
-    }, [state, onFormSubmit, toast]);
+    }, [state.success, state.message, onFormSubmit, toast]);
+
 
     const nextStep = () => { setDirection('forward'); setStep(s => s + 1); };
     const prevStep = () => { setDirection('backward'); setStep(s => s - 1); };
@@ -325,13 +325,6 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
 
         return null;
     }
-
-    const isNextDisabled = () => {
-        if (step === 1 && !formData.tournamentId) return true;
-        if (step === 2 && !formData.team1) return true;
-        if (step === 3 && !formData.team2) return true;
-        return false;
-    };
     
     // This form wrapper is the key to solving the submission issues.
     // It's a single form that persists across all steps.
@@ -582,3 +575,5 @@ export default function AgendaDataTable({ data, teams, tournaments, channels }: 
     </div>
   );
 }
+
+    
