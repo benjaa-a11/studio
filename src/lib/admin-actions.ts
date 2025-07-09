@@ -490,25 +490,18 @@ export async function deleteTeam(path: string) {
 
 // --- AGENDA ---
 
-const AgendaFormSchema = z.object({
-  tournamentId: z.string({ required_error: "Debe seleccionar un torneo." }).min(1, "Debe seleccionar un torneo."),
-  team1: z.string({ required_error: "Debe seleccionar el equipo 1." }).min(1, "Debe seleccionar el equipo 1."),
-  team2: z.string({ required_error: "Debe seleccionar el equipo 2." }).min(1, "Debe seleccionar el equipo 2."),
-  time: z.date({ required_error: "Debe seleccionar una fecha y hora." }),
-  channels: z.array(z.string()).optional(),
-  dates: z.string().optional(),
-}).refine(data => data.team1 !== data.team2, {
-    message: "Los equipos no pueden ser iguales.",
-    path: ["team2"],
-});
+const handleMatchAction = async (data: AdminAgendaMatch, existingId?: string) => {
+    // Basic validation
+    if (!data.tournamentId || !data.team1 || !data.team2 || !data.time) {
+        throw new Error('Faltan datos requeridos para guardar el partido.');
+    }
+    if (data.team1 === data.team2) {
+        throw new Error('Los equipos no pueden ser iguales.');
+    }
 
-type AgendaFormValues = z.infer<typeof AgendaFormSchema>;
-
-const handleMatchAction = async (data: AgendaFormValues, existingId?: string) => {
-    const { time, team1, team2 } = data;
+    const { time, ...restOfData } = data;
     const matchTimestamp = Timestamp.fromDate(time);
-    
-    const dataToSave = { ...data, time: matchTimestamp };
+    const dataToSave = { ...restOfData, time: matchTimestamp };
 
     if (existingId) {
         // Update existing match
@@ -517,7 +510,7 @@ const handleMatchAction = async (data: AgendaFormValues, existingId?: string) =>
     } else {
         // Create new match
         const dateString = time.toISOString().split('T')[0];
-        const id = `${slugify(team1)}-vs-${slugify(team2)}-${dateString}`;
+        const id = `${slugify(data.team1)}-vs-${slugify(data.team2)}-${dateString}`;
         const matchRef = doc(db, 'agenda', id);
 
         const docSnap = await getDoc(matchRef);
@@ -531,7 +524,7 @@ const handleMatchAction = async (data: AgendaFormValues, existingId?: string) =>
     revalidatePath('/');
 }
 
-export async function addMatch(data: AgendaFormValues) {
+export async function addMatch(prevState: FormState, data: AdminAgendaMatch) {
     try {
         await handleMatchAction(data);
         return { success: true, message: 'Partido añadido exitosamente.' };
@@ -542,7 +535,7 @@ export async function addMatch(data: AgendaFormValues) {
     }
 }
 
-export async function updateMatch(id: string, data: AgendaFormValues) {
+export async function updateMatch(id: string, prevState: FormState, data: AdminAgendaMatch) {
     if (!id) return { success: false, message: 'ID de partido no proporcionado.' };
     try {
         await handleMatchAction(data, id);

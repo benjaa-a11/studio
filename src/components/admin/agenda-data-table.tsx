@@ -1,340 +1,382 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useActionState } from 'react';
 import type { AdminAgendaMatch, Channel, Team, Tournament } from '@/types';
 import Image from 'next/image';
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { addMatch, updateMatch, deleteMatch } from '@/lib/admin-actions';
 import { useToast } from '@/hooks/use-toast';
 import { format, setHours, setMinutes, setSeconds } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+
+// UI Components
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '../ui/card';
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow
-} from '@/components/ui/table';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { PlusCircle, Edit, Trash2, Loader2, CheckCircle, AlertCircle, CalendarIcon, Check, MoreVertical } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from '../ui/badge';
 
-const agendaSchema = z.object({
-  tournamentId: z.string({ required_error: "Debe seleccionar un torneo." }).min(1, "Debe seleccionar un torneo."),
-  team1: z.string({ required_error: "Debe seleccionar el equipo 1." }).min(1, "Debe seleccionar el equipo 1."),
-  team2: z.string({ required_error: "Debe seleccionar el equipo 2." }).min(1, "Debe seleccionar el equipo 2."),
-  time: z.date({ required_error: "Debe seleccionar una fecha y hora." }),
-  channels: z.array(z.string()).optional(),
-  dates: z.string().optional(),
-}).refine(data => data.team1 !== data.team2, {
-    message: "Los equipos no pueden ser iguales.",
-    path: ["team2"],
-});
+// Icons
+import { PlusCircle, Edit, Trash2, Loader2, CheckCircle, AlertCircle, MoreVertical, ArrowLeft, Clock, Tv, Radio } from 'lucide-react';
 
-type AgendaFormValues = z.infer<typeof agendaSchema>;
+const initialState = { message: '', errors: {}, success: false };
 
-function MatchForm({ match, onFormSubmit, teams, tournaments, channels }: {
+// --- MatchWizard Component ---
+// This is the new, completely rebuilt multi-step wizard for creating/editing matches.
+
+type MatchWizardProps = {
     match?: AdminAgendaMatch | null;
     onFormSubmit: () => void;
     teams: Team[];
     tournaments: Tournament[];
     channels: Channel[];
-}) {
-    const { toast } = useToast();
-    const form = useForm<AgendaFormValues>({
-        resolver: zodResolver(agendaSchema),
-        defaultValues: {
-            tournamentId: match?.tournamentId || '',
-            team1: match?.team1 || '',
-            team2: match?.team2 || '',
-            time: match?.time ? new Date(match.time) : new Date(),
-            channels: match?.channels || [],
-            dates: match?.dates || '',
-        },
+};
+
+function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: MatchWizardProps) {
+    const [step, setStep] = useState(1);
+    const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
+    const [formData, setFormData] = useState<Partial<AdminAgendaMatch>>({
+        tournamentId: match?.tournamentId || '',
+        team1: match?.team1 || '',
+        team2: match?.team2 || '',
+        time: match?.time ? new Date(match.time) : new Date(),
+        channels: match?.channels || [],
+        dates: match?.dates || '',
     });
+    
+    // State for team/channel selection flow
+    const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-    const onSubmit = async (data: AgendaFormValues) => {
-        try {
-            const action = match?.id ? updateMatch.bind(null, match.id) : addMatch;
-            const result = await action(data);
+    const formAction = match?.id ? updateMatch.bind(null, match.id) : addMatch;
+    const [state, dispatch] = useActionState(formAction, initialState);
+    const { toast } = useToast();
 
-            if (result.success) {
+    useEffect(() => {
+        if (state.message) {
+            if (state.success) {
                 toast({
                     title: <div className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /><span>Éxito</span></div>,
-                    description: result.message
+                    description: state.message
                 });
                 onFormSubmit();
             } else {
-                 toast({
+                toast({
                     variant: 'destructive',
                     title: <div className="flex items-center gap-2"><AlertCircle className="h-5 w-5" /><span>Error</span></div>,
-                    description: result.message || 'Ocurrió un error inesperado.'
+                    description: state.message || 'Ocurrió un error inesperado.'
                 });
             }
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: 'Error de Red',
-                description: 'No se pudo conectar con el servidor.'
-            });
+        }
+    }, [state, onFormSubmit, toast]);
+
+    const nextStep = () => { setDirection('forward'); setStep(s => s + 1); };
+    const prevStep = () => { setDirection('backward'); setStep(s => s - 1); };
+
+    const handleSelect = (field: keyof AdminAgendaMatch, value: string) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+        if (field === 'tournamentId') nextStep();
+        if (field === 'team1' || field === 'team2') {
+            nextStep();
+            setSelectedCountry(null);
         }
     };
     
-    const groupedChannels = channels.reduce<Record<string, Channel[]>>((acc, channel) => {
-        const category = channel.category || 'Sin Categoría';
-        if (!acc[category]) acc[category] = [];
-        acc[category].push(channel);
-        return acc;
-    }, {});
-    
-    const tournamentOptions = tournaments.map(t => ({ value: t.tournamentId, label: t.name, logo: t.logoUrl?.[0] }));
-    const teamOptions = teams.map(t => ({ value: t.id, label: t.name, logo: t.logoUrl }));
+    const teamsByCountry = useMemo(() => {
+        return teams.reduce<Record<string, Team[]>>((acc, team) => {
+            const country = team.country || 'Sin País';
+            if (!acc[country]) acc[country] = [];
+            acc[country].push(team);
+            return acc;
+        }, {});
+    }, [teams]);
 
-    return (
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Tournament, Team1, Team2 */}
-                    <div className="space-y-4">
-                        <FormField
-                            control={form.control}
-                            name="tournamentId"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-col">
-                                    <FormLabel>Torneo</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <FormControl>
-                                                <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                                    {field.value ? tournamentOptions.find(t => t.value === field.value)?.label : "Seleccionar torneo"}
-                                                </Button>
-                                            </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-[300px] p-0">
-                                            <Command>
-                                                <CommandInput placeholder="Buscar torneo..." />
-                                                <CommandEmpty>No se encontraron torneos.</CommandEmpty>
-                                                <CommandList>
-                                                    {tournamentOptions.map(option => (
-                                                        <CommandItem key={option.value} onSelect={() => { form.setValue("tournamentId", option.value) }}>
-                                                            <Check className={cn("mr-2 h-4 w-4", field.value === option.value ? "opacity-100" : "opacity-0")} />
-                                                            {option.logo && <Image src={option.logo} alt={option.label} width={20} height={20} className="mr-2 h-5 w-5 object-contain" />}
-                                                            {option.label}
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandList>
-                                            </Command>
-                                        </PopoverContent>
-                                    </Popover>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
+    const channelsByCategory = useMemo(() => {
+        return channels.reduce<Record<string, Channel[]>>((acc, channel) => {
+            const category = channel.category || 'Sin Categoría';
+            if (!acc[category]) acc[category] = [];
+            acc[category].push(channel);
+            return acc;
+        }, {});
+    }, [channels]);
+
+    const renderStep = () => {
+        // Step 1: Select Tournament
+        if (step === 1) {
+            return (
+                <div key="step1" className="animate-fade-in-up">
+                    <h3 className="text-xl font-semibold mb-4 text-center">1. Selecciona el Torneo</h3>
+                    <ScrollArea className="h-[400px]">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-1">
+                            {tournaments.map(t => (
+                                <button key={t.id} type="button" onClick={() => handleSelect('tournamentId', t.tournamentId)} className="group flex flex-col items-center gap-2 p-3 rounded-lg border text-center transition-all hover:border-primary hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                                    <Image src={t.logoUrl?.[0] || 'https://placehold.co/128x128.png'} alt={t.name} width={48} height={48} className="h-12 w-12 object-contain" unoptimized />
+                                    <span className="text-xs font-medium">{t.name}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </ScrollArea>
+                </div>
+            );
+        }
+        
+        // Steps 2 & 3: Select Teams
+        if (step === 2 || step === 3) {
+            const teamKey = step === 2 ? 'team1' : 'team2';
+            return (
+                <div key={`step${step}`} className="animate-fade-in-up">
+                    <h3 className="text-xl font-semibold mb-4 text-center">{step}. Selecciona el Equipo {step - 1}</h3>
+                    <div className="relative h-[400px] overflow-hidden">
+                        {/* Country List */}
+                        <div className={cn("absolute inset-0 transition-all duration-300", selectedCountry ? "opacity-0 -translate-x-full" : "opacity-100 translate-x-0")}>
+                             <ScrollArea className="h-full">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-1">
+                                    {Object.keys(teamsByCountry).map(country => (
+                                        <button key={country} type="button" onClick={() => setSelectedCountry(country)} className="group flex flex-col items-center gap-2 p-3 rounded-lg border text-center transition-all hover:border-primary hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                                            <span className="text-sm font-semibold">{country}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                        </div>
+                        {/* Team List */}
+                        <div className={cn("absolute inset-0 transition-all duration-300", selectedCountry ? "opacity-100 translate-x-0" : "opacity-0 translate-x-full")}>
+                             <button type="button" onClick={() => setSelectedCountry(null)} className="absolute -top-4 left-0 text-sm font-semibold text-primary hover:underline mb-2 flex items-center gap-1 z-10"><ArrowLeft size={16}/> Volver a Países</button>
+                             <ScrollArea className="h-full pt-6">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-1">
+                                    {selectedCountry && teamsByCountry[selectedCountry].map(team => (
+                                        <button key={team.id} type="button" onClick={() => handleSelect(teamKey, team.id)} className="group flex flex-col items-center gap-2 p-3 rounded-lg border text-center transition-all hover:border-primary hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed" disabled={formData.team1 === team.id || formData.team2 === team.id}>
+                                            <Image src={team.logoUrl} alt={team.name} width={48} height={48} className="h-12 w-12 object-contain" unoptimized />
+                                            <span className="text-xs font-medium">{team.name}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Step 4: Date and Time
+        if (step === 4) {
+            return (
+                 <div key="step4" className="animate-fade-in-up">
+                    <h3 className="text-xl font-semibold mb-4 text-center">4. Fecha y Hora del Partido (AR)</h3>
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                        <Calendar
+                            mode="single"
+                            selected={formData.time}
+                            onSelect={(date) => date && setFormData(p => ({...p, time: date}))}
+                            locale={es}
+                            className="rounded-md border"
                         />
-                         <div className="flex gap-4">
-                            <FormField
-                                control={form.control}
-                                name="team1"
-                                render={({ field }) => (
-                                <FormItem className="flex flex-col flex-1">
-                                    <FormLabel>Equipo 1</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <FormControl>
-                                                <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                                     {field.value ? teamOptions.find(t => t.value === field.value)?.label : "Seleccionar equipo"}
-                                                </Button>
-                                            </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-[300px] p-0">
-                                            <Command>
-                                                <CommandInput placeholder="Buscar equipo..." />
-                                                <CommandEmpty>No se encontraron equipos.</CommandEmpty>
-                                                <CommandList>
-                                                    {teamOptions.map(option => (
-                                                        <CommandItem key={option.value} onSelect={() => { form.setValue("team1", option.value) }}>
-                                                            <Check className={cn("mr-2 h-4 w-4", field.value === option.value ? "opacity-100" : "opacity-0")} />
-                                                            {option.logo && <Image src={option.logo} alt={option.label} width={20} height={20} className="mr-2 h-5 w-5 object-contain" />}
-                                                            {option.label}
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandList>
-                                            </Command>
-                                        </PopoverContent>
-                                    </Popover>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                             <FormField
-                                control={form.control}
-                                name="team2"
-                                render={({ field }) => (
-                                <FormItem className="flex flex-col flex-1">
-                                    <FormLabel>Equipo 2</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <FormControl>
-                                                <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                                     {field.value ? teamOptions.find(t => t.value === field.value)?.label : "Seleccionar equipo"}
-                                                </Button>
-                                            </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-[300px] p-0">
-                                            <Command>
-                                                <CommandInput placeholder="Buscar equipo..." />
-                                                <CommandEmpty>No se encontraron equipos.</CommandEmpty>
-                                                <CommandList>
-                                                    {teamOptions.map(option => (
-                                                        <CommandItem key={option.value} onSelect={() => { form.setValue("team2", option.value) }}>
-                                                            <Check className={cn("mr-2 h-4 w-4", field.value === option.value ? "opacity-100" : "opacity-0")} />
-                                                            {option.logo && <Image src={option.logo} alt={option.label} width={20} height={20} className="mr-2 h-5 w-5 object-contain" />}
-                                                            {option.label}
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandList>
-                                            </Command>
-                                        </PopoverContent>
-                                    </Popover>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
+                         <div className="flex flex-col gap-2 p-4 border rounded-md">
+                            <label htmlFor="match-time" className="font-medium text-sm">Hora (24hs)</label>
+                            <Input
+                                id="match-time"
+                                type="time"
+                                value={format(formData.time || new Date(), 'HH:mm')}
+                                onChange={(e) => {
+                                    const [hours, minutes] = e.target.value.split(':').map(Number);
+                                    const newDate = setSeconds(setMinutes(setHours(formData.time || new Date(), hours), minutes), 0);
+                                    setFormData(p => ({...p, time: newDate}));
+                                }}
                             />
                         </div>
-
-                         <FormField
-                            control={form.control}
-                            name="time"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-col">
-                                    <FormLabel>Fecha y Hora (AR)</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <FormControl>
-                                                <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                    {field.value ? format(field.value, "PPP, HH:mm") : <span>Seleccionar fecha</span>}
-                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                </Button>
-                                            </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar
-                                                mode="single"
-                                                selected={field.value}
-                                                onSelect={field.onChange}
-                                                initialFocus
-                                            />
-                                            <div className="p-3 border-t border-border">
-                                                <div className="flex items-center gap-2">
-                                                    <Input
-                                                        type="time"
-                                                        value={format(field.value, 'HH:mm')}
-                                                        onChange={(e) => {
-                                                            const [hours, minutes] = e.target.value.split(':').map(Number);
-                                                            const newDate = setSeconds(setMinutes(setHours(field.value, hours), minutes), 0);
-                                                            field.onChange(newDate);
-                                                        }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </PopoverContent>
-                                    </Popover>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="dates"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Texto Adicional</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Ej: Fase de grupos · Jornada 2" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
                     </div>
-                    {/* Channels */}
-                    <FormField
-                        control={form.control}
-                        name="channels"
-                        render={() => (
-                            <FormItem>
-                                <FormLabel>Canales de Transmisión</FormLabel>
-                                <Card>
-                                    <CardContent className="p-0">
-                                         <ScrollArea className="h-72">
-                                            {Object.entries(groupedChannels).map(([category, items]) => (
-                                                <div key={category} className="p-4 border-b last:border-b-0">
-                                                     <h4 className="mb-2 font-semibold text-sm">{category}</h4>
-                                                      <div className="space-y-2">
-                                                        {items.map(item => (
-                                                            <FormField
-                                                                key={item.id}
-                                                                control={form.control}
-                                                                name="channels"
-                                                                render={({ field }) => (
-                                                                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                                                                        <FormControl>
-                                                                            <Checkbox
-                                                                                checked={field.value?.includes(item.id)}
-                                                                                onCheckedChange={(checked) => {
-                                                                                    return checked
-                                                                                        ? field.onChange([...(field.value || []), item.id])
-                                                                                        : field.onChange(field.value?.filter(value => value !== item.id))
-                                                                                }}
-                                                                            />
-                                                                        </FormControl>
-                                                                        <FormLabel className="font-normal text-sm flex items-center gap-2 cursor-pointer">
-                                                                            <Image src={item.logoUrl} alt={item.name} width={24} height={24} className="h-6 w-auto object-contain" />
-                                                                            {item.name}
-                                                                        </FormLabel>
-                                                                    </FormItem>
-                                                                )}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </ScrollArea>
-                                    </CardContent>
-                                </Card>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                     <div className="text-center mt-6">
+                        <Button type="button" onClick={nextStep}>Siguiente</Button>
+                    </div>
                 </div>
-                 <DialogFooter>
-                    <DialogClose asChild>
-                        <Button type="button" variant="outline">Cancelar</Button>
-                    </DialogClose>
-                    <Button type="submit" disabled={form.formState.isSubmitting}>
-                        {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {match ? 'Guardar Cambios' : 'Añadir Partido'}
-                    </Button>
+            )
+        }
+        
+        // Step 5: Channels
+        if (step === 5) {
+             return (
+                <div key="step5" className="animate-fade-in-up">
+                    <h3 className="text-xl font-semibold mb-4 text-center">5. Canales de Transmisión</h3>
+                    <div className="relative h-[400px] overflow-hidden">
+                        {/* Category List */}
+                        <div className={cn("absolute inset-0 transition-all duration-300", selectedCategory ? "opacity-0 -translate-x-full" : "opacity-100 translate-x-0")}>
+                             <ScrollArea className="h-full">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-1">
+                                    {Object.keys(channelsByCategory).map(category => (
+                                        <button key={category} type="button" onClick={() => setSelectedCategory(category)} className="group flex flex-col items-center justify-center gap-2 p-3 rounded-lg border text-center transition-all hover:border-primary hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary h-24">
+                                            <span className="text-sm font-semibold">{category}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                        </div>
+                        {/* Channel List */}
+                        <div className={cn("absolute inset-0 transition-all duration-300", selectedCategory ? "opacity-100 translate-x-0" : "opacity-0 translate-x-full")}>
+                             <button type="button" onClick={() => setSelectedCategory(null)} className="absolute -top-4 left-0 text-sm font-semibold text-primary hover:underline mb-2 flex items-center gap-1 z-10"><ArrowLeft size={16}/> Volver a Categorías</button>
+                             <ScrollArea className="h-full pt-6">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-1">
+                                    {selectedCategory && channelsByCategory[selectedCategory].map(c => (
+                                        <label key={c.id} className={cn("flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors", formData.channels?.includes(c.id) ? "border-primary bg-primary/10" : "hover:bg-muted/50")}>
+                                            <Checkbox
+                                                checked={formData.channels?.includes(c.id)}
+                                                onCheckedChange={(checked) => {
+                                                    const currentChannels = formData.channels || [];
+                                                    const newChannels = checked ? [...currentChannels, c.id] : currentChannels.filter(id => id !== c.id);
+                                                    setFormData(p => ({ ...p, channels: newChannels }));
+                                                }}
+                                            />
+                                            <Image src={c.logoUrl} alt={c.name} width={24} height={24} className="h-6 w-auto object-contain" unoptimized />
+                                            <span className="text-xs font-medium flex-1">{c.name}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                        </div>
+                    </div>
+                     <div className="text-center mt-6">
+                        <Button type="button" onClick={nextStep}>Siguiente</Button>
+                    </div>
+                </div>
+            );
+        }
+
+        // Step 6: Dates (Additional Text)
+        if (step === 6) {
+            return (
+                <div key="step6" className="animate-fade-in-up">
+                    <h3 className="text-xl font-semibold mb-4 text-center">6. Texto Adicional (Opcional)</h3>
+                    <div className="max-w-md mx-auto">
+                        <Input
+                            placeholder="Ej: Fase de Grupos · Jornada 2 de 3"
+                            value={formData.dates || ''}
+                            onChange={(e) => setFormData(p => ({ ...p, dates: e.target.value }))}
+                        />
+                        <p className="text-xs text-muted-foreground mt-2">Este texto aparece debajo del nombre del torneo en la tarjeta del partido.</p>
+                    </div>
+                     <div className="text-center mt-6">
+                        <Button type="button" onClick={nextStep}>Siguiente</Button>
+                    </div>
+                </div>
+            );
+        }
+
+        // Step 7: Final Review and Submit
+        if (step === 7) {
+            const team1 = teams.find(t => t.id === formData.team1);
+            const team2 = teams.find(t => t.id === formData.team2);
+            const tournament = tournaments.find(t => t.tournamentId === formData.tournamentId);
+            const isLive = formData.time && formData.time <= new Date();
+
+            return (
+                 <div key="step7" className="animate-fade-in-up">
+                    <h3 className="text-xl font-semibold mb-4 text-center">7. Revisión Final</h3>
+                    <p className="text-center text-muted-foreground mb-4">Así se verá el partido en la página principal.</p>
+                    <div className="flex justify-center">
+                       <Card className="w-[340px] overflow-hidden shadow-lg flex-shrink-0 flex flex-col">
+                            <div className="p-3 bg-muted/40 border-b flex justify-between items-center gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    {tournament?.logoUrl?.[0] && (
+                                        <Image unoptimized src={tournament.logoUrl[0]} alt={tournament.name} width={24} height={24} className="h-6 w-6 object-contain flex-shrink-0" />
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-semibold text-xs truncate">{tournament?.name}</p>
+                                        {formData.dates && (
+                                            <p className="text-xs text-muted-foreground truncate">{formData.dates}</p>
+                                        )}
+                                    </div>
+                                </div>
+                                {isLive ? (
+                                    <Badge variant="destructive" className="animate-pulse text-xs font-bold px-2 py-0.5">EN VIVO</Badge>
+                                ) : (
+                                    <div className="flex items-center gap-1.5 text-primary text-sm font-bold flex-shrink-0">
+                                        <Clock className="h-4 w-4" />
+                                        <span>{format(formData.time || new Date(), 'HH:mm')} hs</span>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            <CardContent className="p-6 flex-grow flex flex-col items-center justify-center">
+                                <div className="flex items-center justify-around w-full gap-4">
+                                    <div className="flex flex-col items-center gap-2 text-center flex-1">
+                                        <Image unoptimized src={team1?.logoUrl || 'https://placehold.co/128x128.png'} alt={team1?.name || ''} width={64} height={64} className="h-16 w-16 object-contain drop-shadow-sm" />
+                                        <h3 className="font-semibold text-base text-center">{team1?.name}</h3>
+                                    </div>
+                                    
+                                    <div className="text-muted-foreground font-bold text-lg">VS</div>
+                                    
+                                    <div className="flex flex-col items-center gap-2 text-center flex-1">
+                                        <Image unoptimized src={team2?.logoUrl || 'https://placehold.co/128x128.png'} alt={team2?.name || ''} width={64} height={64} className="h-16 w-16 object-contain drop-shadow-sm" />
+                                        <h3 className="font-semibold text-base text-center">{team2?.name}</h3>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            );
+        }
+
+        return null;
+    }
+
+    const isNextDisabled = () => {
+        if (step === 1 && !formData.tournamentId) return true;
+        if (step === 2 && !formData.team1) return true;
+        if (step === 3 && !formData.team2) return true;
+        return false;
+    };
+    
+    // This form wrapper is the key to solving the submission issues.
+    // It's a single form that persists across all steps.
+    return (
+        <form action={() => dispatch(formData as AdminAgendaMatch)}>
+            <DialogContent className="sm:max-w-2xl w-[95vw] max-h-[90vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle>{match ? 'Editar Partido' : 'Programar Nuevo Partido'}</DialogTitle>
+                    <DialogDescription>
+                        {match ? 'Modifica los detalles del partido existente.' : 'Sigue los pasos para programar un nuevo partido.'}
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="flex-grow overflow-y-auto pr-6 -mr-6 min-h-[450px]">
+                    {renderStep()}
+                </div>
+
+                <DialogFooter className="mt-4">
+                    <div className="w-full flex justify-between items-center">
+                        <div>
+                             {step > 1 && (
+                                <Button type="button" variant="ghost" onClick={prevStep}>
+                                    <ArrowLeft className="mr-2 h-4 w-4" />
+                                    Volver
+                                </Button>
+                            )}
+                        </div>
+                        <div className="flex gap-2">
+                             <DialogClose asChild>
+                                <Button type="button" variant="outline">Cancelar</Button>
+                            </DialogClose>
+                            {step === 7 && (
+                                <Button type="submit" disabled={!formData.team1 || !formData.team2}>
+                                    {match ? 'Guardar Cambios' : 'Añadir Partido'}
+                                </Button>
+                            )}
+                        </div>
+                    </div>
                 </DialogFooter>
-            </form>
-        </Form>
-    )
+            </DialogContent>
+        </form>
+    );
 }
 
-function AdminAgendaCard({ match, onEdit, onDelete }: { match: AdminAgendaMatch; onEdit: (match: AdminAgendaMatch) => void; onDelete: (id: string) => void; }) {
+function AdminAgendaCard({ match, onEdit, onDelete }: { match: AdminAgendaMatch; onEdit: (match: AdminAgendaMatch) => void; onDelete: (id: string, name: string) => void; }) {
     const isLive = match.time <= new Date() && new Date().getTime() - match.time.getTime() <= 180 * 60 * 1000;
     
     return (
@@ -360,7 +402,7 @@ function AdminAgendaCard({ match, onEdit, onDelete }: { match: AdminAgendaMatch;
                             <Edit className="mr-2 h-4 w-4" />
                             <span>Editar</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onDelete(match.id)} className="text-destructive">
+                        <DropdownMenuItem onClick={() => onDelete(match.id, `${match.team1Name} vs ${match.team2Name}`)} className="text-destructive">
                              <Trash2 className="mr-2 h-4 w-4" />
                             <span>Eliminar</span>
                         </DropdownMenuItem>
@@ -371,8 +413,7 @@ function AdminAgendaCard({ match, onEdit, onDelete }: { match: AdminAgendaMatch;
     );
 }
 
-
-export default function AgendaDataTable({ data, teams, tournaments, channels, tournamentOptions }: {
+export default function AgendaDataTable({ data, teams, tournaments, channels }: {
     data: AdminAgendaMatch[];
     teams: Team[];
     tournaments: Tournament[];
@@ -413,6 +454,31 @@ export default function AgendaDataTable({ data, teams, tournaments, channels, to
     setIsDialogOpen(false);
     setSelectedMatch(null);
   };
+  
+   const handleDeleteClick = (id: string, name: string) => {
+        const trigger = document.createElement('button');
+        document.body.appendChild(trigger);
+        const dialog = (
+            <AlertDialog open={true} onOpenChange={(open) => !open && trigger.remove()}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Eliminar este partido?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Se eliminará el partido de <strong>{name}</strong>. Esta acción no se puede deshacer.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDelete(id)} className="bg-destructive hover:bg-destructive/90">
+                            Eliminar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        );
+        const { createRoot } = require('react-dom/client');
+        createRoot(trigger).render(dialog);
+    };
 
   return (
     <div>
@@ -424,23 +490,13 @@ export default function AgendaDataTable({ data, teams, tournaments, channels, to
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { if(!isOpen) handleFormSubmit(); else setIsDialogOpen(true); }}>
-        <DialogContent className="sm:max-w-4xl w-[95vw] max-h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>{selectedMatch ? 'Editar Partido' : 'Programar Nuevo Partido'}</DialogTitle>
-            <DialogDescription>
-              {selectedMatch ? 'Modifica los detalles del partido existente.' : 'Completa el formulario para programar un nuevo partido.'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex-grow overflow-y-auto pr-6 -mr-6">
-              <MatchForm 
-                match={selectedMatch} 
-                onFormSubmit={handleFormSubmit}
-                teams={teams}
-                tournaments={tournaments}
-                channels={channels}
-              />
-          </div>
-        </DialogContent>
+        <MatchWizard
+            match={selectedMatch}
+            onFormSubmit={handleFormSubmit}
+            teams={teams}
+            tournaments={tournaments}
+            channels={channels}
+        />
       </Dialog>
       
        {/* Responsive Layout */}
@@ -509,38 +565,12 @@ export default function AgendaDataTable({ data, teams, tournaments, channels, to
 
        <div className="md:hidden space-y-4">
         {data && data.length > 0 ? (
-          data.map((match, index) => (
+          data.map((match) => (
              <AdminAgendaCard
                 key={match.id}
                 match={match}
                 onEdit={handleEditClick}
-                onDelete={(id) => {
-                   const matchToDelete = data.find(m => m.id === id);
-                   if (matchToDelete) {
-                       const trigger = document.createElement('button');
-                       document.body.appendChild(trigger);
-                       const dialog = (
-                           <AlertDialog open={true} onOpenChange={(open) => !open && trigger.remove()}>
-                               <AlertDialogContent>
-                                   <AlertDialogHeader>
-                                      <AlertDialogTitle>¿Eliminar este partido?</AlertDialogTitle>
-                                       <AlertDialogDescription>
-                                            Se eliminará el partido entre <strong>{matchToDelete.team1Name} y {matchToDelete.team2Name}</strong>. Esta acción no se puede deshacer.
-                                       </AlertDialogDescription>
-                                   </AlertDialogHeader>
-                                   <AlertDialogFooter>
-                                       <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                       <AlertDialogAction onClick={() => handleDelete(id)} className="bg-destructive hover:bg-destructive/90">
-                                           Eliminar
-                                       </AlertDialogAction>
-                                   </AlertDialogFooter>
-                               </AlertDialogContent>
-                           </AlertDialog>
-                       );
-                       const { createRoot } = require('react-dom/client');
-                       createRoot(trigger).render(dialog);
-                   }
-                }}
+                onDelete={handleDeleteClick}
             />
           ))
         ) : (
