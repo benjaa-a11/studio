@@ -73,6 +73,10 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
                     description: state.message
                 });
             }
+            // IMPORTANT: Reset state after showing toast to prevent infinite loops
+             // This is a simplified reset. In a real app, you might use a dedicated reset action.
+            state.message = '';
+            state.success = false;
         }
     }, [state, onFormSubmit, toast]);
 
@@ -562,3 +566,4 @@ export default function AgendaDataTable({ data, teams, tournaments, channels }: 
     </div>
   );
 }
+
