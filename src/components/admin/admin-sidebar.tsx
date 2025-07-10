@@ -4,13 +4,12 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Home, Tv, Film, Radio, CalendarDays, Shield, Users, BarChart3 } from "lucide-react";
+import { Home, Tv, Film, Radio, CalendarDays, Shield, Users } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 const navItems = [
     { href: "/admin", label: "Dashboard", icon: Home },
-    { href: "/admin/analytics", label: "Estadísticas", icon: BarChart3 },
     { href: "/admin/channels", label: "Canales", icon: Tv },
     { href: "/admin/movies", label: "Películas", icon: Film },
     { href: "/admin/radios", label: "Radios", icon: Radio },
