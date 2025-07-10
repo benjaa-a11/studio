@@ -449,7 +449,7 @@ export default function AgendaDataTable({ data, teams, tournaments, channels }: 
     }
     setIsAlertOpen(false);
     setSelectedMatch(null);
-  }
+  };
 
   const handleFormSubmit = () => {
     setIsFormOpen(false);
