@@ -59,6 +59,7 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
     const { toast } = useToast();
 
     useEffect(() => {
+        if (isPending) return;
         if (state.message) {
             if (state.success) {
                 toast({
@@ -73,11 +74,8 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
                     description: state.message
                 });
             }
-            // IMPORTANT: Reset state after showing toast to prevent infinite loops
-            state.message = '';
-            state.success = false;
         }
-    }, [state, onFormSubmit, toast]);
+    }, [state, isPending, onFormSubmit, toast]);
 
 
     const nextStep = () => { setStep(s => s + 1); };
@@ -119,7 +117,7 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
                     <ScrollArea className="h-[400px]">
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-1">
                             {tournaments.map(t => (
-                                <button key={t.id} type="button" onClick={() => handleSelect('tournamentId', t.tournamentId)} className="group flex flex-col items-center gap-2 p-3 rounded-lg border text-center transition-all hover:border-primary hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                                <button key={t.id} type="button" onClick={() => handleSelect('tournamentId', t.tournamentId)} className={cn("group flex flex-col items-center gap-2 p-3 rounded-lg border text-center transition-all hover:border-primary hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary", formData.tournamentId === t.tournamentId && "border-primary ring-2 ring-primary")}>
                                     <Image src={t.logoUrl?.[0] || 'https://placehold.co/128x128.png'} alt={t.name} width={48} height={48} className="h-12 w-12 object-contain" unoptimized />
                                     <span className="text-xs font-medium">{t.name}</span>
                                 </button>
@@ -138,7 +136,7 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
                     <h3 className="text-xl font-semibold mb-4 text-center">{step}. Selecciona el Equipo {step - 1}</h3>
                     <div className="relative flex-grow overflow-hidden">
                         {/* Country List */}
-                        <div className={cn("absolute inset-0 transition-all duration-300", selectedCountry ? "opacity-0 -translate-x-full" : "opacity-100 translate-x-0")}>
+                        <div className={cn("absolute inset-0 transition-all duration-300", selectedCountry ? "opacity-0 -translate-x-full pointer-events-none" : "opacity-100 translate-x-0")}>
                              <ScrollArea className="h-full">
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-1">
                                     {Object.keys(teamsByCountry).sort().map(country => (
@@ -150,14 +148,16 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
                             </ScrollArea>
                         </div>
                         {/* Team List */}
-                        <div className={cn("absolute inset-0 transition-all duration-300 flex flex-col", selectedCountry ? "opacity-100 translate-x-0" : "opacity-0 translate-x-full")}>
-                             <button type="button" onClick={() => setSelectedCountry(null)} className="mb-2 flex items-center gap-1 text-sm font-semibold text-primary hover:underline flex-shrink-0">
-                                <ArrowLeft size={16}/> Volver a Países
-                             </button>
+                        <div className={cn("absolute inset-0 transition-all duration-300 flex flex-col", selectedCountry ? "opacity-100 translate-x-0" : "opacity-0 translate-x-full pointer-events-none")}>
+                             <div className="flex-shrink-0 mb-2">
+                                <button type="button" onClick={() => setSelectedCountry(null)} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+                                    <ArrowLeft size={16}/> Volver a Países
+                                 </button>
+                             </div>
                              <ScrollArea className="flex-grow">
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-1">
                                     {selectedCountry && teamsByCountry[selectedCountry].map(team => (
-                                        <button key={team.id} type="button" onClick={() => handleSelect(teamKey, team.id)} className="group flex flex-col items-center gap-2 p-3 rounded-lg border text-center transition-all hover:border-primary hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed" disabled={formData.team1 === team.id || formData.team2 === team.id}>
+                                        <button key={team.id} type="button" onClick={() => handleSelect(teamKey, team.id)} className={cn("group flex flex-col items-center gap-2 p-3 rounded-lg border text-center transition-all hover:border-primary hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed", (formData.team1 === team.id || formData.team2 === team.id) && "border-primary ring-2 ring-primary")} disabled={formData[teamKey === 'team1' ? 'team2' : 'team1'] === team.id}>
                                             <Image src={team.logoUrl} alt={team.name} width={48} height={48} className="h-12 w-12 object-contain" unoptimized />
                                             <span className="text-xs font-medium">{team.name}</span>
                                         </button>
@@ -208,7 +208,7 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
                     <h3 className="text-xl font-semibold mb-4 text-center">5. Canales de Transmisión</h3>
                     <div className="relative flex-grow overflow-hidden">
                         {/* Category List */}
-                        <div className={cn("absolute inset-0 transition-all duration-300", selectedCategory ? "opacity-0 -translate-x-full" : "opacity-100 translate-x-0")}>
+                        <div className={cn("absolute inset-0 transition-all duration-300", selectedCategory ? "opacity-0 -translate-x-full pointer-events-none" : "opacity-100 translate-x-0")}>
                              <ScrollArea className="h-full">
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-1">
                                     {Object.keys(channelsByCategory).sort().map(category => (
@@ -220,10 +220,12 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
                             </ScrollArea>
                         </div>
                         {/* Channel List */}
-                        <div className={cn("absolute inset-0 transition-all duration-300 flex flex-col", selectedCategory ? "opacity-100 translate-x-0" : "opacity-0 translate-x-full")}>
-                             <button type="button" onClick={() => setSelectedCategory(null)} className="mb-2 flex items-center gap-1 text-sm font-semibold text-primary hover:underline flex-shrink-0">
-                                <ArrowLeft size={16}/> Volver a Categorías
-                             </button>
+                        <div className={cn("absolute inset-0 transition-all duration-300 flex flex-col", selectedCategory ? "opacity-100 translate-x-0" : "opacity-0 translate-x-full pointer-events-none")}>
+                             <div className="flex-shrink-0 mb-2">
+                                <button type="button" onClick={() => setSelectedCategory(null)} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+                                    <ArrowLeft size={16}/> Volver a Categorías
+                                 </button>
+                             </div>
                              <ScrollArea className="flex-grow">
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-1">
                                     {selectedCategory && channelsByCategory[selectedCategory].map(c => (
