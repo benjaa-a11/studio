@@ -5,6 +5,7 @@ import type { Channel } from "@/types";
 import ChannelCard from "./channel-card";
 import { Film } from "lucide-react";
 import { useChannelFilters } from "@/hooks/use-channel-filters";
+import { useChannelHistory } from "@/hooks/use-channel-history";
 
 type ChannelBrowserProps = {
   channels: Channel[];
@@ -14,9 +15,11 @@ export default function ChannelBrowser({
   channels,
 }: ChannelBrowserProps) {
   const { searchTerm, selectedCategory } = useChannelFilters();
+  const { viewCounts, isLoaded } = useChannelHistory();
 
-  const filteredChannels = useMemo(() => {
-    return channels.filter((channel) => {
+  const sortedAndFilteredChannels = useMemo(() => {
+    // First, filter the channels based on search and category
+    const filtered = channels.filter((channel) => {
       if (!channel) return false;
       const matchesCategory =
         selectedCategory === "Todos" || channel.category === selectedCategory;
@@ -25,13 +28,25 @@ export default function ChannelBrowser({
         (channel.description?.toLowerCase() ?? "").includes(searchTerm.toLowerCase());
       return matchesCategory && matchesSearch;
     });
-  }, [channels, searchTerm, selectedCategory]);
+
+    // Then, sort the filtered channels based on view counts
+    if (isLoaded) {
+      return filtered.sort((a, b) => {
+        const countA = viewCounts[a.id] || 0;
+        const countB = viewCounts[b.id] || 0;
+        return countB - countA; // Sort in descending order of view count
+      });
+    }
+    
+    return filtered; // Return filtered but unsorted if history isn't loaded yet
+
+  }, [channels, searchTerm, selectedCategory, viewCounts, isLoaded]);
 
   return (
     <div className="space-y-8">
-      {filteredChannels.length > 0 ? (
+      {sortedAndFilteredChannels.length > 0 ? (
         <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-          {filteredChannels.map((channel, index) => (
+          {sortedAndFilteredChannels.map((channel, index) => (
             <ChannelCard key={channel.id} channel={channel} index={index} />
           ))}
         </div>
