@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import type { Channel } from "@/types";
 import ChannelCard from "./channel-card";
 import { Film } from "lucide-react";
@@ -16,10 +17,15 @@ export default function ChannelBrowser({
 }: ChannelBrowserProps) {
   const { searchTerm, selectedCategory } = useChannelFilters();
   const { viewCounts, isLoaded } = useChannelHistory();
+  const [clientChannels, setClientChannels] = useState<Channel[]>(channels);
+  const [isMounted, setIsMounted] = useState(false);
 
-  const sortedAndFilteredChannels = useMemo(() => {
-    // First, filter the channels based on search and category
-    const filtered = channels.filter((channel) => {
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const filteredChannels = useMemo(() => {
+    return channels.filter((channel) => {
       if (!channel) return false;
       const matchesCategory =
         selectedCategory === "Todos" || channel.category === selectedCategory;
@@ -28,23 +34,27 @@ export default function ChannelBrowser({
         (channel.description?.toLowerCase() ?? "").includes(searchTerm.toLowerCase());
       return matchesCategory && matchesSearch;
     });
+  }, [channels, searchTerm, selectedCategory]);
 
-    // Then, sort the filtered channels based on view counts
-    // The viewCounts are loaded synchronously, so isLoaded is true on first render
-    // unless there was an error, but we can sort with an empty object anyway.
-    return filtered.sort((a, b) => {
-      const countA = viewCounts[a.id] || 0;
-      const countB = viewCounts[b.id] || 0;
-      return countB - countA; // Sort in descending order of view count
-    });
-    
-  }, [channels, searchTerm, selectedCategory, viewCounts]);
+  useEffect(() => {
+    if (isLoaded && isMounted) {
+      const sorted = [...filteredChannels].sort((a, b) => {
+        const countA = viewCounts[a.id] || 0;
+        const countB = viewCounts[b.id] || 0;
+        return countB - countA;
+      });
+      setClientChannels(sorted);
+    } else {
+      setClientChannels(filteredChannels);
+    }
+  }, [filteredChannels, viewCounts, isLoaded, isMounted]);
+
 
   return (
     <div className="space-y-8">
-      {sortedAndFilteredChannels.length > 0 ? (
+      {clientChannels.length > 0 ? (
         <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-          {sortedAndFilteredChannels.map((channel, index) => (
+          {clientChannels.map((channel, index) => (
             <ChannelCard key={channel.id} channel={channel} index={index} />
           ))}
         </div>
