@@ -30,17 +30,15 @@ export default function ChannelBrowser({
     });
 
     // Then, sort the filtered channels based on view counts
-    if (isLoaded) {
-      return filtered.sort((a, b) => {
-        const countA = viewCounts[a.id] || 0;
-        const countB = viewCounts[b.id] || 0;
-        return countB - countA; // Sort in descending order of view count
-      });
-    }
+    // The viewCounts are loaded synchronously, so isLoaded is true on first render
+    // unless there was an error, but we can sort with an empty object anyway.
+    return filtered.sort((a, b) => {
+      const countA = viewCounts[a.id] || 0;
+      const countB = viewCounts[b.id] || 0;
+      return countB - countA; // Sort in descending order of view count
+    });
     
-    return filtered; // Return filtered but unsorted if history isn't loaded yet
-
-  }, [channels, searchTerm, selectedCategory, viewCounts, isLoaded]);
+  }, [channels, searchTerm, selectedCategory, viewCounts]);
 
   return (
     <div className="space-y-8">

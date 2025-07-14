@@ -98,26 +98,29 @@ export default function SettingsPage() {
     { value: "system", label: "Sistema", icon: Monitor },
   ];
 
-  const handleClearFavorites = () => {
+  const handleClearData = () => {
     try {
       localStorage.removeItem('plan-b-favorites');
       localStorage.removeItem('plan-b-movie-favorites');
+      localStorage.removeItem('plan-b-channel-history');
+      
       toast({
         title: (
           <div className="flex items-start gap-3">
             <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-foreground">Favoritos eliminados</p>
+              <p className="font-semibold text-foreground">Datos de la aplicación eliminados</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Los datos de tus favoritos han sido borrados.
+                Tus favoritos e historial de vistas han sido borrados.
               </p>
             </div>
           </div>
         ),
       });
+      // Give user time to read the toast before reloading
       setTimeout(() => window.location.reload(), 1500);
     } catch (error) {
-      console.error("Failed to clear favorites from localStorage", error);
+      console.error("Failed to clear app data from localStorage", error);
       toast({
         variant: "destructive",
         title: (
@@ -212,8 +215,8 @@ export default function SettingsPage() {
           <h2 className="text-2xl font-semibold tracking-tight">Datos</h2>
            <Separator />
           <SettingsRow
-            title="Borrar favoritos"
-            description="Elimina todos los canales y películas guardados como favoritos en este dispositivo."
+            title="Borrar datos de navegación"
+            description="Elimina favoritos e historial de canales guardados en este dispositivo."
           >
              <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -226,14 +229,14 @@ export default function SettingsPage() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>¿Estás completamente seguro?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Esta acción es irreversible. Todos tus canales y películas favoritas serán eliminados de este dispositivo.
+                      Esta acción es irreversible. Todos tus favoritos (canales y películas) y tu historial de visualización de canales serán eliminados de este dispositivo.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
                     <AlertDialogAction
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      onClick={handleClearFavorites}
+                      onClick={handleClearData}
                     >
                       Sí, borrar todo
                     </AlertDialogAction>

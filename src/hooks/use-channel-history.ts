@@ -8,32 +8,40 @@ type ViewCounts = {
   [channelId: string]: number;
 };
 
+// Helper function to safely get history from localStorage
+const getInitialHistory = (): ViewCounts => {
+  try {
+    const storedHistory = localStorage.getItem(HISTORY_KEY);
+    if (storedHistory && storedHistory !== 'undefined' && storedHistory !== 'null') {
+      const parsed = JSON.parse(storedHistory);
+      if (typeof parsed === 'object' && parsed !== null) {
+        return parsed;
+      }
+    }
+  } catch (error) {
+    console.error("Error parsing channel history from localStorage on init", error);
+  }
+  return {}; // Return empty object on any failure
+};
+
+
 export function useChannelHistory() {
-  const [viewCounts, setViewCounts] = useState<ViewCounts>({});
+  const [viewCounts, setViewCounts] = useState<ViewCounts>(getInitialHistory);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  // The isLoaded state is now mostly for external components that might need it,
+  // as the initial state is now loaded synchronously.
   useEffect(() => {
-    try {
-      const storedHistory = localStorage.getItem(HISTORY_KEY);
-      // Professional check: Ensure data is a valid JSON string before parsing
-      if (storedHistory && storedHistory !== 'undefined' && storedHistory !== 'null') {
-        setViewCounts(JSON.parse(storedHistory));
-      }
-    } catch (error) {
-      console.error("Error loading channel history from localStorage", error);
-      setViewCounts({}); // Reset on error
-    } finally {
-      setIsLoaded(true);
-    }
+    setIsLoaded(true);
   }, []);
 
-  const updateLocalStorage = (newHistory: ViewCounts) => {
+  const updateLocalStorage = useCallback((newHistory: ViewCounts) => {
     try {
       localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
     } catch (error) {
       console.error("Error saving channel history to localStorage", error);
     }
-  };
+  }, []);
 
   const recordView = useCallback((channelId: string) => {
     setViewCounts(prev => {
@@ -42,7 +50,7 @@ export function useChannelHistory() {
       updateLocalStorage(newHistory);
       return newHistory;
     });
-  }, []);
+  }, [updateLocalStorage]);
 
   return { viewCounts, recordView, isLoaded };
 }
