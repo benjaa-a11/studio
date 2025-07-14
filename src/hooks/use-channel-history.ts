@@ -15,12 +15,13 @@ export function useChannelHistory() {
   useEffect(() => {
     try {
       const storedHistory = localStorage.getItem(HISTORY_KEY);
-      if (storedHistory) {
+      // Professional check: Ensure data is a valid JSON string before parsing
+      if (storedHistory && storedHistory !== 'undefined' && storedHistory !== 'null') {
         setViewCounts(JSON.parse(storedHistory));
       }
     } catch (error) {
       console.error("Error loading channel history from localStorage", error);
-      setViewCounts({});
+      setViewCounts({}); // Reset on error
     } finally {
       setIsLoaded(true);
     }
