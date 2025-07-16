@@ -40,13 +40,13 @@ export default function MovieHeader() {
   };
 
   return (
-    <div className="absolute top-0 left-0 right-0 z-40 h-24 pt-safe-top flex items-start justify-end p-4 bg-gradient-to-b from-black/50 to-transparent pointer-events-none">
+    <div className="absolute top-0 left-0 right-0 z-40 h-24 pt-safe-top flex items-start justify-end p-4 bg-gradient-to-b from-black/60 to-transparent pointer-events-none">
       <div className="flex items-center gap-2 pointer-events-auto">
 
         {/* Search Input and Button */}
         <div className={cn(
             "flex items-center gap-2 transition-all duration-300 ease-in-out",
-            isSearchOpen ? 'w-56' : 'w-10'
+            isSearchOpen ? 'w-48 sm:w-56' : 'w-10'
         )}>
             <Button
               variant="ghost"
@@ -56,11 +56,11 @@ export default function MovieHeader() {
             >
               {isSearchOpen ? <X size={20} /> : <Search size={20} />}
             </Button>
-            <div className={cn("relative transition-all duration-300 ease-in-out", isSearchOpen ? 'w-full opacity-100' : 'w-0 opacity-0')}>
+            <div className={cn("relative transition-all duration-300 ease-in-out overflow-hidden", isSearchOpen ? 'w-full opacity-100' : 'w-0 opacity-0')}>
               <Input
                 ref={searchInputRef}
                 type="search"
-                placeholder="Buscar película..."
+                placeholder="Buscar..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="h-10 w-full pl-4 pr-2 bg-black/30 text-white placeholder:text-white/70 border-white/30 backdrop-blur-sm focus:bg-black/50"

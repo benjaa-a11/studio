@@ -12,17 +12,14 @@ export default function MovieHero({ movies }: { movies: Movie[] }) {
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const isInteractingRef = useRef(false);
 
-    const scrollToMovie = useCallback((index: number) => {
+    const scrollToMovie = useCallback((index: number, smooth = true) => {
         const scrollContainer = scrollRef.current;
-        if (scrollContainer) {
+        if (scrollContainer && scrollContainer.children[index]) {
             const movieElement = scrollContainer.children[index] as HTMLElement;
-            if (movieElement) {
-                const scrollLeft = movieElement.offsetLeft - (scrollContainer.offsetWidth - movieElement.offsetWidth) / 2;
-                scrollContainer.scrollTo({
-                    left: scrollLeft,
-                    behavior: 'smooth'
-                });
-            }
+            scrollContainer.scrollTo({
+                left: movieElement.offsetLeft,
+                behavior: smooth ? 'smooth' : 'auto'
+            });
         }
     }, []);
 
@@ -32,49 +29,65 @@ export default function MovieHero({ movies }: { movies: Movie[] }) {
             if (!isInteractingRef.current) {
                 setCurrentIndex(prevIndex => {
                     const nextIndex = (prevIndex + 1) % movies.length;
-                    scrollToMovie(nextIndex);
                     return nextIndex;
                 });
             }
-        }, 6000); // Change movie every 6 seconds
-    }, [movies.length, scrollToMovie]);
+        }, 5000); // Change movie every 5 seconds
+    }, [movies.length]);
+
+    useEffect(() => {
+        scrollToMovie(currentIndex, true);
+    }, [currentIndex, scrollToMovie]);
 
     useEffect(() => {
         startAutoScroll();
+        const container = scrollRef.current;
+
+        const onInteractionStart = () => {
+            isInteractingRef.current = true;
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
+
+        const onInteractionEnd = () => {
+            isInteractingRef.current = false;
+            startAutoScroll();
+        };
+
+        container?.addEventListener('touchstart', onInteractionStart, { passive: true });
+        container?.addEventListener('touchend', onInteractionEnd, { passive: true });
+        container?.addEventListener('mousedown', onInteractionStart, { passive: true });
+        container?.addEventListener('mouseup', onInteractionEnd, { passive: true });
+
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
+            container?.removeEventListener('touchstart', onInteractionStart);
+            container?.removeEventListener('touchend', onInteractionEnd);
+            container?.removeEventListener('mousedown', onInteractionStart);
+            container?.removeEventListener('mouseup', onInteractionEnd);
         };
     }, [startAutoScroll]);
 
-    const handleManualScroll = () => {
+    const handleManualScroll = useCallback(() => {
         const scrollContainer = scrollRef.current;
-        if (!scrollContainer) return;
+        if (!scrollContainer || isInteractingRef.current) return;
 
-        isInteractingRef.current = true;
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        
-        const scrollLeft = scrollContainer.scrollLeft;
-        const itemWidth = scrollContainer.scrollWidth / movies.length;
+        const { scrollLeft, scrollWidth, children } = scrollContainer;
+        const itemWidth = scrollWidth / movies.length;
         const newIndex = Math.round(scrollLeft / itemWidth);
         
         if (newIndex !== currentIndex) {
             setCurrentIndex(newIndex);
         }
-        
-        // Restart auto-scroll after user stops interacting
-        setTimeout(() => {
-            isInteractingRef.current = false;
-            startAutoScroll();
-        }, 3000);
-    };
+    }, [currentIndex, movies.length]);
+
 
     if (!movies || movies.length === 0) {
         return null;
     }
 
     return (
-        <div className="w-full aspect-video md:aspect-[2.4/1] relative overflow-hidden bg-muted -mt-8">
-            <div 
+        <div className="w-full aspect-video md:aspect-[2.4/1] relative overflow-hidden bg-muted">
+             <div 
                 ref={scrollRef}
                 className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scrollbar-hide"
                 onScroll={handleManualScroll}
@@ -91,15 +104,12 @@ export default function MovieHero({ movies }: { movies: Movie[] }) {
                 {movies.map((_, index) => (
                     <button
                         key={index}
-                        onClick={() => {
-                            setCurrentIndex(index);
-                            scrollToMovie(index);
-                        }}
+                        onClick={() => setCurrentIndex(index)}
                         className={cn(
                             "h-1.5 w-6 rounded-full transition-all duration-300",
                             index === currentIndex ? "bg-white" : "bg-white/40 hover:bg-white/60"
                         )}
-                        aria-label={`Go to movie ${index + 1}`}
+                        aria-label={`Ir a película ${index + 1}`}
                     />
                 ))}
             </div>
