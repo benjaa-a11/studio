@@ -35,19 +35,19 @@ export default function MovieHeroCard({ movie, isActive }: MovieHeroCardProps) {
                 "absolute inset-0 flex flex-col justify-end text-center md:text-right transition-all duration-700 ease-in-out p-6 md:p-16 items-center md:items-end",
                 isActive ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             )}>
-                 <div className="w-40 h-20 md:w-60 md:h-28 relative mb-4">
+                 <div className="w-40 h-20 md:w-52 md:h-24 relative mb-4">
                      {movie.logoUrl ? (
                          <Image
                             src={movie.logoUrl}
                             alt={`Logo de ${movie.title}`}
                             fill
-                            sizes="(max-width: 768px) 160px, 240px"
+                            sizes="(max-width: 768px) 160px, 208px"
                             className="object-contain drop-shadow-2xl"
                             unoptimized
                          />
                      ) : (
                         <h2 
-                            className="text-3xl md:text-5xl font-black tracking-tighter"
+                            className="text-3xl md:text-4xl font-black tracking-tighter"
                             style={{ textShadow: '2px 4px 6px rgba(0,0,0,0.8)' }}
                         >
                             {movie.title}
