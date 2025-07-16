@@ -6,6 +6,7 @@ import type { Movie } from "@/types";
 import { useMovieFilters } from "@/hooks/use-movie-filters";
 import MovieShelf from "./movie-shelf";
 import MovieHero from "./movie-hero";
+import MovieHeader from "./movie-header"; // Import the new header
 
 type MovieBrowserProps = {
   movies: Movie[];
@@ -74,7 +75,9 @@ export default function MovieBrowser({
   const categories = useMemo(() => Object.keys(byCategory).sort(), [byCategory]);
 
   return (
-    <div className="w-full">
+    <div className="w-full relative">
+        {!isHomePage && <MovieHeader />}
+        
         {!isHomePage && heroMovies.length > 0 && selectedCategory === 'Todos' && searchTerm === '' && (
             <MovieHero movies={heroMovies} />
         )}

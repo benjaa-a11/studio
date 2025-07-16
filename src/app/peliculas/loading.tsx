@@ -7,9 +7,8 @@ export default function MoviesLoading() {
       <div className="w-full aspect-video md:aspect-[2.4/1] relative flex items-center justify-center bg-muted">
         <Skeleton className="h-full w-full" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
-        <div className="absolute bottom-8 left-8 md:bottom-16 md:left-16 space-y-4">
-            <Skeleton className="h-10 w-72 rounded-lg" />
-            <Skeleton className="h-5 w-96 rounded-md" />
+        <div className="absolute bottom-8 left-8 md:bottom-16 md:left-16 space-y-4 text-left">
+            <Skeleton className="h-10 w-48 rounded-lg" />
             <Skeleton className="h-12 w-36 rounded-md" />
         </div>
       </div>
@@ -21,10 +20,8 @@ export default function MoviesLoading() {
             <Skeleton className="h-8 w-48 rounded-md" />
             <div className="flex space-x-4">
               {[...Array(5)].map((_, j) => (
-                <div key={j} className="w-40 sm:w-44 shrink-0 space-y-2">
+                <div key={j} className="w-36 sm:w-40 shrink-0 space-y-2">
                   <Skeleton className="aspect-[2/3] w-full rounded-xl" />
-                  <Skeleton className="h-5 w-3/4 rounded-md" />
-                   <Skeleton className="h-4 w-1/2 rounded-md" />
                 </div>
               ))}
             </div>
