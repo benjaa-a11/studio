@@ -51,6 +51,7 @@ export type Movie = {
   title: string;
   posterUrl: string;
   backdropUrl?: string;
+  logoUrl?: string;
   streamUrl: string;
   trailerUrl?: string;
   category: string[];

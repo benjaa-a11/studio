@@ -320,11 +320,13 @@ const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
 const TMDB_BACKDROP_BASE_URL = "https://image.tmdb.org/t/p/w1280";
+const TMDB_LOGO_BASE_URL = "https://image.tmdb.org/t/p/w500";
+
 
 const _fetchTMDbData = cache(async (tmdbID: string) => {
   // The key is checked before this function is called, so we can assume it exists.
   try {
-    const response = await fetch(`${TMDB_BASE_URL}/movie/${tmdbID}?api_key=${TMDB_API_KEY}&language=es-ES`);
+    const response = await fetch(`${TMDB_BASE_URL}/movie/${tmdbID}?api_key=${TMDB_API_KEY}&language=es-ES&append_to_response=images`);
     if (!response.ok) {
       console.error(`Error fetching TMDb data for ${tmdbID}: ${response.statusText}`);
       return null;
@@ -416,6 +418,15 @@ const _enrichMovieData = async (
   }
 
   const backdropUrl = tmdbMovieData?.backdrop_path ? `${TMDB_BACKDROP_BASE_URL}${tmdbMovieData.backdrop_path}` : undefined;
+  
+  // Find the best logo
+  const logos = tmdbMovieData?.images?.logos || [];
+  const spanishLogo = logos.find((logo: any) => logo.iso_639_1 === 'es');
+  const englishLogo = logos.find((logo: any) => logo.iso_639_1 === 'en');
+  const anyLogo = logos[0];
+  const bestLogo = spanishLogo || englishLogo || anyLogo;
+  const logoUrl = bestLogo ? `${TMDB_LOGO_BASE_URL}${bestLogo.file_path}` : undefined;
+
   const synopsis = firestoreMovie.synopsis || tmdbMovieData?.overview || '';
   const year = firestoreMovie.year || (tmdbMovieData?.release_date ? parseInt(tmdbMovieData.release_date.split('-')[0], 10) : undefined);
   const category = firestoreMovie.category || tmdbMovieData?.genres?.map((g: any) => g.name) || [];
@@ -440,6 +451,7 @@ const _enrichMovieData = async (
     title,
     posterUrl,
     backdropUrl,
+    logoUrl,
     synopsis,
     year,
     category,
