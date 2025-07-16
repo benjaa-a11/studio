@@ -418,7 +418,8 @@ const _enrichMovieData = async (docId: string, firestoreMovie: any): Promise<Mov
 
   const backdropUrl = tmdbMovieData?.backdrop_path ? `${TMDB_BACKDROP_BASE_URL}${tmdbMovieData.backdrop_path}` : undefined;
   const synopsis = firestoreMovie.synopsis || tmdbMovieData?.overview || '';
-  const year = firestoreMovie.year || (tmdbMovieData?.release_date ? parseInt(tmdbMovieData.release_date.split('-')[0], 10) : undefined);
+  const releaseDateStr = tmdbMovieData?.release_date;
+  const year = firestoreMovie.year || (releaseDateStr ? parseInt(releaseDateStr.split('-')[0], 10) : undefined);
   const category = firestoreMovie.category || tmdbMovieData?.genres?.map((g: any) => g.name) || [];
   
   let duration = firestoreMovie.duration;
@@ -431,6 +432,17 @@ const _enrichMovieData = async (docId: string, firestoreMovie: any): Promise<Mov
   const director = firestoreMovie.director || tmdbCreditsData?.crew?.find((p: any) => p.job === 'Director')?.name;
   const actors = firestoreMovie.actors || tmdbCreditsData?.cast?.slice(0, 3).map((p: any) => p.name).join(', ');
   const rating = firestoreMovie.rating || (tmdbMovieData?.vote_average ? tmdbMovieData.vote_average.toFixed(1) : undefined);
+  
+  // Logic for isRecent and isPopular
+  let isRecent = false;
+  if (releaseDateStr) {
+    const releaseDate = new Date(releaseDateStr);
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    isRecent = releaseDate > threeMonthsAgo;
+  }
+  const isPopular = rating ? parseFloat(rating) >= 7.5 : false;
+
 
   return {
     id: docId,
@@ -448,6 +460,8 @@ const _enrichMovieData = async (docId: string, firestoreMovie: any): Promise<Mov
     director,
     actors,
     rating,
+    isRecent,
+    isPopular,
   };
 };
 

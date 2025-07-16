@@ -4,10 +4,10 @@ import MovieBrowser from "@/components/movie-browser";
 export const dynamic = 'force-dynamic'; // Ensures the page is always rendered dynamically
 
 export default async function MoviesPage() {
-  const movies = await getMovies();
+  const movies = await getMovies(true); // Include placeholders in case db is empty
 
   return (
-    <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+    <div className="w-full">
       <MovieBrowser movies={movies} />
     </div>
   );
