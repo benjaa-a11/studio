@@ -32,7 +32,7 @@ export default function MovieHeroCard({ movie, isActive }: MovieHeroCardProps) {
             
             {/* Content */}
             <div className={cn(
-                "absolute inset-0 flex flex-col items-center justify-end text-center md:items-start md:text-left transition-all duration-700 ease-in-out p-6 md:p-16",
+                "absolute inset-0 flex flex-col justify-end text-center md:text-right transition-all duration-700 ease-in-out p-6 md:p-16 items-center md:items-end",
                 isActive ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             )}>
                  <div className="w-40 h-20 md:w-60 md:h-28 relative mb-4">
