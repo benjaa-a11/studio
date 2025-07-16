@@ -61,8 +61,9 @@ export type Movie = {
   director?: string;
   actors?: string;
   rating?: string;
-  isRecent?: boolean;
-  isPopular?: boolean;
+  isTrending?: boolean;
+  isTopRated?: boolean;
+  popularity?: number;
 };
 
 export type Radio = {

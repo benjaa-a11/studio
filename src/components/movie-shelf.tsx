@@ -14,13 +14,13 @@ export default function MovieShelf({ title, movies, animationDelay = 0 }: MovieS
   }
 
   return (
-    <div className="space-y-4 opacity-0 animate-fade-in-up" style={{ animationDelay: `${animationDelay}ms` }}>
-      <h2 className="text-2xl font-bold tracking-tight text-foreground">{title}</h2>
+    <div className="space-y-3 opacity-0 animate-fade-in-up" style={{ animationDelay: `${animationDelay}ms` }}>
+      <h2 className="text-xl font-bold tracking-tight text-foreground">{title}</h2>
       <div className="relative">
         <ScrollArea>
           <div className="flex space-x-4 pb-4">
             {movies.map((movie, index) => (
-              <div key={movie.id} className="w-40 sm:w-44 shrink-0">
+              <div key={movie.id} className="w-36 sm:w-40 shrink-0">
                 <MovieCard movie={movie} index={index} />
               </div>
             ))}

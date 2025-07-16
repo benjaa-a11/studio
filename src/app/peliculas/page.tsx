@@ -7,8 +7,6 @@ export default async function MoviesPage() {
   const movies = await getMovies(true); // Include placeholders in case db is empty
 
   return (
-    <div className="w-full">
-      <MovieBrowser movies={movies} />
-    </div>
+    <MovieBrowser movies={movies} />
   );
 }

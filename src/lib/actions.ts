@@ -384,7 +384,11 @@ const _fetchTMDbVideos = cache(async (tmdbID: string) => {
 });
 
 
-const _enrichMovieData = async (docId: string, firestoreMovie: any): Promise<Movie | null> => {
+const _enrichMovieData = async (
+    docId: string, 
+    firestoreMovie: any,
+    tmdbLists?: { trendingIds: Set<string>; topRatedIds: Set<string> }
+): Promise<Movie | null> => {
   const [tmdbMovieData, tmdbCreditsData, tmdbVideoUrl] = firestoreMovie.tmdbID
     ? await Promise.all([
         _fetchTMDbData(firestoreMovie.tmdbID),
@@ -394,32 +398,26 @@ const _enrichMovieData = async (docId: string, firestoreMovie: any): Promise<Mov
     : [null, null, null];
   
   const title = firestoreMovie.title || tmdbMovieData?.title;
-  // If no title can be determined, the movie data is incomplete. Skip it.
   if (!title) {
     console.warn(`Skipping movie with docId ${docId} because a title could not be determined.`);
     return null;
   }
 
-  // Professional safeguard for posterUrl to prevent empty strings.
   let posterUrl = '';
-  // 1. Prioritize user-provided URL if it's a valid, non-empty string.
   if (firestoreMovie.posterUrl && firestoreMovie.posterUrl.trim().length > 0) {
       posterUrl = firestoreMovie.posterUrl;
   } 
-  // 2. Fallback to TMDb if available.
   else if (tmdbMovieData && tmdbMovieData.poster_path) {
       posterUrl = `${TMDB_IMAGE_BASE_URL}${tmdbMovieData.poster_path}`;
   }
 
-  // 3. Ultimate fallback to a placeholder to guarantee a valid src for images.
   if (!posterUrl) {
       posterUrl = 'https://placehold.co/500x750.png';
   }
 
   const backdropUrl = tmdbMovieData?.backdrop_path ? `${TMDB_BACKDROP_BASE_URL}${tmdbMovieData.backdrop_path}` : undefined;
   const synopsis = firestoreMovie.synopsis || tmdbMovieData?.overview || '';
-  const releaseDateStr = tmdbMovieData?.release_date;
-  const year = firestoreMovie.year || (releaseDateStr ? parseInt(releaseDateStr.split('-')[0], 10) : undefined);
+  const year = firestoreMovie.year || (tmdbMovieData?.release_date ? parseInt(tmdbMovieData.release_date.split('-')[0], 10) : undefined);
   const category = firestoreMovie.category || tmdbMovieData?.genres?.map((g: any) => g.name) || [];
   
   let duration = firestoreMovie.duration;
@@ -433,17 +431,6 @@ const _enrichMovieData = async (docId: string, firestoreMovie: any): Promise<Mov
   const actors = firestoreMovie.actors || tmdbCreditsData?.cast?.slice(0, 3).map((p: any) => p.name).join(', ');
   const rating = firestoreMovie.rating || (tmdbMovieData?.vote_average ? tmdbMovieData.vote_average.toFixed(1) : undefined);
   
-  // Logic for isRecent and isPopular
-  let isRecent = false;
-  if (releaseDateStr) {
-    const releaseDate = new Date(releaseDateStr);
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-    isRecent = releaseDate > threeMonthsAgo;
-  }
-  const isPopular = rating ? parseFloat(rating) >= 7.5 : false;
-
-
   return {
     id: docId,
     tmdbID: firestoreMovie.tmdbID,
@@ -460,11 +447,11 @@ const _enrichMovieData = async (docId: string, firestoreMovie: any): Promise<Mov
     director,
     actors,
     rating,
-    isRecent,
-    isPopular,
+    isTrending: tmdbLists?.trendingIds.has(firestoreMovie.tmdbID),
+    isTopRated: tmdbLists?.topRatedIds.has(firestoreMovie.tmdbID),
+    popularity: tmdbMovieData?.popularity,
   };
 };
-
 
 const useMovieFallbackData = (includePlaceholders: boolean) => {
   if (includePlaceholders) {
@@ -474,10 +461,22 @@ const useMovieFallbackData = (includePlaceholders: boolean) => {
   return [];
 };
 
+const _fetchTMDbList = cache(async (endpoint: string): Promise<Set<string>> => {
+    if (!TMDB_API_KEY) return new Set();
+    try {
+        const res = await fetch(`${TMDB_BASE_URL}${endpoint}?api_key=${TMDB_API_KEY}&language=es-ES&page=1`);
+        if (!res.ok) return new Set();
+        const data = await res.json();
+        return new Set(data.results.map((m: any) => String(m.id)));
+    } catch (error) {
+        console.error(`Error fetching TMDb list ${endpoint}:`, error);
+        return new Set();
+    }
+});
+
+
 // Uncached version of getMovies to ensure data is always fresh
 export const getMovies = async (includePlaceholders = false): Promise<Movie[]> => {
-  // Professional Check: If TMDb API key is missing, don't even try.
-  // Immediately fall back to placeholder data to avoid errors and ensure a stable UI.
   if (!TMDB_API_KEY) {
     console.error("CRITICAL: La variable de entorno TMDB_API_KEY no está configurada. La sección de películas no funcionará.");
     return useMovieFallbackData(includePlaceholders);
@@ -491,10 +490,16 @@ export const getMovies = async (includePlaceholders = false): Promise<Movie[]> =
       return useMovieFallbackData(true);
     }
     
-    const moviePromises = movieSnapshot.docs.map(doc => _enrichMovieData(doc.id, doc.data()));
+    const [trendingIds, topRatedIds] = await Promise.all([
+      _fetchTMDbList('/trending/movie/week'),
+      _fetchTMDbList('/movie/top_rated'),
+    ]);
+
+    const moviePromises = movieSnapshot.docs.map(doc => 
+      _enrichMovieData(doc.id, doc.data(), { trendingIds, topRatedIds })
+    );
     const enrichedMovies = await Promise.all(moviePromises);
 
-    // Filter out any movies that failed to enrich properly (e.g., returned null)
     return enrichedMovies.filter((movie): movie is Movie => movie !== null);
 
   } catch (error) {
