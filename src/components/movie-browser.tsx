@@ -44,7 +44,7 @@ export default function MovieBrowser({
       .filter(m => m.isTopRated)
       .sort((a, b) => parseFloat(b.rating || '0') - parseFloat(a.rating || '0'));
 
-    const heroCandidates = [...trendingMovies, ...topRatedMovies];
+    const heroCandidates = [...trendingMovies, ...topRatedMovies].filter(m => m.backdropUrl);
     const heroMovies = [...new Map(heroCandidates.map(m => [m.id, m])).values()].slice(0, 5);
     
     let categories: MoviesByCategory = {};

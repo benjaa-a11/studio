@@ -32,7 +32,7 @@ export default function MovieHero({ movies }: { movies: Movie[] }) {
                     return nextIndex;
                 });
             }
-        }, 5000); // Change movie every 5 seconds
+        }, 6000); // Change movie every 6 seconds
     }, [movies.length]);
 
     useEffect(() => {
@@ -69,7 +69,7 @@ export default function MovieHero({ movies }: { movies: Movie[] }) {
 
     const handleManualScroll = useCallback(() => {
         const scrollContainer = scrollRef.current;
-        if (!scrollContainer || isInteractingRef.current) return;
+        if (!scrollContainer || !isInteractingRef.current) return;
 
         const { scrollLeft, scrollWidth, children } = scrollContainer;
         const itemWidth = scrollWidth / movies.length;

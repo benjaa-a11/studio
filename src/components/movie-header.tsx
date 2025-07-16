@@ -51,7 +51,7 @@ export default function MovieHeader() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-10 w-10 shrink-0 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-white/20 hover:text-white"
+              className="h-10 w-10 shrink-0 rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-white/20 hover:text-white"
               onClick={handleSearchToggle}
             >
               {isSearchOpen ? <X size={20} /> : <Search size={20} />}
@@ -63,7 +63,7 @@ export default function MovieHeader() {
                 placeholder="Buscar..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-10 w-full pl-4 pr-2 bg-black/30 text-white placeholder:text-white/70 border-white/30 backdrop-blur-sm focus:bg-black/50"
+                className="h-10 w-full pl-4 pr-2 bg-black/40 text-white placeholder:text-white/70 border-white/30 backdrop-blur-sm focus:bg-black/50"
                 aria-label="Buscar película"
               />
             </div>
@@ -72,7 +72,7 @@ export default function MovieHeader() {
         {/* Filter Select */}
         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
           <SelectTrigger
-            className="h-10 w-10 shrink-0 p-0 flex items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-white/20 border-none focus:ring-0 focus:ring-offset-0"
+            className="h-10 w-10 shrink-0 p-0 flex items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-white/20 border-none focus:ring-0 focus:ring-offset-0"
             aria-label="Filtrar por categoría"
           >
             <ListFilter size={20} />

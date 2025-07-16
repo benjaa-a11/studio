@@ -459,8 +459,8 @@ const _enrichMovieData = async (
     director,
     actors,
     rating,
-    isTrending: tmdbLists?.trendingIds.has(firestoreMovie.tmdbID),
-    isTopRated: tmdbLists?.topRatedIds.has(firestoreMovie.tmdbID),
+    isTrending: tmdbLists?.trendingIds.has(String(firestoreMovie.tmdbID)),
+    isTopRated: tmdbLists?.topRatedIds.has(String(firestoreMovie.tmdbID)),
     popularity: tmdbMovieData?.popularity,
   };
 };

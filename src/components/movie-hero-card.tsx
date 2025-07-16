@@ -28,11 +28,11 @@ export default function MovieHeroCard({ movie, isActive }: MovieHeroCardProps) {
             />
             {/* Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-background/30 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-background/30 via-transparent to-transparent md:bg-gradient-to-r md:from-background/70 md:via-background/30 md:to-transparent" />
             
             {/* Content */}
             <div className={cn(
-                "absolute inset-0 flex flex-col items-center md:items-start justify-end p-6 md:p-12 text-center md:text-left transition-all duration-700 ease-in-out",
+                "absolute inset-0 flex flex-col items-center justify-end text-center md:items-start md:text-left transition-all duration-700 ease-in-out p-6 md:p-16",
                 isActive ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             )}>
                  <div className="w-40 h-20 md:w-60 md:h-28 relative mb-4">
