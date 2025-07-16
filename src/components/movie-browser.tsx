@@ -1,13 +1,18 @@
+
 "use client";
 
 import { useMemo, useEffect } from "react";
 import type { Movie } from "@/types";
-import MovieCard from "./movie-card";
 import { Clapperboard } from "lucide-react";
 import { useMovieFilters } from "@/hooks/use-movie-filters";
+import MovieShelf from "./movie-shelf";
 
 type MovieBrowserProps = {
   movies: Movie[];
+};
+
+type MoviesByCategory = {
+  [category: string]: Movie[];
 };
 
 export default function MovieBrowser({
@@ -16,35 +21,48 @@ export default function MovieBrowser({
   const { searchTerm, selectedCategory, setSearchTerm, setSelectedCategory } = useMovieFilters();
 
   // Reset the filters every time the user navigates to this page.
-  // This ensures they are always greeted with the full movie catalog,
-  // providing a consistent and predictable user experience.
   useEffect(() => {
     setSelectedCategory('Todos');
     setSearchTerm('');
   }, [setSelectedCategory, setSearchTerm]);
 
-  const filteredMovies = useMemo(() => {
-    return movies.filter((movie) => {
-      if (!movie) return false;
+  const moviesByCategory = useMemo(() => {
+    const filtered = movies.filter((movie) => 
+        (movie.title?.toLowerCase() ?? "").includes(searchTerm.toLowerCase())
+    );
 
-      const matchesSearch =
-        (movie.title?.toLowerCase() ?? "").includes(searchTerm.toLowerCase()) ||
-        (movie.synopsis?.toLowerCase() ?? "").includes(searchTerm.toLowerCase());
-      
-      const matchesCategory =
-        selectedCategory === 'Todos' ||
-        (Array.isArray(movie.category) && movie.category.includes(selectedCategory));
-
-      return matchesSearch && matchesCategory;
-    });
+    if (selectedCategory !== 'Todos') {
+        return {
+            [selectedCategory]: filtered.filter(movie => movie.category?.includes(selectedCategory))
+        };
+    }
+    
+    return filtered.reduce<MoviesByCategory>((acc, movie) => {
+        if (movie.category && movie.category.length > 0) {
+            movie.category.forEach(cat => {
+                if (!acc[cat]) {
+                    acc[cat] = [];
+                }
+                acc[cat].push(movie);
+            });
+        }
+        return acc;
+    }, {});
   }, [movies, searchTerm, selectedCategory]);
+  
+  const categories = useMemo(() => Object.keys(moviesByCategory).sort(), [moviesByCategory]);
 
   return (
     <div className="space-y-8">
-      {filteredMovies.length > 0 ? (
-        <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-          {filteredMovies.map((movie, index) => (
-            <MovieCard key={movie.id} movie={movie} index={index} />
+      {categories.length > 0 ? (
+        <div className="space-y-10">
+          {categories.map((category, index) => (
+            <MovieShelf 
+              key={category}
+              title={category}
+              movies={moviesByCategory[category]}
+              animationDelay={index * 100}
+            />
           ))}
         </div>
       ) : (
