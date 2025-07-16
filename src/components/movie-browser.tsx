@@ -43,9 +43,8 @@ export default function MovieBrowser({
     const topRatedMovies = filtered
       .filter(m => m.isTopRated)
       .sort((a, b) => parseFloat(b.rating || '0') - parseFloat(a.rating || '0'));
-
-    const heroCandidates = [...trendingMovies, ...topRatedMovies].filter(m => m.backdropUrl);
-    const heroMovies = [...new Map(heroCandidates.map(m => [m.id, m])).values()].slice(0, 5);
+      
+    const heroMovies = topRatedMovies.filter(m => m.backdropUrl).slice(0, 4);
     
     let categories: MoviesByCategory = {};
     if (!isHomePage && selectedCategory !== 'Todos') {
