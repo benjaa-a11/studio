@@ -83,15 +83,15 @@ export default function MovieBrowser({
         )}
         
         <div className={!isHomePage ? "container mx-auto px-4 py-8 sm:px-6 lg:px-8 space-y-12" : "space-y-12"}>
-            {trending.length > 0 && (selectedCategory === 'Todos' || isHomePage) && searchTerm === '' && (
-                <MovieShelf
-                    title="Tendencias Ahora"
-                    movies={trending}
-                    animationDelay={100}
-                />
+             {(isHomePage || (selectedCategory === 'Todos' && searchTerm === '')) && trending.length > 0 && (
+              <MovieShelf
+                  title="Tendencias Ahora"
+                  movies={trending}
+                  animationDelay={100}
+              />
             )}
 
-            {topRated.length > 0 && (selectedCategory === 'Todos' || isHomePage) && searchTerm === '' && (
+            {(isHomePage || (selectedCategory === 'Todos' && searchTerm === '')) && topRated.length > 0 && (
                 <MovieShelf
                     title="Recomendadas para ti"
                     movies={topRated}

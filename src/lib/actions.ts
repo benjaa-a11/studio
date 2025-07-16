@@ -503,7 +503,7 @@ export const getMovies = async (includePlaceholders = false): Promise<Movie[]> =
     }
     
     const [trendingIds, topRatedIds] = await Promise.all([
-      _fetchTMDbList('/trending/movie/week'),
+      _fetchTMDbList('/movie/trending/week'),
       _fetchTMDbList('/movie/top_rated'),
     ]);
 
