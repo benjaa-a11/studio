@@ -693,3 +693,29 @@ export async function updateAppStatus(prevState: FormState, formData: FormData):
         return { message, success: false };
     }
 }
+
+export async function getAppStatus(): Promise<AppStatus | null> {
+    try {
+        const db = checkAdminDb();
+        const statusDoc = await getDoc(doc(db, "config", "app-status"));
+        if (statusDoc.exists()) {
+            return statusDoc.data() as AppStatus;
+        }
+        // Return a default "all enabled" status if there's no doc.
+        return {
+            isMaintenanceMode: false,
+            maintenanceMessage: '',
+            disabledSections: []
+        };
+    } catch (error) {
+        console.error("Error fetching app status:", error);
+        // Return a default "all enabled" status if there's an error.
+        // This prevents the app from being locked out if there's a read error.
+        return {
+            isMaintenanceMode: false,
+            maintenanceMessage: '',
+            disabledSections: []
+        };
+    }
+}
+
