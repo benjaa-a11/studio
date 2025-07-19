@@ -2,10 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from 'next/font/google';
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import { getCategories, getMovieCategories, getAppStatus } from "@/lib/actions";
+import { getCategories, getMovieCategories } from "@/lib/actions";
 import { Providers } from "@/components/providers";
 import { Analytics } from "@vercel/analytics/next";
-import { redirect } from 'next/navigation'
 import { cookies } from "next/headers";
 import { decrypt } from "./lib/session";
 

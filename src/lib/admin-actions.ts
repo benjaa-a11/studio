@@ -2,7 +2,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { adminDb } from './firebase-admin';
+import { db } from './firebase'; // Use the client-side db instance
 import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, getDoc, query, getDocs, Timestamp, deleteField, orderBy, writeBatch } from 'firebase/firestore';
 import { z } from 'zod';
 import type { AdminAgendaMatch, AppStatus } from '@/types';
@@ -13,15 +13,6 @@ export type FormState = {
   errors?: Record<string, string[] | undefined>;
   success: boolean;
 };
-
-// Helper function to check if adminDb is initialized
-const checkAdminDb = () => {
-    if (!adminDb) {
-        throw new Error('La configuración del administrador de Firebase no está completa. No se pueden guardar los cambios.');
-    }
-    return adminDb;
-};
-
 
 // Helper to create URL-friendly slugs, now handles accents and special characters
 const slugify = (text: string) => {
@@ -55,7 +46,6 @@ const ChannelSchema = z.object({
 
 export async function addChannel(prevState: FormState, formData: FormData): Promise<FormState> {
   try {
-    const db = checkAdminDb();
     const rawData = Object.fromEntries(formData.entries());
     const processedData = {
       ...rawData,
@@ -97,7 +87,6 @@ export async function updateChannel(id: string, prevState: FormState, formData: 
   if (!id) return { message: 'ID de canal no proporcionado.', success: false };
   
   try {
-    const db = checkAdminDb();
     const rawData = Object.fromEntries(formData.entries());
     const processedData = {
       ...rawData,
@@ -132,7 +121,6 @@ export async function deleteChannel(id: string) {
   if (!id) return { message: 'ID de canal no proporcionado.', success: false };
   
   try {
-    const db = checkAdminDb();
     await deleteDoc(doc(db, 'channels', id));
     revalidatePath('/admin/channels');
     revalidatePath('/');
@@ -156,7 +144,6 @@ const RadioSchema = z.object({
 
 export async function addRadio(prevState: FormState, formData: FormData): Promise<FormState> {
   try {
-    const db = checkAdminDb();
     const rawData = Object.fromEntries(formData.entries());
     const processedData = {
       ...rawData,
@@ -196,7 +183,6 @@ export async function updateRadio(id: string, prevState: FormState, formData: Fo
    if (!id) return { message: 'ID de radio no proporcionado.', success: false };
    
    try {
-    const db = checkAdminDb();
     const rawData = Object.fromEntries(formData.entries());
     const processedData = {
       ...rawData,
@@ -229,7 +215,6 @@ export async function deleteRadio(id: string) {
   if (!id) return { message: 'ID de radio no proporcionado.', success: false };
   
   try {
-    const db = checkAdminDb();
     await deleteDoc(doc(db, 'radio', id));
     revalidatePath('/admin/radios');
     revalidatePath('/radio');
@@ -257,7 +242,6 @@ const MovieSchema = z.object({
 
 export async function addMovie(prevState: FormState, formData: FormData): Promise<FormState> {
     try {
-        const db = checkAdminDb();
         const rawData = {
           ...Object.fromEntries(formData.entries()),
           isHero: formData.get('isHero') === 'on',
@@ -325,7 +309,6 @@ export async function addMovie(prevState: FormState, formData: FormData): Promis
 export async function updateMovie(id: string, prevState: FormState, formData: FormData): Promise<FormState> {
     if (!id) return { message: 'ID de película no proporcionado.', success: false };
     try {
-        const db = checkAdminDb();
         const rawData = {
           ...Object.fromEntries(formData.entries()),
           isHero: formData.get('isHero') === 'on',
@@ -369,7 +352,6 @@ export async function updateMovie(id: string, prevState: FormState, formData: Fo
 export async function deleteMovie(id: string) {
     if (!id) return { message: 'ID de película no proporcionado.', success: false };
     try {
-        const db = checkAdminDb();
         await deleteDoc(doc(db, 'peliculas', id));
         revalidatePath('/admin/movies');
         revalidatePath('/peliculas');
@@ -392,7 +374,6 @@ const TournamentSchema = z.object({
 
 export async function addTournament(prevState: FormState, formData: FormData): Promise<FormState> {
   try {
-    const db = checkAdminDb();
     const validatedFields = TournamentSchema.safeParse(Object.fromEntries(formData.entries()));
     
     if (!validatedFields.success) {
@@ -425,7 +406,6 @@ export async function updateTournament(id: string, prevState: FormState, formDat
     if (!id) return { message: 'ID de torneo no proporcionado.', success: false };
     
     try {
-        const db = checkAdminDb();
         const validatedFields = TournamentSchema.safeParse(Object.fromEntries(formData.entries()));
         if (!validatedFields.success) {
             return { message: 'Error de validación.', errors: validatedFields.error.flatten().fieldErrors, success: false };
@@ -448,7 +428,6 @@ export async function updateTournament(id: string, prevState: FormState, formDat
 export async function deleteTournament(id: string) {
     if (!id) return { message: 'ID de torneo no proporcionado.', success: false };
     try {
-        const db = checkAdminDb();
         await deleteDoc(doc(db, 'tournaments', id));
         revalidatePath('/admin/tournaments');
         revalidatePath('/');
@@ -470,7 +449,6 @@ const TeamSchema = z.object({
 
 export async function addTeam(prevState: FormState, formData: FormData): Promise<FormState> {
     try {
-        const db = checkAdminDb();
         const validatedFields = TeamSchema.safeParse(Object.fromEntries(formData.entries()));
 
         if (!validatedFields.success) {
@@ -504,7 +482,6 @@ export async function updateTeam(path: string, prevState: FormState, formData: F
     if (!path) return { message: 'Ruta del equipo no proporcionada.', success: false };
 
     try {
-        const db = checkAdminDb();
         // When updating, we only care about logoUrl, as name and country define the path.
         const UpdateSchema = TeamSchema.pick({ logoUrl: true });
         const validatedFields = UpdateSchema.safeParse(Object.fromEntries(formData.entries()));
@@ -528,7 +505,6 @@ export async function deleteTeam(path: string) {
     if (!path) return { message: 'Ruta del equipo no proporcionada.', success: false };
     
     try {
-        const db = checkAdminDb();
         await deleteDoc(doc(db, path));
         revalidatePath('/admin/teams');
         revalidatePath('/');
@@ -543,7 +519,6 @@ export async function deleteTeam(path: string) {
 // --- AGENDA ---
 
 const handleMatchAction = async (data: AdminAgendaMatch, existingId?: string) => {
-    const db = checkAdminDb();
     // Basic validation
     if (!data.tournamentId || !data.team1 || !data.team2 || !data.time) {
         throw new Error('Faltan datos requeridos para guardar el partido.');
@@ -604,7 +579,6 @@ export async function deleteMatch(id: string) {
     if (!id) return { message: 'ID de partido no proporcionado.', success: false };
     
     try {
-        const db = checkAdminDb();
         await deleteDoc(doc(db, 'agenda', id));
         revalidatePath('/admin/agenda');
         revalidatePath('/');
@@ -616,10 +590,9 @@ export async function deleteMatch(id: string) {
     }
 }
 
-// Action to fetch all agenda items for the admin panel
+// Action to fetch all agenda items for the admin panel, sorted by most recent first.
 export async function getAdminAgenda(): Promise<AdminAgendaMatch[]> {
     try {
-        const db = checkAdminDb();
         const agendaSnapshot = await getDocs(query(collection(db, "agenda"), orderBy("time", "desc")));
         const matches = agendaSnapshot.docs.map(doc => {
             const data = doc.data();
@@ -642,80 +615,3 @@ export async function getAdminAgenda(): Promise<AdminAgendaMatch[]> {
         return [];
     }
 }
-
-// --- APP STATUS ---
-const AppStatusSchema = z.object({
-    isMaintenanceMode: z.boolean(),
-    maintenanceMessage: z.string().optional(),
-    disabledSections: z.array(z.string()),
-});
-
-export async function updateAppStatus(prevState: FormState, formData: FormData): Promise<FormState> {
-    try {
-        const db = checkAdminDb();
-        
-        const isMaintenanceMode = formData.get('isMaintenanceMode') === 'on';
-        const maintenanceMessage = formData.get('maintenanceMessage') as string || 'El sitio está actualmente en mantenimiento. ¡Volveremos pronto!';
-        
-        const disabledSections: string[] = [];
-        if (formData.get('disabledSections.peliculas') === 'on') {
-            disabledSections.push('peliculas');
-        }
-        if (formData.get('disabledSections.radio') === 'on') {
-            disabledSections.push('radio');
-        }
-
-        const dataToSave: AppStatus = {
-            isMaintenanceMode,
-            maintenanceMessage,
-            disabledSections,
-        };
-        
-        const validatedData = AppStatusSchema.safeParse(dataToSave);
-        if (!validatedData.success) {
-            return {
-                message: 'Error de validación.',
-                errors: validatedData.error.flatten().fieldErrors,
-                success: false,
-            };
-        }
-
-        const statusRef = doc(db, 'config', 'app-status');
-        await setDoc(statusRef, validatedData.data, { merge: true });
-
-        revalidatePath('/', 'layout');
-        
-        return { message: 'Ajustes de la aplicación actualizados.', success: true };
-
-    } catch (error) {
-        console.error('Error updating app status:', error);
-        const message = error instanceof Error ? error.message : 'Error del servidor al actualizar los ajustes.';
-        return { message, success: false };
-    }
-}
-
-export async function getAppStatus(): Promise<AppStatus | null> {
-    try {
-        const db = checkAdminDb();
-        const statusDoc = await getDoc(doc(db, "config", "app-status"));
-        if (statusDoc.exists()) {
-            return statusDoc.data() as AppStatus;
-        }
-        // Return a default "all enabled" status if there's no doc.
-        return {
-            isMaintenanceMode: false,
-            maintenanceMessage: '',
-            disabledSections: []
-        };
-    } catch (error) {
-        console.error("Error fetching app status:", error);
-        // Return a default "all enabled" status if there's an error.
-        // This prevents the app from being locked out if there's a read error.
-        return {
-            isMaintenanceMode: false,
-            maintenanceMessage: '',
-            disabledSections: []
-        };
-    }
-}
-
