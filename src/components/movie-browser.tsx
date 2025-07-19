@@ -7,6 +7,7 @@ import { useMovieFilters } from "@/hooks/use-movie-filters";
 import MovieShelf from "./movie-shelf";
 import MovieHero from "./movie-hero";
 import { cn } from "@/lib/utils";
+import MovieCard from "./movie-card";
 
 type MovieBrowserProps = {
   movies: Movie[];
