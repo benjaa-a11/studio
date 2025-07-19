@@ -20,6 +20,7 @@ export default function MovieHero({ movies }: { movies: Movie[] }) {
         
         intervalRef.current = setInterval(() => {
             if (!isInteractingRef.current) {
+                // Always scroll forward
                 setCurrentIndex(prevIndex => (prevIndex + 1) % movies.length);
             }
         }, 6000);

@@ -1,125 +1,67 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Search, ChevronDown, Radio, Heart, Settings } from 'lucide-react';
+import { Search, ChevronDown } from 'lucide-react';
 import { useMovieFilters } from '@/hooks/use-movie-filters';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
-import { Button } from './ui/button';
-import Image from 'next/image';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { usePathname } from 'next/navigation';
 
 export default function MovieHeader() {
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { searchTerm, setSearchTerm, selectedCategory, setSelectedCategory, allCategories } = useMovieFilters();
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (isSearchOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [isSearchOpen]);
-
-  useEffect(() => {
-    if (!isSearchOpen && searchTerm) {
+    // Reset filters when navigating away from the main movies page
+    if (pathname !== '/peliculas') {
       setSearchTerm('');
+      setSelectedCategory('Todos');
     }
-  }, [isSearchOpen, searchTerm, setSearchTerm]);
-
-  const handleSearchToggle = () => {
-    setIsSearchOpen(prev => !prev);
-  };
+  }, [pathname, setSearchTerm, setSelectedCategory]);
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background pt-safe-top">
-      <div className="container mx-auto flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <div className={cn(
-          "flex items-center gap-4 transition-all duration-300",
-          isSearchOpen ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
-        )}>
-            <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-                <Image src="/icon.png" alt="Logo" width={32} height={32} />
-            </Link>
-             <div className="items-center gap-1 hidden md:flex">
-                <Button variant="ghost" asChild>
-                    <Link href="/peliculas">Películas</Link>
-                </Button>
-                 <Button asChild variant="ghost">
-                    <Link href="/radio">
-                      <Radio className="h-5 w-5 mr-2" />
-                      Radio
-                    </Link>
-                  </Button>
-                  <Button asChild variant="ghost">
-                    <Link href="/favoritos">
-                      <Heart className="h-5 w-5 mr-2" />
-                      Favoritos
-                    </Link>
-                  </Button>
-                  <Button asChild variant="ghost">
-                    <Link href="/ajustes">
-                      <Settings className="h-5 w-5 mr-2" />
-                      Ajustes
-                    </Link>
-                  </Button>
-            </div>
+    <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm pt-safe-top">
+       <div className="container flex h-16 items-center gap-2">
+        {/* Search Bar */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Buscar por título..."
+            className="pl-10 h-10 w-full text-sm bg-muted border-transparent focus:bg-background focus:border-input"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            aria-label="Buscar película"
+          />
         </div>
 
-        <div className="flex flex-1 items-center justify-end gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="hidden md:inline-flex">
-                  {selectedCategory === 'Todos' ? 'Categorías' : selectedCategory}
-                  <ChevronDown className="ml-2 h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuRadioGroup value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <DropdownMenuRadioItem value="Todos">Todos</DropdownMenuRadioItem>
-                    <DropdownMenuSeparator />
-                    {allCategories.filter(c => c !== 'Todos').map(category => (
-                        <DropdownMenuRadioItem key={category} value={category}>{category}</DropdownMenuRadioItem>
-                    ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-             <div className={cn(
-                "relative flex w-full items-center transition-all duration-300 ease-in-out",
-                isSearchOpen ? 'max-w-xs opacity-100' : 'max-w-0 opacity-0'
-             )}>
-                <Search size={18} className="absolute left-3 text-muted-foreground" />
-                <Input
-                    ref={searchInputRef}
-                    type="search"
-                    placeholder="Buscar por título..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className={cn(
-                        "h-9 w-full rounded-full pl-10 pr-4 bg-muted border-transparent focus:bg-background",
-                        isSearchOpen ? "pointer-events-auto" : "pointer-events-none"
-                    )}
-                    aria-label="Buscar película"
-                />
-             </div>
-             <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 shrink-0 rounded-full"
-              onClick={handleSearchToggle}
-            >
-              <Search size={20} />
-            </Button>
-        </div>
+        {/* Category Filter */}
+        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <SelectTrigger
+            className="h-10 w-auto shrink-0 p-2 md:px-4 flex items-center justify-center bg-muted border-transparent focus:bg-background focus:border-input gap-2"
+            aria-label="Filtrar por categoría"
+          >
+            <span className="hidden md:inline">{selectedCategory === 'Todos' ? 'Categorías' : selectedCategory}</span>
+            <ChevronDown className="h-5 w-5 text-muted-foreground" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Todos">Todos</SelectItem>
+            {allCategories.filter(c => c !== 'Todos').map((category) => (
+              <SelectItem key={category} value={category}>
+                {category}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </header>
   );
