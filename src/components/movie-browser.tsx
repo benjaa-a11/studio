@@ -7,6 +7,7 @@ import { useMovieFilters } from "@/hooks/use-movie-filters";
 import MovieShelf from "./movie-shelf";
 import MovieHero from "./movie-hero";
 import MovieHeader from "./movie-header"; // Import the new header
+import { cn } from "@/lib/utils";
 
 type MovieBrowserProps = {
   movies: Movie[];
@@ -31,20 +32,12 @@ export default function MovieBrowser({
     }
   }, [setSelectedCategory, setSearchTerm, isHomePage]);
 
-  const { heroMovies, trending, topRated, byCategory } = useMemo(() => {
+  const { heroMovies, byCategory, allMoviesFiltered } = useMemo(() => {
     const filtered = isHomePage ? movies : movies.filter((movie) => 
         (movie.title?.toLowerCase() ?? "").includes(searchTerm.toLowerCase())
     );
 
-    const trendingMovies = filtered
-      .filter(m => m.isTrending)
-      .sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
-
-    const topRatedMovies = filtered
-      .filter(m => m.isTopRated)
-      .sort((a, b) => parseFloat(b.rating || '0') - parseFloat(a.rating || '0'));
-      
-    const heroMovies = topRatedMovies.filter(m => m.backdropUrl).slice(0, 4);
+    const heroMovies = movies.filter(m => m.isHero).slice(0, 4);
     
     let categories: MoviesByCategory = {};
     if (!isHomePage && selectedCategory !== 'Todos') {
@@ -65,47 +58,52 @@ export default function MovieBrowser({
 
     return { 
       heroMovies,
-      trending: trendingMovies,
-      topRated: topRatedMovies,
-      byCategory: categories 
+      byCategory: categories,
+      allMoviesFiltered: filtered,
     };
   }, [movies, searchTerm, selectedCategory, isHomePage]);
   
-  const categories = useMemo(() => Object.keys(byCategory).sort(), [byCategory]);
+  const categories = useMemo(() => {
+      if (searchTerm) {
+          return []; // Do not show categories when searching
+      }
+      return Object.keys(byCategory).sort();
+  }, [byCategory, searchTerm]);
 
   return (
-    <div className="w-full relative">
+    <div className="w-full relative bg-black text-white">
         {!isHomePage && <MovieHeader />}
         
         {!isHomePage && heroMovies.length > 0 && selectedCategory === 'Todos' && searchTerm === '' && (
             <MovieHero movies={heroMovies} />
         )}
         
-        <div className={!isHomePage ? "container mx-auto px-4 py-8 sm:px-6 lg:px-8 space-y-12" : "space-y-12"}>
-             {(isHomePage || (selectedCategory === 'Todos' && searchTerm === '')) && trending.length > 0 && (
-              <MovieShelf
-                  title="Tendencias Ahora"
-                  movies={trending}
-                  animationDelay={100}
-              />
+        <div className={cn(
+            "space-y-12",
+            isHomePage ? "pt-8" : "pt-8 pb-12",
+            !isHomePage && "container mx-auto px-4 sm:px-6 lg:px-8"
+        )}>
+            {searchTerm ? (
+                 <div className="space-y-4">
+                    <h2 className="text-xl font-bold tracking-tight">Resultados de "{searchTerm}"</h2>
+                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
+                      {allMoviesFiltered.map((movie, index) => (
+                          <div key={movie.id} className="w-full shrink-0">
+                            <MovieCard movie={movie} index={index} />
+                          </div>
+                      ))}
+                    </div>
+                </div>
+            ) : (
+                categories.map((category, index) => (
+                    <MovieShelf 
+                        key={category}
+                        title={category}
+                        movies={byCategory[category]}
+                        animationDelay={index * 100}
+                    />
+                ))
             )}
-
-            {(isHomePage || (selectedCategory === 'Todos' && searchTerm === '')) && topRated.length > 0 && (
-                <MovieShelf
-                    title="Recomendadas para ti"
-                    movies={topRated}
-                    animationDelay={200}
-                />
-            )}
-            
-            {!isHomePage && categories.map((category, index) => (
-                <MovieShelf 
-                    key={category}
-                    title={category}
-                    movies={byCategory[category]}
-                    animationDelay={(searchTerm || selectedCategory !== 'Todos' ? index : index + 2) * 100}
-                />
-            ))}
         </div>
     </div>
   );

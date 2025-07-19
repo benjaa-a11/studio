@@ -64,6 +64,8 @@ export type Movie = {
   rating?: string;
   isTrending?: boolean;
   isTopRated?: boolean;
+  isHero?: boolean;
+  heroImageUrl?: string;
   popularity?: number;
 };
 
@@ -89,3 +91,9 @@ export type Team = {
   logoUrl: string;
   country: string;
 };
+
+export type AppStatus = {
+  isMaintenanceMode: boolean;
+  maintenanceMessage: string;
+  disabledSections: string[];
+}

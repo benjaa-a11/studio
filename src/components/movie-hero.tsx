@@ -25,12 +25,10 @@ export default function MovieHero({ movies }: { movies: Movie[] }) {
 
     const startAutoScroll = useCallback(() => {
         if (intervalRef.current) clearInterval(intervalRef.current);
+        if (movies.length <= 1) return; // Don't autoscroll if there's only one item
         intervalRef.current = setInterval(() => {
             if (!isInteractingRef.current) {
-                setCurrentIndex(prevIndex => {
-                    const nextIndex = (prevIndex + 1) % movies.length;
-                    return nextIndex;
-                });
+                setCurrentIndex(prevIndex => (prevIndex + 1) % movies.length);
             }
         }, 6000); // Change movie every 6 seconds
     }, [movies.length]);
@@ -86,7 +84,7 @@ export default function MovieHero({ movies }: { movies: Movie[] }) {
     }
 
     return (
-        <div className="w-full aspect-video md:aspect-[2.4/1] relative overflow-hidden bg-muted">
+        <div className="w-full aspect-video md:aspect-[2.4/1] relative overflow-hidden bg-black -mt-16">
              <div 
                 ref={scrollRef}
                 className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scrollbar-hide"
@@ -99,20 +97,21 @@ export default function MovieHero({ movies }: { movies: Movie[] }) {
                 ))}
             </div>
 
-            {/* Pagination Indicators */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                {movies.map((_, index) => (
-                    <button
-                        key={index}
-                        onClick={() => setCurrentIndex(index)}
-                        className={cn(
-                            "h-1.5 w-6 rounded-full transition-all duration-300",
-                            index === currentIndex ? "bg-white" : "bg-white/40 hover:bg-white/60"
-                        )}
-                        aria-label={`Ir a película ${index + 1}`}
-                    />
-                ))}
-            </div>
+            {movies.length > 1 && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                    {movies.map((_, index) => (
+                        <button
+                            key={index}
+                            onClick={() => setCurrentIndex(index)}
+                            className={cn(
+                                "h-1.5 w-6 rounded-full transition-all duration-300",
+                                index === currentIndex ? "bg-white" : "bg-white/40 hover:bg-white/60"
+                            )}
+                            aria-label={`Ir a película ${index + 1}`}
+                        />
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

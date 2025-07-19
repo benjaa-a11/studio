@@ -4,7 +4,7 @@
 import { cache } from "react";
 import { db } from "./firebase";
 import { collection, getDocs, doc, getDoc, query, where, documentId, Timestamp, collectionGroup } from "firebase/firestore";
-import type { Channel, Match, ChannelOption, Movie, Radio, Tournament, Team } from "@/types";
+import type { Channel, Match, ChannelOption, Movie, Radio, Tournament, Team, AppStatus } from "@/types";
 import { placeholderChannels, placeholderMovies, placeholderRadios, placeholderTournaments, placeholderTeams } from "./placeholder-data";
 
 // Helper function to resolve .pls file to an actual stream URL
@@ -417,7 +417,7 @@ const _enrichMovieData = async (
       posterUrl = 'https://placehold.co/500x750.png';
   }
 
-  const backdropUrl = tmdbMovieData?.backdrop_path ? `${TMDB_BACKDROP_BASE_URL}${tmdbMovieData.backdrop_path}` : undefined;
+  const backdropUrl = firestoreMovie.heroImageUrl || (tmdbMovieData?.backdrop_path ? `${TMDB_BACKDROP_BASE_URL}${tmdbMovieData.backdrop_path}` : undefined);
   
   // Find the best logo
   const logos = tmdbMovieData?.images?.logos || [];
@@ -462,6 +462,8 @@ const _enrichMovieData = async (
     isTrending: tmdbLists?.trendingIds.has(String(firestoreMovie.tmdbID)),
     isTopRated: tmdbLists?.topRatedIds.has(String(firestoreMovie.tmdbID)),
     popularity: tmdbMovieData?.popularity,
+    isHero: firestoreMovie.isHero,
+    heroImageUrl: firestoreMovie.heroImageUrl,
   };
 };
 
@@ -769,3 +771,24 @@ export const getTeams = async (includePlaceholders = false): Promise<Team[]> => 
         return useTeamFallbackData(includePlaceholders);
     }
 };
+
+
+// --- APP STATUS ---
+export const getAppStatus = cache(async (): Promise<AppStatus | null> => {
+  try {
+      const statusDoc = await getDoc(doc(db, "config", "app-status"));
+      if (statusDoc.exists()) {
+          return statusDoc.data() as AppStatus;
+      }
+      return null;
+  } catch (error) {
+      console.error("Error fetching app status:", error);
+      // Return a default "all enabled" status if there's an error
+      // This prevents the app from being locked out if the config doc is missing or there's a read error.
+      return {
+          isMaintenanceMode: false,
+          maintenanceMessage: '',
+          disabledSections: []
+      };
+  }
+});
