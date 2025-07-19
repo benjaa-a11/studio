@@ -14,21 +14,12 @@ export default function MovieHeader() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { searchTerm, setSearchTerm } = useMovieFilters();
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     if (isSearchOpen && searchInputRef.current) {
       searchInputRef.current.focus();
     }
   }, [isSearchOpen]);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const handleSearchToggle = () => {
     setIsSearchOpen(prev => {
@@ -38,44 +29,46 @@ export default function MovieHeader() {
   };
 
   return (
-    <header className={cn(
-        "sticky top-0 z-40 w-full transition-all duration-300 pt-safe-top",
-        isScrolled ? "bg-black/80 backdrop-blur-sm" : "bg-transparent"
-    )}>
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-            <Link href="/" className="flex items-center gap-2 font-bold text-xl text-white">
+    <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm pt-safe-top">
+      <div className="container mx-auto flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <div className={cn(
+          "flex items-center gap-4 transition-all duration-300",
+          isSearchOpen ? "w-0 opacity-0" : "w-auto opacity-100"
+        )}>
+            <Link href="/" className="flex items-center gap-2 font-bold text-xl">
                 <Image src="/icon.png" alt="Logo" width={32} height={32} />
                 <span className="hidden sm:inline">Plan B</span>
             </Link>
-             <div className={cn("items-center gap-2 hidden md:flex transition-opacity duration-300", isSearchOpen ? "opacity-0 pointer-events-none" : "opacity-100")}>
-                <Button variant="ghost" className="text-white hover:bg-white/10 hover:text-white rounded-full">Películas</Button>
+             <div className="items-center gap-2 hidden md:flex">
+                <Button variant="ghost" asChild>
+                    <Link href="/peliculas">Películas</Link>
+                </Button>
             </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 flex-1">
+        <div className="flex flex-1 items-center justify-end gap-2">
              <div className={cn(
-                "relative flex items-center justify-end transition-all duration-300 ease-in-out",
-                isSearchOpen ? 'w-full max-w-xs' : 'w-0'
+                "relative flex w-full items-center transition-all duration-300 ease-in-out",
+                isSearchOpen ? 'max-w-xs opacity-100' : 'max-w-0 opacity-0'
              )}>
+                <Search size={18} className="absolute left-3 text-muted-foreground" />
                 <Input
                     ref={searchInputRef}
                     type="search"
-                    placeholder="Buscar..."
+                    placeholder="Buscar por título..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className={cn(
-                        "h-9 w-full pl-4 pr-9 bg-black/50 text-white placeholder:text-white/70 border-white/30 backdrop-blur-sm focus:bg-black/70 transition-all duration-300",
-                        isSearchOpen ? "opacity-100" : "opacity-0"
+                        "h-9 w-full rounded-full pl-10 pr-4 bg-muted border-transparent focus:bg-background",
+                        isSearchOpen ? "pointer-events-auto" : "pointer-events-none"
                     )}
                     aria-label="Buscar película"
                 />
-                 <Search size={18} className="absolute right-3 text-white/70" />
              </div>
              <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 shrink-0 rounded-full text-white hover:bg-white/10 hover:text-white"
+              className="h-9 w-9 shrink-0 rounded-full"
               onClick={handleSearchToggle}
             >
               <Search size={20} />

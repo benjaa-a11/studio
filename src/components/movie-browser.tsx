@@ -70,7 +70,7 @@ export default function MovieBrowser({
   }, [byCategory, searchTerm]);
 
   return (
-    <div className="w-full relative bg-black text-white">
+    <div className="w-full relative bg-background text-foreground">
         {!isHomePage && heroMovies.length > 0 && selectedCategory === 'Todos' && searchTerm === '' && (
             <MovieHero movies={heroMovies} />
         )}

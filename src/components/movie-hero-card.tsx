@@ -29,8 +29,8 @@ export default function MovieHeroCard({ movie, isActive }: MovieHeroCardProps) {
             
             {/* Content */}
             <div className={cn(
-                "absolute inset-0 flex flex-col justify-end text-center md:text-left",
-                "transition-all duration-700 ease-in-out p-6 md:p-16 items-center",
+                "absolute inset-0 flex flex-col justify-end text-center md:text-left p-6 md:p-16",
+                "transition-all duration-700 ease-in-out items-center md:items-start",
                 isActive ? "opacity-100 " : "opacity-0"
             )}>
                  <div className="w-48 h-24 md:w-60 md:h-28 lg:w-80 lg:h-36 relative mb-4">

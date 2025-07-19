@@ -84,7 +84,7 @@ export default function MovieHero({ movies }: { movies: Movie[] }) {
     }
 
     return (
-        <div className="w-full aspect-video md:aspect-[2.4/1] relative overflow-hidden bg-black -mt-16">
+        <div className="w-full aspect-video md:aspect-[2.4/1] relative overflow-hidden bg-black">
              <div 
                 ref={scrollRef}
                 className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scrollbar-hide"
