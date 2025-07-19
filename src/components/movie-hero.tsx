@@ -5,6 +5,7 @@ import type { Movie } from "@/types";
 import { useState, useEffect, useCallback, useRef } from "react";
 import MovieHeroCard from "./movie-hero-card";
 import { cn } from "@/lib/utils";
+import Link from 'next/link';
 
 export default function MovieHero({ movies }: { movies: Movie[] }) {
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -41,7 +42,7 @@ export default function MovieHero({ movies }: { movies: Movie[] }) {
 
     const handleManualScroll = useCallback(() => {
         const scrollContainer = scrollRef.current;
-        if (!scrollContainer || !isInteractingRef.current) return;
+        if (!scrollContainer) return;
         
         if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
 
@@ -100,9 +101,14 @@ export default function MovieHero({ movies }: { movies: Movie[] }) {
                 className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scrollbar-hide"
             >
                 {movies.map((movie, index) => (
-                    <div key={movie.id} className="w-full h-full flex-shrink-0 snap-center">
+                    <Link 
+                        key={movie.id} 
+                        href={`/pelicula/${movie.id}`}
+                        className="w-full h-full flex-shrink-0 snap-center block transition-transform duration-200 active:scale-[0.98] outline-none"
+                        aria-label={`Ver ${movie.title}`}
+                    >
                         <MovieHeroCard movie={movie} isActive={index === currentIndex} />
-                    </div>
+                    </Link>
                 ))}
             </div>
 
@@ -111,7 +117,11 @@ export default function MovieHero({ movies }: { movies: Movie[] }) {
                     {movies.map((_, index) => (
                         <button
                             key={index}
-                            onClick={() => setCurrentIndex(index)}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setCurrentIndex(index);
+                            }}
                             className={cn(
                                 "h-1.5 w-6 rounded-full transition-all duration-300",
                                 index === currentIndex ? "bg-white" : "bg-white/40 hover:bg-white/60"

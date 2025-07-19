@@ -13,20 +13,23 @@ export default function LayoutWrapper({ children }: { children: ReactNode }) {
   
   const isPlayerPage = pathname.startsWith('/canal/') || pathname.startsWith('/pelicula/') || pathname.startsWith('/radio/');
   const isAdminPage = pathname.startsWith('/admin');
-  const isMoviePage = pathname.startsWith('/peliculas');
   const isLoginPage = pathname === '/login';
-  const isMaintenancePage = pathname.startsWith('/mantenimiento');
 
-  const showMainLayout = !isPlayerPage && !isAdminPage && !isMoviePage && !isMaintenancePage && !isLoginPage;
+  // Determine if the main layout (with header/footer) should be shown
+  const showMainLayout = !isPlayerPage && !isAdminPage && !isLoginPage;
+
+  // Specifically determine if the movie section layout should be shown
+  const isMovieSection = pathname.startsWith('/peliculas');
 
   return (
     <>
-      {showMainLayout && <DataRefresher />}
-      {showMainLayout && <Header />}
+      {showMainLayout && !isMovieSection && <DataRefresher />}
       
-      {isMoviePage && <MovieHeader />}
+      {showMainLayout && !isMovieSection && <Header />}
+      
+      {isMovieSection && <MovieHeader />}
 
-      <main className={`flex-1 ${showMainLayout ? 'pb-20 md:pb-0' : ''} ${isMoviePage ? 'bg-black' : ''}`}>
+      <main className={`flex-1 ${showMainLayout || isMovieSection ? 'pb-20 md:pb-0' : ''}`}>
         {children}
       </main>
 

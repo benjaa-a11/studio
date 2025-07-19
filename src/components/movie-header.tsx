@@ -3,26 +3,32 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Search } from 'lucide-react';
+import { Search, ChevronDown, Radio, Heart, Settings } from 'lucide-react';
 import { useMovieFilters } from '@/hooks/use-movie-filters';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from './ui/button';
 import Image from 'next/image';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function MovieHeader() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const { searchTerm, setSearchTerm } = useMovieFilters();
+  const { searchTerm, setSearchTerm, selectedCategory, setSelectedCategory, allCategories } = useMovieFilters();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Effect to focus the input when it opens
   useEffect(() => {
     if (isSearchOpen && searchInputRef.current) {
       searchInputRef.current.focus();
     }
   }, [isSearchOpen]);
-  
-  // Effect to clear search term when the search bar is closed
+
   useEffect(() => {
     if (!isSearchOpen && searchTerm) {
       setSearchTerm('');
@@ -42,16 +48,51 @@ export default function MovieHeader() {
         )}>
             <Link href="/" className="flex items-center gap-2 font-bold text-xl">
                 <Image src="/icon.png" alt="Logo" width={32} height={32} />
-                <span className="hidden sm:inline">Plan B</span>
             </Link>
-             <div className="items-center gap-2 hidden md:flex">
+             <div className="items-center gap-1 hidden md:flex">
                 <Button variant="ghost" asChild>
                     <Link href="/peliculas">Películas</Link>
                 </Button>
+                 <Button asChild variant="ghost">
+                    <Link href="/radio">
+                      <Radio className="h-5 w-5 mr-2" />
+                      Radio
+                    </Link>
+                  </Button>
+                  <Button asChild variant="ghost">
+                    <Link href="/favoritos">
+                      <Heart className="h-5 w-5 mr-2" />
+                      Favoritos
+                    </Link>
+                  </Button>
+                  <Button asChild variant="ghost">
+                    <Link href="/ajustes">
+                      <Settings className="h-5 w-5 mr-2" />
+                      Ajustes
+                    </Link>
+                  </Button>
             </div>
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="hidden md:inline-flex">
+                  {selectedCategory === 'Todos' ? 'Categorías' : selectedCategory}
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuRadioGroup value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <DropdownMenuRadioItem value="Todos">Todos</DropdownMenuRadioItem>
+                    <DropdownMenuSeparator />
+                    {allCategories.filter(c => c !== 'Todos').map(category => (
+                        <DropdownMenuRadioItem key={category} value={category}>{category}</DropdownMenuRadioItem>
+                    ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
              <div className={cn(
                 "relative flex w-full items-center transition-all duration-300 ease-in-out",
                 isSearchOpen ? 'max-w-xs opacity-100' : 'max-w-0 opacity-0'
