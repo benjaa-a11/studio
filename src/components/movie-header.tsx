@@ -15,25 +15,30 @@ export default function MovieHeader() {
   const { searchTerm, setSearchTerm } = useMovieFilters();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // Effect to focus the input when it opens
   useEffect(() => {
     if (isSearchOpen && searchInputRef.current) {
       searchInputRef.current.focus();
     }
   }, [isSearchOpen]);
+  
+  // Effect to clear search term when the search bar is closed
+  useEffect(() => {
+    if (!isSearchOpen && searchTerm) {
+      setSearchTerm('');
+    }
+  }, [isSearchOpen, searchTerm, setSearchTerm]);
 
   const handleSearchToggle = () => {
-    setIsSearchOpen(prev => {
-        if (prev) setSearchTerm(''); // Clear search on close
-        return !prev;
-    });
+    setIsSearchOpen(prev => !prev);
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm pt-safe-top">
+    <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background pt-safe-top">
       <div className="container mx-auto flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div className={cn(
           "flex items-center gap-4 transition-all duration-300",
-          isSearchOpen ? "w-0 opacity-0" : "w-auto opacity-100"
+          isSearchOpen ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
         )}>
             <Link href="/" className="flex items-center gap-2 font-bold text-xl">
                 <Image src="/icon.png" alt="Logo" width={32} height={32} />
