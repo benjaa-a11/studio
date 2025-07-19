@@ -1,3 +1,4 @@
+
 "use client";
 
 import { usePathname } from 'next/navigation';
@@ -13,9 +14,10 @@ export default function LayoutWrapper({ children }: { children: ReactNode }) {
   const isPlayerPage = pathname.startsWith('/canal/') || pathname.startsWith('/pelicula/') || pathname.startsWith('/radio/');
   const isAdminPage = pathname.startsWith('/admin');
   const isMoviePage = pathname.startsWith('/peliculas');
+  const isLoginPage = pathname === '/login';
   const isMaintenancePage = pathname.startsWith('/mantenimiento');
 
-  const showMainLayout = !isPlayerPage && !isAdminPage && !isMoviePage && !isMaintenancePage;
+  const showMainLayout = !isPlayerPage && !isAdminPage && !isMoviePage && !isMaintenancePage && !isLoginPage;
 
   return (
     <>

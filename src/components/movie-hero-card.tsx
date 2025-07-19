@@ -24,9 +24,8 @@ export default function MovieHeroCard({ movie, isActive }: MovieHeroCardProps) {
                 className="object-cover transition-opacity duration-1000"
                 priority
                 unoptimized
+                data-ai-hint="movie background"
             />
-            {/* Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
             
             {/* Content */}
             <div className={cn(
@@ -43,6 +42,7 @@ export default function MovieHeroCard({ movie, isActive }: MovieHeroCardProps) {
                             sizes="(max-width: 768px) 192px, (max-width: 1024px) 240px, 320px"
                             className="object-contain drop-shadow-2xl"
                             unoptimized
+                            data-ai-hint="movie logo"
                          />
                      )}
                  </div>

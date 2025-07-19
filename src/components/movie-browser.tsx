@@ -6,7 +6,6 @@ import type { Movie } from "@/types";
 import { useMovieFilters } from "@/hooks/use-movie-filters";
 import MovieShelf from "./movie-shelf";
 import MovieHero from "./movie-hero";
-import MovieHeader from "./movie-header"; // Import the new header
 import { cn } from "@/lib/utils";
 
 type MovieBrowserProps = {
@@ -72,8 +71,6 @@ export default function MovieBrowser({
 
   return (
     <div className="w-full relative bg-black text-white">
-        {!isHomePage && <MovieHeader />}
-        
         {!isHomePage && heroMovies.length > 0 && selectedCategory === 'Todos' && searchTerm === '' && (
             <MovieHero movies={heroMovies} />
         )}

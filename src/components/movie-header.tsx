@@ -48,27 +48,29 @@ export default function MovieHeader() {
                 <Image src="/icon.png" alt="Logo" width={32} height={32} />
                 <span className="hidden sm:inline">Plan B</span>
             </Link>
-            <nav className="items-center gap-2 hidden md:flex">
+             <div className={cn("items-center gap-2 hidden md:flex transition-opacity duration-300", isSearchOpen ? "opacity-0 pointer-events-none" : "opacity-100")}>
                 <Button variant="ghost" className="text-white hover:bg-white/10 hover:text-white rounded-full">Películas</Button>
-            </nav>
+            </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end gap-2 flex-1">
              <div className={cn(
-                "flex items-center gap-2 transition-all duration-300 ease-in-out",
-                isSearchOpen ? 'w-40 sm:w-56' : 'w-0'
+                "relative flex items-center justify-end transition-all duration-300 ease-in-out",
+                isSearchOpen ? 'w-full max-w-xs' : 'w-0'
              )}>
-                 <div className={cn("relative transition-all duration-300 ease-in-out overflow-hidden", isSearchOpen ? 'w-full opacity-100' : 'w-0 opacity-0')}>
-                     <Input
-                        ref={searchInputRef}
-                        type="search"
-                        placeholder="Buscar..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="h-9 w-full pl-4 pr-2 bg-white/10 text-white placeholder:text-white/70 border-white/30 backdrop-blur-sm focus:bg-black/50"
-                        aria-label="Buscar película"
-                    />
-                 </div>
+                <Input
+                    ref={searchInputRef}
+                    type="search"
+                    placeholder="Buscar..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className={cn(
+                        "h-9 w-full pl-4 pr-9 bg-black/50 text-white placeholder:text-white/70 border-white/30 backdrop-blur-sm focus:bg-black/70 transition-all duration-300",
+                        isSearchOpen ? "opacity-100" : "opacity-0"
+                    )}
+                    aria-label="Buscar película"
+                />
+                 <Search size={18} className="absolute right-3 text-white/70" />
              </div>
              <Button
               variant="ghost"
