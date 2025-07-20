@@ -3,7 +3,7 @@
 
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Search, ChevronDown } from 'lucide-react';
+import { Search, ListFilter, Mic } from 'lucide-react';
 import { useMovieFilters } from '@/hooks/use-movie-filters';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -30,28 +30,30 @@ export default function MovieHeader() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm pt-safe-top">
-       <div className="container flex h-16 items-center gap-2">
+       <div className="container flex h-16 items-center gap-4">
         {/* Search Bar */}
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Buscar por título..."
-            className="pl-10 h-10 w-full text-sm bg-muted border-transparent focus:bg-background focus:border-input"
+            placeholder="Buscar..."
+            className="pl-10 pr-10 h-10 w-full text-base bg-card border-transparent rounded-full focus:bg-background focus:border-input"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             aria-label="Buscar película"
           />
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground">
+            <Mic className="h-5 w-5" />
+          </div>
         </div>
 
         {/* Category Filter */}
         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
           <SelectTrigger
-            className="h-10 w-auto shrink-0 p-2 md:px-4 flex items-center justify-center bg-muted border-transparent focus:bg-background focus:border-input gap-2"
+            className="h-10 w-10 shrink-0 p-0 flex items-center justify-center bg-card border-transparent rounded-full"
             aria-label="Filtrar por categoría"
           >
-            <span className="hidden md:inline">{selectedCategory === 'Todos' ? 'Categorías' : selectedCategory}</span>
-            <ChevronDown className="h-5 w-5 text-muted-foreground" />
+            <ListFilter className="h-5 w-5 text-muted-foreground" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="Todos">Todos</SelectItem>
