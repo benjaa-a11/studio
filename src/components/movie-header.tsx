@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Search, ListFilter, Mic } from 'lucide-react';
+import { Search, ListFilter } from 'lucide-react';
 import { useMovieFilters } from '@/hooks/use-movie-filters';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -60,14 +60,11 @@ export default function MovieHeader() {
           <Input
             type="search"
             placeholder="Buscar..."
-            className="pl-10 pr-10 h-11 w-full text-base bg-card border-transparent rounded-full focus:bg-background focus:border-input"
+            className="pl-10 pr-4 h-11 w-full text-base bg-card border-transparent rounded-full focus:bg-background focus:border-input"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             aria-label="Buscar película"
           />
-          <button className="absolute right-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground hover:text-primary transition-colors">
-            <Mic className="h-5 w-5" />
-          </button>
         </div>
 
         {/* Category Filter */}
