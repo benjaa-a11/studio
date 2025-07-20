@@ -13,7 +13,6 @@ export default function MovieHero({ movies }: { movies: Movie[] }) {
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const isInteractingRef = useRef(false);
     const isTransitioningRef = useRef(false);
-    const animationFrameRef = useRef<number>();
 
     const processedMovies = useMemo(() => {
         if (movies.length <= 1) return movies;
@@ -23,6 +22,7 @@ export default function MovieHero({ movies }: { movies: Movie[] }) {
 
     const stopAutoScroll = useCallback(() => {
         if (intervalRef.current) clearInterval(intervalRef.current);
+        intervalRef.current = null;
     }, []);
 
     const startAutoScroll = useCallback(() => {
@@ -33,10 +33,10 @@ export default function MovieHero({ movies }: { movies: Movie[] }) {
             if (!isInteractingRef.current) {
                 setCurrentIndex(prevIndex => prevIndex + 1);
             }
-        }, 6000);
+        }, 6000); // 6-second interval for a relaxed, premium feel
     }, [processedMovies.length, stopAutoScroll]);
     
-    // Jump to the correct initial slide without animation
+    // Initial setup to jump to the first real slide without animation
     useEffect(() => {
         const scrollContainer = scrollRef.current;
         if (scrollContainer && processedMovies.length > 1) {
@@ -47,7 +47,7 @@ export default function MovieHero({ movies }: { movies: Movie[] }) {
         }
     }, [processedMovies]);
 
-
+    // Effect to handle the smooth scrolling to the current slide
     useEffect(() => {
         const scrollContainer = scrollRef.current;
         if (!scrollContainer || isTransitioningRef.current || processedMovies.length <= 1) return;
@@ -58,98 +58,78 @@ export default function MovieHero({ movies }: { movies: Movie[] }) {
         if (movieElement) {
             scrollContainer.scrollTo({
                 left: movieElement.offsetLeft,
-                behavior: 'smooth'
+                behavior: 'smooth' // Using CSS for smooth scrolling
             });
         }
-        
     }, [currentIndex, processedMovies.length]);
 
 
-    const handleManualScroll = useCallback(() => {
-        const scrollContainer = scrollRef.current;
-        if (!scrollContainer || isTransitioningRef.current) return;
-        
-        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-
-        animationFrameRef.current = requestAnimationFrame(() => {
-            const { scrollLeft, children } = scrollContainer;
-            const itemWidth = (scrollContainer.children[1] as HTMLElement).offsetWidth;
-            if (itemWidth <= 0) return;
-            
-            const newRealIndex = Math.round(scrollLeft / itemWidth) - 1;
-
-            if (newRealIndex !== currentIndex) {
-                 setCurrentIndex(newRealIndex);
-            }
-        });
-    }, [currentIndex]);
-    
-    const handleTransitionEnd = useCallback(() => {
+    // Effect to handle the "infinite" loop jump
+    useEffect(() => {
         const scrollContainer = scrollRef.current;
         if (!scrollContainer) return;
 
-        isTransitioningRef.current = true;
-        let jumped = false;
-        
-        // Loop to the beginning
-        if (currentIndex === movies.length) {
-            const targetElement = scrollContainer.children[1] as HTMLElement;
-            scrollContainer.scrollTo({ left: targetElement.offsetLeft, behavior: 'instant' });
-            setCurrentIndex(0);
-            jumped = true;
-        } 
-        // Loop to the end
-        else if (currentIndex === -1) {
-            const targetElement = scrollContainer.children[movies.length] as HTMLElement;
-            scrollContainer.scrollTo({ left: targetElement.offsetLeft, behavior: 'instant' });
-            setCurrentIndex(movies.length - 1);
-            jumped = true;
-        }
-
-        // Delay re-enabling transitions and starting autoscroll to ensure instant scroll is complete
-        setTimeout(() => {
+        const handleTransitionEnd = () => {
             isTransitioningRef.current = false;
-            if (jumped && !isInteractingRef.current) {
-                startAutoScroll();
+
+            if (currentIndex === movies.length) {
+                isTransitioningRef.current = true;
+                setCurrentIndex(0);
+                const targetElement = scrollContainer.children[1] as HTMLElement;
+                scrollContainer.scrollTo({ left: targetElement.offsetLeft, behavior: 'instant' });
+            } 
+            else if (currentIndex === -1) {
+                isTransitioningRef.current = true;
+                setCurrentIndex(movies.length - 1);
+                const targetElement = scrollContainer.children[movies.length] as HTMLElement;
+                scrollContainer.scrollTo({ left: targetElement.offsetLeft, behavior: 'instant' });
             }
-        }, 50);
+        };
+        
+        // We use a timer because 'transitionend' event can be unreliable with scroll
+        const timer = setTimeout(handleTransitionEnd, 700); // Duration should match the CSS transition
 
-    }, [currentIndex, movies.length, startAutoScroll]);
+        return () => clearTimeout(timer);
+    }, [currentIndex, movies.length]);
 
 
+    // Effect to manage all user interactions and auto-scroll lifecycle
     useEffect(() => {
         startAutoScroll();
         const container = scrollRef.current;
 
         const onInteractionStart = () => {
+            if (isInteractingRef.current) return;
             isInteractingRef.current = true;
             stopAutoScroll();
         };
 
         const onInteractionEnd = () => {
+            if (!isInteractingRef.current) return;
             isInteractingRef.current = false;
             startAutoScroll();
         };
+        
+        const handleManualScroll = () => {
+             if (!container || isInteractingRef.current) return;
+             onInteractionStart();
+        }
 
         container?.addEventListener('touchstart', onInteractionStart, { passive: true });
         container?.addEventListener('touchend', onInteractionEnd, { passive: true });
         container?.addEventListener('mousedown', onInteractionStart, { passive: true });
         container?.addEventListener('mouseup', onInteractionEnd, { passive: true });
         container?.addEventListener('scroll', handleManualScroll, { passive: true });
-        container?.addEventListener('scrollend', handleTransitionEnd, { passive: true });
-
 
         return () => {
             stopAutoScroll();
-            if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
             container?.removeEventListener('touchstart', onInteractionStart);
             container?.removeEventListener('touchend', onInteractionEnd);
             container?.removeEventListener('mousedown', onInteractionStart);
             container?.removeEventListener('mouseup', onInteractionEnd);
             container?.removeEventListener('scroll', handleManualScroll);
-            container?.removeEventListener('scrollend', handleTransitionEnd);
         };
-    }, [startAutoScroll, stopAutoScroll, handleManualScroll, handleTransitionEnd]);
+    }, [startAutoScroll, stopAutoScroll]);
 
 
     if (!movies || movies.length === 0) {
@@ -163,12 +143,13 @@ export default function MovieHero({ movies }: { movies: Movie[] }) {
              <div 
                 ref={scrollRef}
                 className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scrollbar-hide"
+                style={{ scrollBehavior: 'smooth' }}
             >
                 {processedMovies.map((movie, index) => (
                     <Link 
                         key={`${movie.id}-${index}`} 
                         href={`/pelicula/${movie.id}`}
-                        className="w-full h-full flex-shrink-0 snap-center block transition-transform duration-200 active:scale-[0.98] outline-none"
+                        className="w-full h-full flex-shrink-0 snap-center block outline-none transition-transform duration-300 active:scale-[0.98]"
                         aria-label={`Ver ${movie.title}`}
                         draggable={false}
                     >
