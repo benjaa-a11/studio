@@ -40,20 +40,23 @@ const ChannelSchema = z.object({
   logoUrl: z.string().url({ message: 'Debe ser una URL de logo válida.' }),
   category: z.string().min(1, { message: 'La categoría es requerida.' }),
   description: z.string().optional(),
-  streamUrl: z.array(z.string().url({ message: 'Cada URL de stream debe ser válida.' })).min(1, { message: 'Se requiere al menos una URL de stream.' }),
+  streamUrl: z.array(z.string().url({ message: 'URL no válida.' })).min(1, { message: 'Se requiere al menos una URL de stream.' })
+    .refine(urls => urls.every(url => url.trim().length > 0), { message: 'Ninguna URL puede estar vacía.' }),
   isHidden: z.boolean().optional(),
 });
 
 export async function addChannel(prevState: FormState, formData: FormData): Promise<FormState> {
   try {
-    const rawData = Object.fromEntries(formData.entries());
-    const processedData = {
-      ...rawData,
-      streamUrl: (rawData.streamUrl as string).split(',').map(url => url.trim()).filter(Boolean),
-      isHidden: rawData.isHidden === 'on',
+    const rawData = {
+        name: formData.get('name'),
+        logoUrl: formData.get('logoUrl'),
+        category: formData.get('category'),
+        description: formData.get('description'),
+        streamUrl: formData.getAll('streamUrl[]').filter(Boolean),
+        isHidden: formData.get('isHidden') === 'on',
     };
 
-    const validatedFields = ChannelSchema.safeParse(processedData);
+    const validatedFields = ChannelSchema.safeParse(rawData);
     
     if (!validatedFields.success) {
       return {
@@ -87,14 +90,16 @@ export async function updateChannel(id: string, prevState: FormState, formData: 
   if (!id) return { message: 'ID de canal no proporcionado.', success: false };
   
   try {
-    const rawData = Object.fromEntries(formData.entries());
-    const processedData = {
-      ...rawData,
-      streamUrl: (rawData.streamUrl as string).split(',').map(url => url.trim()).filter(Boolean),
-      isHidden: rawData.isHidden === 'on',
+     const rawData = {
+        name: formData.get('name'),
+        logoUrl: formData.get('logoUrl'),
+        category: formData.get('category'),
+        description: formData.get('description'),
+        streamUrl: formData.getAll('streamUrl[]').filter(Boolean),
+        isHidden: formData.get('isHidden') === 'on',
     };
 
-    const validatedFields = ChannelSchema.safeParse(processedData);
+    const validatedFields = ChannelSchema.safeParse(rawData);
 
     if (!validatedFields.success) {
       return {
@@ -139,17 +144,19 @@ const RadioSchema = z.object({
   name: z.string().min(1, { message: 'El nombre es requerido.' }),
   logoUrl: z.string().url({ message: 'Debe ser una URL de logo válida.' }),
   emisora: z.string().optional(),
-  streamUrl: z.array(z.string().url({ message: 'Cada URL de stream debe ser válida.' })).min(1, { message: 'Se requiere al menos una URL de stream.' }),
+  streamUrl: z.array(z.string().url({ message: 'URL no válida.' })).min(1, { message: 'Se requiere al menos una URL de stream.' })
+    .refine(urls => urls.every(url => url.trim().length > 0), { message: 'Ninguna URL puede estar vacía.' }),
 });
 
 export async function addRadio(prevState: FormState, formData: FormData): Promise<FormState> {
   try {
-    const rawData = Object.fromEntries(formData.entries());
-    const processedData = {
-      ...rawData,
-      streamUrl: (rawData.streamUrl as string).split(',').map(url => url.trim()).filter(Boolean),
+    const rawData = {
+        name: formData.get('name'),
+        logoUrl: formData.get('logoUrl'),
+        emisora: formData.get('emisora'),
+        streamUrl: formData.getAll('streamUrl[]').filter(Boolean),
     };
-    const validatedFields = RadioSchema.safeParse(processedData);
+    const validatedFields = RadioSchema.safeParse(rawData);
     
     if (!validatedFields.success) {
       return {
@@ -183,12 +190,13 @@ export async function updateRadio(id: string, prevState: FormState, formData: Fo
    if (!id) return { message: 'ID de radio no proporcionado.', success: false };
    
    try {
-    const rawData = Object.fromEntries(formData.entries());
-    const processedData = {
-      ...rawData,
-      streamUrl: (rawData.streamUrl as string).split(',').map(url => url.trim()).filter(Boolean),
+    const rawData = {
+        name: formData.get('name'),
+        logoUrl: formData.get('logoUrl'),
+        emisora: formData.get('emisora'),
+        streamUrl: formData.getAll('streamUrl[]').filter(Boolean),
     };
-    const validatedFields = RadioSchema.safeParse(processedData);
+    const validatedFields = RadioSchema.safeParse(rawData);
 
     if (!validatedFields.success) {
       return {
