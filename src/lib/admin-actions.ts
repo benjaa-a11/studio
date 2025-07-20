@@ -598,10 +598,10 @@ export async function deleteMatch(id: string) {
     }
 }
 
-// Action to fetch all agenda items for the admin panel, sorted by most recent first.
+// Action to fetch all agenda items for the admin panel, sorted chronologically.
 export async function getAdminAgenda(): Promise<AdminAgendaMatch[]> {
     try {
-        const agendaSnapshot = await getDocs(query(collection(db, "agenda"), orderBy("time", "desc")));
+        const agendaSnapshot = await getDocs(query(collection(db, "agenda"), orderBy("time", "asc")));
         const matches = agendaSnapshot.docs.map(doc => {
             const data = doc.data();
             const time = (data.time as Timestamp).toDate();
