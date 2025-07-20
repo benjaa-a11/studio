@@ -99,27 +99,20 @@ export default function MovieHero({ movies }: { movies: Movie[] }) {
         const container = scrollRef.current;
 
         const onInteractionStart = () => {
-            if (isInteractingRef.current) return;
             isInteractingRef.current = true;
             stopAutoScroll();
         };
 
         const onInteractionEnd = () => {
-            if (!isInteractingRef.current) return;
             isInteractingRef.current = false;
             startAutoScroll();
         };
-        
-        const handleManualScroll = () => {
-             if (!container || isInteractingRef.current) return;
-             onInteractionStart();
-        }
 
         container?.addEventListener('touchstart', onInteractionStart, { passive: true });
         container?.addEventListener('touchend', onInteractionEnd, { passive: true });
         container?.addEventListener('mousedown', onInteractionStart, { passive: true });
         container?.addEventListener('mouseup', onInteractionEnd, { passive: true });
-        container?.addEventListener('scroll', handleManualScroll, { passive: true });
+        container?.addEventListener('wheel', onInteractionStart, { passive: true });
 
         return () => {
             stopAutoScroll();
@@ -127,7 +120,7 @@ export default function MovieHero({ movies }: { movies: Movie[] }) {
             container?.removeEventListener('touchend', onInteractionEnd);
             container?.removeEventListener('mousedown', onInteractionStart);
             container?.removeEventListener('mouseup', onInteractionEnd);
-            container?.removeEventListener('scroll', handleManualScroll);
+            container?.removeEventListener('wheel', onInteractionStart);
         };
     }, [startAutoScroll, stopAutoScroll]);
 
