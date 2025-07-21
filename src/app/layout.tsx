@@ -5,8 +5,6 @@ import { cn } from "@/lib/utils";
 import { getCategories, getMovieCategories } from "@/lib/actions";
 import { Providers } from "@/components/providers";
 import { Analytics } from "@vercel/analytics/next";
-import { cookies } from "next/headers";
-import { decrypt } from "./lib/session";
 
 const fontInter = Inter({
   subsets: ['latin'],
