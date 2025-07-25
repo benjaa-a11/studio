@@ -182,8 +182,8 @@ export default function TournamentDataTable({ data }: { data: Tournament[] }) {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4 gap-4">
-        <div className="relative flex-1">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-2 md:gap-4">
+        <div className="relative w-full md:flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input 
             placeholder="Buscar por nombre..."
@@ -192,7 +192,7 @@ export default function TournamentDataTable({ data }: { data: Tournament[] }) {
             className="pl-10"
           />
         </div>
-        <Button onClick={handleAddClick}>
+        <Button onClick={handleAddClick} className="w-full md:w-auto">
             <PlusCircle className="mr-2 h-4 w-4" />
             Añadir Torneo
         </Button>

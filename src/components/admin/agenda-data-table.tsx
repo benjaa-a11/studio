@@ -54,6 +54,7 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
     
     // State for team/channel selection flow
     const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+    const [teamSearchTerm, setTeamSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
     const formAction = match?.id ? updateMatch.bind(null, match.id) : addMatch;
@@ -89,6 +90,7 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
         if (field === 'team1' || field === 'team2') {
             nextStep();
             setSelectedCountry(null);
+            setTeamSearchTerm('');
         }
     };
     
@@ -100,6 +102,13 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
             return acc;
         }, {});
     }, [teams]);
+
+    const filteredTeams = useMemo(() => {
+        if (!selectedCountry) return [];
+        return teamsByCountry[selectedCountry].filter(team =>
+            team.name.toLowerCase().includes(teamSearchTerm.toLowerCase())
+        );
+    }, [selectedCountry, teamsByCountry, teamSearchTerm]);
 
     const channelsByCategory = useMemo(() => {
         return channels.reduce<Record<string, Channel[]>>((acc, channel) => {
@@ -151,14 +160,23 @@ function MatchWizard({ match, onFormSubmit, teams, tournaments, channels }: Matc
                         </div>
                         {/* Team List */}
                         <div className={cn("absolute inset-0 transition-all duration-300 flex flex-col", selectedCountry ? "opacity-100 translate-x-0" : "opacity-0 translate-x-full pointer-events-none")}>
-                             <div className="flex-shrink-0 mb-2">
-                                <button type="button" onClick={() => setSelectedCountry(null)} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
-                                    <ArrowLeft size={16}/> Volver a Países
+                             <div className="flex-shrink-0 mb-2 flex items-center gap-2">
+                                <button type="button" onClick={() => {setSelectedCountry(null); setTeamSearchTerm('');}} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+                                    <ArrowLeft size={16}/> Volver
                                  </button>
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input 
+                                        placeholder="Buscar equipo..."
+                                        value={teamSearchTerm}
+                                        onChange={(e) => setTeamSearchTerm(e.target.value)}
+                                        className="pl-9 h-9"
+                                    />
+                                </div>
                              </div>
                              <ScrollArea className="flex-grow">
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-1">
-                                    {selectedCountry && teamsByCountry[selectedCountry].map(team => (
+                                    {filteredTeams.map(team => (
                                         <button key={team.id} type="button" onClick={() => handleSelect(teamKey, team.id)} className={cn("group flex flex-col items-center gap-2 p-3 rounded-lg border text-center transition-all hover:border-primary hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed", (formData.team1 === team.id || formData.team2 === team.id) && "border-primary ring-2 ring-primary")} disabled={formData[teamKey === 'team1' ? 'team2' : 'team1'] === team.id}>
                                             <Image src={team.logoUrl} alt={team.name} width={48} height={48} className="h-12 w-12 object-contain" unoptimized />
                                             <span className="text-xs font-medium">{team.name}</span>
@@ -490,8 +508,8 @@ export default function AgendaDataTable({ data, teams, tournaments, channels }: 
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4 gap-4">
-        <div className="relative flex-1">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-2 md:gap-4">
+        <div className="relative w-full md:flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input 
             placeholder="Buscar por equipo o torneo..."
@@ -500,9 +518,9 @@ export default function AgendaDataTable({ data, teams, tournaments, channels }: 
             className="pl-10"
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full md:w-auto items-center gap-2">
           <Select value={tournamentFilter} onValueChange={setTournamentFilter}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full md:w-[200px]">
               <SelectValue placeholder="Filtrar por torneo" />
             </SelectTrigger>
             <SelectContent>
@@ -512,7 +530,7 @@ export default function AgendaDataTable({ data, teams, tournaments, channels }: 
                 ))}
             </SelectContent>
           </Select>
-          <Button onClick={handleAddClick}>
+          <Button onClick={handleAddClick} className="w-full md:w-auto">
               <PlusCircle className="mr-2 h-4 w-4" />
               Añadir Partido
           </Button>
