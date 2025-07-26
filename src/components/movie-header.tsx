@@ -54,36 +54,37 @@ export default function MovieHeader() {
         !isVisible && "-translate-y-full"
     )}>
        <div className="container flex h-16 items-center gap-2 md:gap-4">
-        {/* Search Bar */}
-        <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Buscar..."
-            className="pl-10 pr-4 h-11 w-full text-base bg-card border-transparent rounded-full focus:bg-background focus:border-input"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            aria-label="Buscar película"
-          />
-        </div>
+        {/* Search Bar & Filter - Unified with Home page header */}
+        <div className="flex w-full items-center gap-2 max-w-md mx-auto">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Buscar película..."
+              className="pl-10 h-10 w-full text-sm bg-muted border-transparent focus:bg-background focus:border-input"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              aria-label="Buscar película"
+            />
+          </div>
 
-        {/* Category Filter */}
-        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-          <SelectTrigger
-            className="h-11 w-11 shrink-0 p-0 flex items-center justify-center bg-card border-transparent rounded-full"
-            aria-label="Filtrar por categoría"
-          >
-            <ListFilter className="h-5 w-5 text-muted-foreground" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Todos">Todos</SelectItem>
-            {allCategories.filter(c => c !== 'Todos').map((category) => (
-              <SelectItem key={category} value={category}>
-                {category}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger
+              className="h-10 w-10 shrink-0 p-0 flex items-center justify-center bg-muted border-transparent focus:bg-background focus:border-input"
+              aria-label="Filtrar por categoría"
+            >
+              <ListFilter className="h-5 w-5 text-muted-foreground" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Todos">Todos</SelectItem>
+              {allCategories.filter(c => c !== 'Todos').map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </header>
   );
