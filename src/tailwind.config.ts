@@ -25,6 +25,7 @@ export default {
       },
       fontFamily: {
         sans: ["var(--font-inter)", ...fontFamily.sans],
+        poppins: ["var(--font-poppins)", ...fontFamily.sans],
       },
       colors: {
         background: 'hsl(var(--background))',

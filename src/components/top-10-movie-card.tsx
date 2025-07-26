@@ -12,42 +12,48 @@ type Top10MovieCardProps = {
 
 // Custom SVG component for the rank number to achieve the specific style.
 const RankNumber = ({ rank }: { rank: number }) => {
-    const textPath = {
-        '1': "M 10 7 L 10 93",
-        '2': "M 10 15 A 35 35 0 0 1 75 15 L 75 40 L 10 93",
-        '3': "M 10 20 A 25 25 0 1 1 50 45 A 25 25 0 0 1 10 70",
-        '4': "M 65 7 L 10 50 L 80 50 M 65 7 L 65 93",
-        '5': "M 80 7 L 10 7 L 10 45 A 35 35 0 0 0 80 70",
-        '6': "M 60 93 A 40 40 0 1 1 50 15 L 10 50",
-        '7': "M 10 7 L 90 7 L 25 93",
-        '8': "M 45 50 A 25 25 0 1 1 45 0 A 25 25 0 1 1 45 50 M 45 50 A 25 25 0 1 0 45 95 A 25 25 0 1 0 45 50",
-        '9': "M 40 7 A 40 40 0 1 1 50 85 L 90 50",
-        '10': "M 10 7 L 10 93 M 40 50 A 40 40 0 1 1 40 45 A 40 40 0 1 1 40 50"
-    }[String(rank)] || "";
-
     return (
         <svg
-            viewBox={rank === 10 ? "0 0 125 100" : "0 0 90 100"}
+            viewBox="0 0 200 280"
             xmlns="http://www.w3.org/2000/svg"
-            className="w-full h-full"
+            className="w-full h-full text-foreground drop-shadow-lg"
             aria-label={`Rank ${rank}`}
         >
-            <path
-                d={textPath}
+            <defs>
+                <style>
+                    {`
+                        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@900&display=swap');
+                        .rank-text {
+                            font-family: 'Poppins', sans-serif;
+                            font-weight: 900;
+                            font-size: 280px;
+                        }
+                    `}
+                </style>
+            </defs>
+            {/* Stroke for border effect */}
+            <text
+                x="100"
+                y="225"
+                textAnchor="middle"
+                className="rank-text"
                 stroke="hsl(var(--card))"
-                strokeWidth="12"
+                strokeWidth="24"
                 strokeLinejoin="round"
-                strokeLinecap="round"
                 fill="none"
-            />
-            <path
-                d={textPath}
-                stroke="hsl(var(--card-foreground))"
-                strokeWidth="4"
-                strokeLinejoin="round"
-                strokeLinecap="round"
-                fill="none"
-            />
+            >
+                {rank}
+            </text>
+            {/* Main text fill */}
+            <text
+                x="100"
+                y="225"
+                textAnchor="middle"
+                className="rank-text"
+                fill="hsl(var(--card-foreground))"
+            >
+                {rank}
+            </text>
         </svg>
     );
 };
@@ -63,27 +69,27 @@ const Top10MovieCard = memo(function Top10MovieCard({ movie, rank }: Top10MovieC
       title={movie.title}
       style={{ animationDelay: `${rank * 50}ms` }}
     >
-      <div className="absolute left-0 bottom-0 top-0 w-1/3 z-10">
-        <div className="absolute -left-1 sm:-left-2 bottom-0 h-3/4 w-full">
-            <RankNumber rank={rank} />
+        <div className="absolute left-0 bottom-0 top-0 w-1/2 flex items-center z-10">
+            <div className="absolute -left-12 -bottom-2 h-full w-[170px]">
+                <RankNumber rank={rank} />
+            </div>
         </div>
-      </div>
       
-      <div className="absolute right-0 top-0 bottom-0 w-2/3 h-full">
-        {backdropImage ? (
-            <Image
-                src={backdropImage}
-                alt={`Fondo de ${movie.title}`}
-                fill
-                sizes="(max-width: 768px) 33vw, 20vw"
-                className="object-cover transition-transform duration-300 group-hover:scale-105"
-                data-ai-hint="movie backdrop"
-            />
-        ) : (
-            <div className="w-full h-full bg-muted" />
-        )}
-      </div>
-       <div className="absolute inset-0 bg-gradient-to-r from-card via-card/50 to-transparent" />
+        <div className="absolute right-0 top-0 bottom-0 w-2/3 h-full">
+            {backdropImage ? (
+                <Image
+                    src={backdropImage}
+                    alt={`Fondo de ${movie.title}`}
+                    fill
+                    sizes="(max-width: 768px) 33vw, 20vw"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    data-ai-hint="movie backdrop"
+                />
+            ) : (
+                <div className="w-full h-full bg-muted" />
+            )}
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-r from-card from-[30%] via-card/50 via-[50%] to-transparent" />
     </Link>
   );
 });

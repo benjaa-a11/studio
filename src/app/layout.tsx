@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from 'next/font/google';
+import { Inter, Poppins } from 'next/font/google';
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { getCategories, getMovieCategories } from "@/lib/actions";
@@ -9,6 +9,12 @@ import { Analytics } from "@vercel/analytics/next";
 const fontInter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
+});
+
+const fontPoppins = Poppins({
+  subsets: ['latin'],
+  weight: ['900'],
+  variable: '--font-poppins',
 });
 
 export const metadata: Metadata = {
@@ -55,7 +61,8 @@ export default async function RootLayout({
       <body
         className={cn(
           "min-h-screen bg-background font-sans antialiased flex flex-col",
-          fontInter.variable
+          fontInter.variable,
+          fontPoppins.variable
         )}
       >
         <Providers 
