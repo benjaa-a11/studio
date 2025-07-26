@@ -5,11 +5,13 @@ import Image from "next/image";
 import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Loader2, AlertCircle, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
+import { useMovieHistory } from "@/hooks/use-movie-history";
 
 type VideoPlayerProps = {
   src: string;
   posterUrl: string;
   backdropUrl?: string;
+  movieId: string;
 };
 
 const formatTime = (timeInSeconds: number): string => {
@@ -26,7 +28,7 @@ const formatTime = (timeInSeconds: number): string => {
   return `${mm}:${ss}`;
 };
 
-export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayerProps) {
+export default function VideoPlayer({ src, posterUrl, backdropUrl, movieId }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -44,6 +46,8 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
   const [isSeeking, setIsSeeking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [seekIndicator, setSeekIndicator] = useState<'forward' | 'backward' | null>(null);
+
+  const { getProgress, recordProgress } = useMovieHistory();
 
   const resetControlsTimeout = useCallback(() => {
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
@@ -136,6 +140,13 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
     }
   }, [playerRef, seekBy, showSeekIndicator, resetControlsTimeout]);
 
+  // Record progress on pause or before unload
+  const saveCurrentProgress = useCallback(() => {
+      if (videoRef.current && duration > 0) {
+          recordProgress(movieId, videoRef.current.currentTime, duration);
+      }
+  }, [recordProgress, movieId, duration]);
+  
 
   // Main Effect for Player Setup and Listeners
   useEffect(() => {
@@ -143,14 +154,32 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
     if (!video) return;
 
     const onPlay = () => setIsPlaying(true);
-    const onPause = () => setIsPlaying(false);
+    const onPause = () => {
+        setIsPlaying(false);
+        saveCurrentProgress();
+    };
     const onVolumeChange = () => setIsMuted(video.muted || video.volume === 0);
     const onWaiting = () => !isSeeking && setIsLoading(true);
     const onPlaying = () => setIsLoading(false);
-    const onEnded = () => setIsPlaying(false);
+    const onEnded = () => {
+        setIsPlaying(false);
+        recordProgress(movieId, duration, duration); // Mark as finished
+    }
     const onFullScreenChange = () => setIsFullScreen(!!document.fullscreenElement);
-    const onTimeUpdate = () => !isSeeking && setProgress(video.currentTime);
-    const onLoadedMetadata = () => { setDuration(video.duration); setIsLoading(false); };
+    const onTimeUpdate = () => {
+        if (!isSeeking) {
+            setProgress(video.currentTime);
+        }
+    };
+    const onLoadedMetadata = () => { 
+        setDuration(video.duration);
+        setIsLoading(false);
+        // Set start time from history
+        const savedProgress = getProgress(movieId);
+        if (savedProgress && savedProgress.progress < savedProgress.duration - 10) { // Don't resume if almost finished
+            video.currentTime = savedProgress.progress;
+        }
+    };
     const onError = () => {
         if (!video.error) return;
         setError("Ocurrió un error al reproducir el video.");
@@ -168,10 +197,18 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
     video.addEventListener("error", onError);
     document.addEventListener("fullscreenchange", onFullScreenChange);
     
+    // Save progress periodically
+    const progressInterval = setInterval(saveCurrentProgress, 5000);
+    
+    // Save progress when user leaves the page
+    window.addEventListener('beforeunload', saveCurrentProgress);
+
     resetControlsTimeout();
     video.play().catch(() => setIsPlaying(false)); 
 
     return () => {
+      clearInterval(progressInterval);
+      window.removeEventListener('beforeunload', saveCurrentProgress);
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
       video.removeEventListener("ended", onEnded);
@@ -186,7 +223,7 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl }: VideoPlayer
       if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
       if (seekIndicatorTimeoutRef.current) clearTimeout(seekIndicatorTimeoutRef.current);
     };
-  }, [isSeeking, resetControlsTimeout]);
+  }, [isSeeking, resetControlsTimeout, saveCurrentProgress, movieId, getProgress]);
 
   const VolumeIcon = isMuted ? VolumeX : Volume2;
   const areControlsVisible = showControls || !isPlaying || !!error;

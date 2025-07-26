@@ -8,6 +8,8 @@ import MovieShelf from "./movie-shelf";
 import MovieHero from "./movie-hero";
 import { cn } from "@/lib/utils";
 import MovieCard from "./movie-card";
+import ContinueWatchingShelf from "./continue-watching-shelf";
+import RecommendedForYouShelf from "./recommended-for-you-shelf";
 
 type MovieBrowserProps = {
   movies: Movie[];
@@ -93,14 +95,18 @@ export default function MovieBrowser({
                     </div>
                 </div>
             ) : (
-                categories.map((category, index) => (
-                    <MovieShelf 
-                        key={category}
-                        title={category}
-                        movies={byCategory[category]}
-                        animationDelay={index * 100}
-                    />
-                ))
+                <>
+                  <ContinueWatchingShelf />
+                  <RecommendedForYouShelf />
+                  {categories.map((category, index) => (
+                      <MovieShelf 
+                          key={category}
+                          title={category}
+                          movies={byCategory[category]}
+                          animationDelay={index * 100}
+                      />
+                  ))}
+                </>
             )}
         </div>
     </div>

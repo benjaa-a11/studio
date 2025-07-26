@@ -3,13 +3,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { Play } from "lucide-react";
 import { memo } from "react";
+import { Progress } from "./ui/progress";
 
 type MovieCardProps = {
   movie: Movie;
   index?: number;
+  progress?: number; // Progress percentage (0-100)
 };
 
-const MovieCard = memo(function MovieCard({ movie, index = 0 }: MovieCardProps) {
+const MovieCard = memo(function MovieCard({ movie, index = 0, progress }: MovieCardProps) {
   return (
     <Link 
       href={`/pelicula/${movie.id}`} 
@@ -35,6 +37,11 @@ const MovieCard = memo(function MovieCard({ movie, index = 0 }: MovieCardProps) 
           data-ai-hint="movie poster"
           priority={index < 8}
         />
+        {progress !== undefined && progress > 0 && progress < 95 && (
+            <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent z-10">
+                <Progress value={progress} className="h-1.5" />
+            </div>
+        )}
       </div>
     </Link>
   );

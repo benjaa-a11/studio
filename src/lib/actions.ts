@@ -488,6 +488,51 @@ const _fetchTMDbList = cache(async (endpoint: string): Promise<Set<string>> => {
     }
 });
 
+// New function to get personalized recommendations
+export const getRecommendedMovies = async (history: Record<string, any>): Promise<Movie[]> => {
+    const historyEntries = Object.entries(history);
+    if (historyEntries.length === 0) {
+        // Fallback to popular if no history
+        const popularMovies = await getMovies(true);
+        return popularMovies.sort((a,b) => (b.popularity || 0) - (a.popularity || 0)).slice(0, 20);
+    }
+
+    // Sort by last watched to get the most recent movie
+    historyEntries.sort(([, a], [, b]) => new Date(b.lastWatched).getTime() - new Date(a.lastWatched).getTime());
+    const lastWatchedMovieId = historyEntries[0][0];
+
+    // Get the TMDb ID for the last watched movie
+    const movieDoc = await getMovieById(lastWatchedMovieId);
+    if (!movieDoc || !movieDoc.tmdbID || !TMDB_API_KEY) {
+        const popularMovies = await getMovies(true);
+        return popularMovies.sort((a,b) => (b.popularity || 0) - (a.popularity || 0)).slice(0, 20);
+    }
+    
+    try {
+        const res = await fetch(`${TMDB_BASE_URL}/movie/${movieDoc.tmdbID}/recommendations?api_key=${TMDB_API_KEY}&language=es-ES&page=1`);
+        if (!res.ok) return [];
+        const data = await res.json();
+        
+        // We have TMDb IDs, now we need to find which ones exist in our Firestore DB
+        const recommendationTMDbIds = data.results.map((m: any) => String(m.id));
+        if (recommendationTMDbIds.length === 0) return [];
+        
+        const q = query(collection(db, "peliculas"), where("tmdbID", "in", recommendationTMDbIds.slice(0, 30)));
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) return [];
+
+        const moviePromises = snapshot.docs.map(doc => _enrichMovieData(doc.id, doc.data()));
+        const enrichedMovies = await Promise.all(moviePromises);
+        
+        return enrichedMovies.filter((movie): movie is Movie => movie !== null);
+
+    } catch (error) {
+        console.error("Error fetching recommendations:", error);
+        return [];
+    }
+};
+
 
 // Uncached version of getMovies to ensure data is always fresh
 export const getMovies = async (includePlaceholders = false): Promise<Movie[]> => {
