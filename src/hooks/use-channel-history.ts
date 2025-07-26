@@ -10,6 +10,9 @@ type ViewCounts = {
 
 // Helper function to safely get history from localStorage
 const getInitialHistory = (): ViewCounts => {
+  if (typeof window === 'undefined') {
+    return {};
+  }
   try {
     const storedHistory = localStorage.getItem(HISTORY_KEY);
     if (storedHistory && storedHistory !== 'undefined' && storedHistory !== 'null') {

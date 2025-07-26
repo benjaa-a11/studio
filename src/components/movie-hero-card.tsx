@@ -43,6 +43,7 @@ export default function MovieHeroCard({ movie, isActive }: MovieHeroCardProps) {
                             className="object-contain drop-shadow-2xl"
                             unoptimized
                             data-ai-hint="movie logo"
+                            priority
                          />
                      )}
                  </div>

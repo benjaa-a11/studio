@@ -4,26 +4,31 @@ import { useState, useEffect, useCallback } from 'react';
 
 const FAVORITES_KEY = 'plan-b-favorites';
 
+const getInitialFavorites = (): string[] => {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+  try {
+    const storedFavorites = localStorage.getItem(FAVORITES_KEY);
+    if (storedFavorites && storedFavorites !== 'undefined' && storedFavorites !== 'null') {
+      const parsedFavorites = JSON.parse(storedFavorites);
+      if (Array.isArray(parsedFavorites)) {
+        return parsedFavorites;
+      }
+    }
+  } catch (error) {
+    console.error("Error loading favorites from localStorage", error);
+  }
+  return [];
+};
+
+
 export function useFavorites() {
-  const [favorites, setFavorites] = useState<string[]>([]);
+  const [favorites, setFavorites] = useState<string[]>(getInitialFavorites);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    try {
-      const storedFavorites = localStorage.getItem(FAVORITES_KEY);
-      // Professional check: Ensure data is a valid JSON array string before parsing
-      if (storedFavorites && storedFavorites !== 'undefined' && storedFavorites !== 'null') {
-        const parsedFavorites = JSON.parse(storedFavorites);
-        if (Array.isArray(parsedFavorites)) {
-          setFavorites(parsedFavorites);
-        }
-      }
-    } catch (error) {
-      console.error("Error loading favorites from localStorage", error);
-      setFavorites([]); // Reset on error
-    } finally {
-      setIsLoaded(true);
-    }
+    setIsLoaded(true);
   }, []);
 
   const updateLocalStorage = (newFavorites: string[]) => {
