@@ -96,8 +96,8 @@ export default function MovieBrowser({
                 </div>
             ) : (
                 <>
-                  <ContinueWatchingShelf />
                   <RecommendedForYouShelf />
+                  <ContinueWatchingShelf />
                   {categories.map((category, index) => (
                       <MovieShelf 
                           key={category}

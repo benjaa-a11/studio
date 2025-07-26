@@ -491,10 +491,25 @@ const _fetchTMDbList = cache(async (endpoint: string): Promise<Set<string>> => {
 // New function to get personalized recommendations
 export const getRecommendedMovies = async (history: Record<string, any>): Promise<Movie[]> => {
     const historyEntries = Object.entries(history);
+
+    // If no history, fetch popular movies efficiently
     if (historyEntries.length === 0) {
-        // Fallback to popular if no history
-        const popularMovies = await getMovies(true);
-        return popularMovies.sort((a,b) => (b.popularity || 0) - (a.popularity || 0)).slice(0, 20);
+        try {
+            const popularTMDbIds = Array.from(await _fetchTMDbList('/movie/popular'));
+            if (popularTMDbIds.length === 0) return [];
+            
+            const q = query(collection(db, "peliculas"), where("tmdbID", "in", popularTMDbIds.slice(0, 20)));
+            const snapshot = await getDocs(q);
+            if (snapshot.empty) return [];
+
+            const moviePromises = snapshot.docs.map(doc => _enrichMovieData(doc.id, doc.data()));
+            const enrichedMovies = await Promise.all(moviePromises);
+            
+            return enrichedMovies.filter((movie): movie is Movie => movie !== null);
+        } catch (error) {
+            console.error("Error fetching popular movies for recommendations:", error);
+            return [];
+        }
     }
 
     // Sort by last watched to get the most recent movie
@@ -504,23 +519,23 @@ export const getRecommendedMovies = async (history: Record<string, any>): Promis
     // Get the TMDb ID for the last watched movie
     const movieDoc = await getMovieById(lastWatchedMovieId);
     if (!movieDoc || !movieDoc.tmdbID || !TMDB_API_KEY) {
-        const popularMovies = await getMovies(true);
-        return popularMovies.sort((a,b) => (b.popularity || 0) - (a.popularity || 0)).slice(0, 20);
+        // Fallback to popular if last watched can't be found
+        return getRecommendedMovies({});
     }
     
     try {
         const res = await fetch(`${TMDB_BASE_URL}/movie/${movieDoc.tmdbID}/recommendations?api_key=${TMDB_API_KEY}&language=es-ES&page=1`);
-        if (!res.ok) return [];
+        if (!res.ok) return getRecommendedMovies({}); // Fallback to popular on API error
         const data = await res.json();
         
         // We have TMDb IDs, now we need to find which ones exist in our Firestore DB
         const recommendationTMDbIds = data.results.map((m: any) => String(m.id));
-        if (recommendationTMDbIds.length === 0) return [];
+        if (recommendationTMDbIds.length === 0) return getRecommendedMovies({}); // Fallback
         
         const q = query(collection(db, "peliculas"), where("tmdbID", "in", recommendationTMDbIds.slice(0, 30)));
         const snapshot = await getDocs(q);
 
-        if (snapshot.empty) return [];
+        if (snapshot.empty) return getRecommendedMovies({}); // Fallback
 
         const moviePromises = snapshot.docs.map(doc => _enrichMovieData(doc.id, doc.data()));
         const enrichedMovies = await Promise.all(moviePromises);
@@ -529,7 +544,7 @@ export const getRecommendedMovies = async (history: Record<string, any>): Promis
 
     } catch (error) {
         console.error("Error fetching recommendations:", error);
-        return [];
+        return getRecommendedMovies({}); // Fallback
     }
 };
 
