@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import MovieCard from "./movie-card";
 import ContinueWatchingShelf from "./continue-watching-shelf";
 import RecommendedForYouShelf from "./recommended-for-you-shelf";
+import Top10Shelf from "./top-10-shelf";
 
 type MovieBrowserProps = {
   movies: Movie[];
@@ -98,6 +99,7 @@ export default function MovieBrowser({
                 <>
                   <RecommendedForYouShelf />
                   <ContinueWatchingShelf />
+                  <Top10Shelf />
                   {categories.map((category, index) => (
                       <MovieShelf 
                           key={category}

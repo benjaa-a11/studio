@@ -475,10 +475,18 @@ const useMovieFallbackData = (includePlaceholders: boolean) => {
   return [];
 };
 
-const _fetchTMDbList = cache(async (endpoint: string): Promise<Set<string>> => {
+const _fetchTMDbList = cache(async (endpoint: string, region?: string): Promise<Set<string>> => {
     if (!TMDB_API_KEY) return new Set();
     try {
-        const res = await fetch(`${TMDB_BASE_URL}${endpoint}?api_key=${TMDB_API_KEY}&language=es-ES&page=1`);
+        const url = new URL(`${TMDB_BASE_URL}${endpoint}`);
+        url.searchParams.set('api_key', TMDB_API_KEY);
+        url.searchParams.set('language', 'es-ES');
+        url.searchParams.set('page', '1');
+        if (region) {
+            url.searchParams.set('region', region);
+        }
+
+        const res = await fetch(url.toString());
         if (!res.ok) return new Set();
         const data = await res.json();
         return new Set(data.results.map((m: any) => String(m.id)));
@@ -547,6 +555,39 @@ export const getRecommendedMovies = async (history: Record<string, any>): Promis
         return getRecommendedMovies({}); // Fallback
     }
 };
+
+export const getTop10Movies = async (): Promise<Movie[]> => {
+    if (!TMDB_API_KEY) {
+        console.error("CRITICAL: TMDB_API_KEY is not set. Cannot fetch Top 10 movies.");
+        return [];
+    }
+    try {
+        const popularTMDbIdsInAR = Array.from(await _fetchTMDbList('/movie/popular', 'AR'));
+        if (popularTMDbIdsInAR.length === 0) return [];
+
+        // Query Firestore for movies that are in the popular list from TMDb
+        const q = query(collection(db, "peliculas"), where("tmdbID", "in", popularTMDbIdsInAR));
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) return [];
+        
+        const moviePromises = snapshot.docs.map(doc => _enrichMovieData(doc.id, doc.data()));
+        let enrichedMovies = (await Promise.all(moviePromises)).filter((m): m is Movie => m !== null);
+        
+        // Sort the movies from our DB according to the order from TMDb's popular list
+        const tmdbIdOrderMap = new Map(popularTMDbIdsInAR.map((id, index) => [id, index]));
+        enrichedMovies.sort((a, b) => {
+            const indexA = tmdbIdOrderMap.get(a.tmdbID!) ?? Infinity;
+            const indexB = tmdbIdOrderMap.get(b.tmdbID!) ?? Infinity;
+            return indexA - indexB;
+        });
+
+        return enrichedMovies.slice(0, 10);
+    } catch (error) {
+        console.error("Error fetching Top 10 movies:", error);
+        return [];
+    }
+}
 
 
 // Uncached version of getMovies to ensure data is always fresh
