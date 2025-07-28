@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
 import Image from "next/image";
 import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Loader2, AlertCircle, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -12,6 +13,7 @@ type VideoPlayerProps = {
   posterUrl: string;
   backdropUrl?: string;
   movieId: string;
+  autoPlay?: boolean;
 };
 
 const formatTime = (timeInSeconds: number): string => {
@@ -28,7 +30,10 @@ const formatTime = (timeInSeconds: number): string => {
   return `${mm}:${ss}`;
 };
 
-export default function VideoPlayer({ src, posterUrl, backdropUrl, movieId }: VideoPlayerProps) {
+const VideoPlayer = forwardRef((
+  { src, posterUrl, backdropUrl, movieId, autoPlay = true }: VideoPlayerProps,
+  ref
+) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -48,6 +53,13 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl, movieId }: Vi
   const [seekIndicator, setSeekIndicator] = useState<'forward' | 'backward' | null>(null);
 
   const { getProgress, recordProgress } = useMovieHistory();
+
+  // Expose play method to parent component
+  useImperativeHandle(ref, () => ({
+    play: () => {
+      videoRef.current?.play();
+    },
+  }));
 
   const resetControlsTimeout = useCallback(() => {
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
@@ -158,14 +170,23 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl, movieId }: Vi
         setIsPlaying(false);
         saveCurrentProgress();
     };
-    const onVolumeChange = () => setIsMuted(video.muted || video.volume === 0);
-    const onWaiting = () => !isSeeking && setIsLoading(true);
-    const onPlaying = () => setIsLoading(false);
     const onEnded = () => {
         setIsPlaying(false);
         recordProgress(movieId, duration, duration); // Mark as finished
     }
-    const onFullScreenChange = () => setIsFullScreen(!!document.fullscreenElement);
+    const onVolumeChange = () => setIsMuted(video.muted || video.volume === 0);
+    const onWaiting = () => !isSeeking && setIsLoading(true);
+    const onPlaying = () => setIsLoading(false);
+    
+    const onFullScreenChange = () => {
+        const isCurrentlyFullScreen = !!document.fullscreenElement;
+        setIsFullScreen(isCurrentlyFullScreen);
+        if (!isCurrentlyFullScreen && isPlaying) {
+             // If user exits fullscreen (e.g., with Esc key), pause the video
+            video.pause();
+        }
+    };
+
     const onTimeUpdate = () => {
         if (!isSeeking) {
             setProgress(video.currentTime);
@@ -204,7 +225,9 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl, movieId }: Vi
     window.addEventListener('beforeunload', saveCurrentProgress);
 
     resetControlsTimeout();
-    video.play().catch(() => setIsPlaying(false)); 
+    if(autoPlay) {
+      video.play().catch(() => setIsPlaying(false)); 
+    }
 
     return () => {
       clearInterval(progressInterval);
@@ -223,7 +246,7 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl, movieId }: Vi
       if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
       if (seekIndicatorTimeoutRef.current) clearTimeout(seekIndicatorTimeoutRef.current);
     };
-  }, [isSeeking, resetControlsTimeout, saveCurrentProgress, movieId, getProgress]);
+  }, [isSeeking, autoPlay, resetControlsTimeout, saveCurrentProgress, movieId, getProgress]);
 
   const VolumeIcon = isMuted ? VolumeX : Volume2;
   const areControlsVisible = showControls || !isPlaying || !!error;
@@ -339,4 +362,8 @@ export default function VideoPlayer({ src, posterUrl, backdropUrl, movieId }: Vi
       </div>
     </div>
   );
-}
+});
+
+VideoPlayer.displayName = "VideoPlayer";
+
+export default VideoPlayer;
