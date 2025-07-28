@@ -54,11 +54,25 @@ const VideoPlayer = forwardRef((
 
   const { getProgress, recordProgress } = useMovieHistory();
 
-  // Expose play method to parent component
+  // Expose methods to parent component
+  const enterFullscreen = useCallback(async () => {
+    const player = playerRef.current;
+    if (!player || document.fullscreenElement) return;
+    try {
+        await player.requestFullscreen();
+        if (screen.orientation && typeof screen.orientation.lock === "function") {
+          await screen.orientation.lock("landscape").catch(() => {});
+        }
+    } catch (err) {
+        console.error("Fullscreen Error:", err);
+    }
+  }, []);
+
   useImperativeHandle(ref, () => ({
     play: () => {
       videoRef.current?.play();
     },
+    enterFullscreen,
   }));
 
   const resetControlsTimeout = useCallback(() => {
@@ -165,7 +179,10 @@ const VideoPlayer = forwardRef((
     const video = videoRef.current;
     if (!video) return;
 
-    const onPlay = () => setIsPlaying(true);
+    const onPlay = () => {
+      setIsPlaying(true);
+      enterFullscreen();
+    };
     const onPause = () => {
         setIsPlaying(false);
         saveCurrentProgress();
@@ -246,7 +263,7 @@ const VideoPlayer = forwardRef((
       if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
       if (seekIndicatorTimeoutRef.current) clearTimeout(seekIndicatorTimeoutRef.current);
     };
-  }, [isSeeking, autoPlay, resetControlsTimeout, saveCurrentProgress, movieId, getProgress]);
+  }, [isSeeking, autoPlay, resetControlsTimeout, saveCurrentProgress, movieId, getProgress, enterFullscreen]);
 
   const VolumeIcon = isMuted ? VolumeX : Volume2;
   const areControlsVisible = showControls || !isPlaying || !!error;
@@ -367,3 +384,4 @@ const VideoPlayer = forwardRef((
 VideoPlayer.displayName = "VideoPlayer";
 
 export default VideoPlayer;
+
