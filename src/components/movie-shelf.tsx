@@ -20,7 +20,7 @@ export default function MovieShelf({ title, movies, animationDelay = 0 }: MovieS
         <ScrollArea className="scrollbar-hide">
           <div className="flex space-x-4 pb-4">
             {movies.map((movie, index) => (
-              <div key={movie.id} className="w-36 shrink-0">
+              <div key={movie.id} className="w-32 shrink-0">
                 <MovieCard movie={movie} index={index} />
               </div>
             ))}

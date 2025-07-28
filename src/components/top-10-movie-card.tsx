@@ -65,7 +65,7 @@ const Top10MovieCard = memo(function Top10MovieCard({ movie, rank }: Top10MovieC
   return (
     <Link 
       href={`/pelicula/${movie.id}`} 
-      className="group relative block w-64 h-36 shrink-0 overflow-hidden rounded-xl border-2 border-transparent bg-card shadow-sm transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className="group relative block w-56 h-32 shrink-0 overflow-hidden rounded-xl border-2 border-transparent bg-card shadow-sm transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       title={movie.title}
       style={{ animationDelay: `${rank * 50}ms` }}
     >
