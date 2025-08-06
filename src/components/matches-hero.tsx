@@ -1,5 +1,6 @@
+
 "use client";
-import type { Match } from "@/types";
+import type { Match, ChannelOption } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "./ui/button";
@@ -31,6 +32,20 @@ import { useTheme } from "next-themes";
 type MatchesHeroProps = {
     matches: Match[];
 };
+
+const ChannelLogo = ({ channel }: { channel: ChannelOption }) => {
+    const { resolvedTheme } = useTheme();
+    const [logo, setLogo] = useState(channel.logoUrl?.[0] || 'https://placehold.co/128x128.png');
+
+    useEffect(() => {
+        const darkLogo = channel.logoUrl?.[0];
+        const lightLogo = channel.logoUrl?.[1];
+        setLogo((resolvedTheme === 'dark' ? darkLogo : (lightLogo || darkLogo)) || 'https://placehold.co/128x128.png');
+    }, [resolvedTheme, channel.logoUrl]);
+
+    return <Image unoptimized src={logo} alt={`Logo de ${channel.name}`} fill sizes="56px" className="object-contain" data-ai-hint="channel logo" />;
+};
+
 
 const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
     const { resolvedTheme } = useTheme();
@@ -77,7 +92,7 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
                 <Link key={channel.id} href={`/canal/${channel.id}`} className="flex items-center gap-4 w-full text-left px-6 py-4 transition-colors hover:bg-muted">
                     <div className="relative h-8 w-14 flex-shrink-0">
                         {channel.logoUrl ? (
-                            <Image unoptimized src={channel.logoUrl} alt={`Logo de ${channel.name}`} fill sizes="56px" className="object-contain" data-ai-hint="channel logo" />
+                            <ChannelLogo channel={channel} />
                         ) : (
                             <div className="flex h-full w-full items-center justify-center rounded-md bg-muted">
                                 <Clapperboard className="h-5 w-5 text-muted-foreground" />
@@ -94,7 +109,7 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
                         <Link href={`/canal/${channel.id}`} className="flex items-center gap-3 w-full px-2 py-1.5">
                             <div className="relative h-6 w-10 flex-shrink-0">
                                 {channel.logoUrl ? (
-                                    <Image unoptimized src={channel.logoUrl} alt={`Logo de ${channel.name}`} fill sizes="40px" className="object-contain" data-ai-hint="channel logo" />
+                                     <ChannelLogo channel={channel} />
                                 ) : (
                                     <div className="flex h-full w-full items-center justify-center rounded-sm bg-muted"><Clapperboard className="h-4 w-4 text-muted-foreground" /></div>
                                 )}
