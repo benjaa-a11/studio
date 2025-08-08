@@ -23,7 +23,7 @@ export default function RadioMiniPlayer() {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[60] md:left-auto md:bottom-4 md:right-4 md:w-80 md:rounded-lg overflow-hidden shadow-2xl animate-fade-in-up">
+    <div className="fixed bottom-0 left-0 right-0 z-[60] md:left-auto md:bottom-4 md:right-4 md:w-80 md:rounded-lg overflow-hidden shadow-2xl animate-fade-in-up md:bottom-[calc(env(safe-area-inset-bottom)+1rem)]">
       <Link href={`/radio/${currentRadio.id}`} className="block w-full">
         <div className="flex h-16 items-center gap-3 bg-background/80 p-2 pr-4 backdrop-blur-md border-t md:border">
           <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-md bg-muted">

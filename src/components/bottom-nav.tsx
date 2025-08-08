@@ -28,7 +28,7 @@ export default function BottomNav() {
   return (
     <div className={cn(
         "fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-background/95 backdrop-blur-sm md:hidden pb-safe-bottom transition-transform duration-300",
-        currentRadio && "translate-y-[-64px]"
+        currentRadio && "bottom-16"
     )}>
       <nav className="flex h-16 items-center justify-around">
         {navItems.map((item) => {

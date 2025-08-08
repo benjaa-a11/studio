@@ -7,6 +7,7 @@ import { Radio as RadioIcon, PlayCircle } from "lucide-react";
 import { memo } from "react";
 import { useRadioPlayer } from "@/hooks/use-radio-player";
 import { useRadios } from "@/hooks/use-radios";
+import { cn } from "@/lib/utils";
 
 type RadioCardProps = {
   radio: Radio;
@@ -14,7 +15,7 @@ type RadioCardProps = {
 };
 
 const RadioCard = memo(function RadioCard({ radio, index }: RadioCardProps) {
-  const { play } = useRadioPlayer();
+  const { play, currentRadio, isPlaying } = useRadioPlayer();
   const { radios } = useRadios();
 
   const handlePlay = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -22,10 +23,15 @@ const RadioCard = memo(function RadioCard({ radio, index }: RadioCardProps) {
     play(radio, radios);
   }
 
+  const isActive = currentRadio?.id === radio.id;
+
   return (
     <button
       onClick={handlePlay}
-      className="group block outline-none rounded-lg overflow-hidden transition-all duration-300 bg-card border hover:shadow-primary/30 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background opacity-0 animate-fade-in-up text-left"
+      className={cn(
+        "group block outline-none rounded-lg overflow-hidden transition-all duration-300 bg-card border hover:shadow-primary/30 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background opacity-0 animate-fade-in-up text-left",
+        isActive && "ring-2 ring-primary shadow-lg"
+      )}
       title={radio.name}
       style={{ animationDelay: `${index * 40}ms` }}
     >

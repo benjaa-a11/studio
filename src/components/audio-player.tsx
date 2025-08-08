@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
 import Image from "next/image";
 import { Play, Pause, Loader2, AlertCircle, Music4, SkipBack, SkipForward } from "lucide-react";
 import type { Radio } from "@/types";
