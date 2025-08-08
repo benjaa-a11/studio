@@ -14,8 +14,5 @@ export default async function RadioPlayerPage({ params }: { params: { id: string
     return <RadioNotFound />;
   }
   
-  // Get a list of other radios, excluding the current one, limited to 4
-  const otherRadios = allRadios.filter(r => r.id !== params.id).slice(0, 4);
-
-  return <RadioView radio={radio} allRadios={allRadios} otherRadios={otherRadios} />;
+  return <RadioView radio={radio} allRadios={allRadios} />;
 }

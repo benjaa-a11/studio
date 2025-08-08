@@ -12,6 +12,8 @@ import Header from '@/components/header';
 import BottomNav from '@/components/bottom-nav';
 import MovieHeader from './movie-header';
 import DataRefresher from './data-refresher';
+import { RadioPlayerProvider } from '@/hooks/use-radio-player';
+import RadioMiniPlayer from './radio-mini-player';
 
 type ProvidersProps = {
     children: React.ReactNode;
@@ -22,11 +24,12 @@ type ProvidersProps = {
 export function Providers({ children, channelCategories, movieCategories }: ProvidersProps) {
     const pathname = usePathname();
     
-    const isPlayerPage = pathname.startsWith('/canal/') || pathname.startsWith('/pelicula/') || pathname.startsWith('/radio/');
+    const isPlayerPage = pathname.startsWith('/canal/') || pathname.startsWith('/pelicula/');
     const isAdminPage = pathname.startsWith('/admin');
     const isLoginPage = pathname === '/login';
+    const isRadioPlayerPage = pathname.startsWith('/radio/');
 
-    const showMainLayout = !isPlayerPage && !isAdminPage && !isLoginPage;
+    const showMainLayout = !isPlayerPage && !isAdminPage && !isLoginPage && !isRadioPlayerPage;
     const isMovieSection = pathname.startsWith('/peliculas');
     
     return (
@@ -36,6 +39,7 @@ export function Providers({ children, channelCategories, movieCategories }: Prov
             storageKey="plan-b-theme"
             enableSystem
         >
+          <RadioPlayerProvider>
             <ChannelFilterProvider initialCategories={channelCategories}>
                 <MovieFilterProvider initialCategories={movieCategories}>
                     {showMainLayout && !isMovieSection && <DataRefresher />}
@@ -44,14 +48,16 @@ export function Providers({ children, channelCategories, movieCategories }: Prov
                     
                     {isMovieSection && <MovieHeader />}
 
-                    <main className={`flex-1 ${showMainLayout || isMovieSection ? 'pb-20 md:pb-0' : ''}`}>
+                    <main className={`flex-1 ${showMainLayout || isMovieSection ? 'pb-24 md:pb-4' : ''}`}>
                         {children}
                     </main>
 
                     {showMainLayout && <BottomNav />}
+                    <RadioMiniPlayer />
                     <Toaster />
                 </MovieFilterProvider>
             </ChannelFilterProvider>
+          </RadioPlayerProvider>
         </ThemeProvider>
     );
 }

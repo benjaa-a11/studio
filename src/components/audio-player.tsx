@@ -1,10 +1,11 @@
 
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { Play, Pause, Volume2, VolumeX, Loader2, AlertCircle, Music4, SkipBack, SkipForward } from "lucide-react";
+import { Play, Pause, Loader2, AlertCircle, Music4, SkipBack, SkipForward } from "lucide-react";
 import type { Radio } from "@/types";
+import { useRadioPlayer } from "@/hooks/use-radio-player";
 
 type AudioPlayerProps = {
   radio: Radio;
@@ -19,9 +20,14 @@ export default function AudioPlayer({ radio, currentStreamUrl, onNext, onPrev, i
   const audioRef = useRef<HTMLAudioElement>(null);
   const hlsInstanceRef = useRef<any | null>(null);
 
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const { 
+      isPlaying,
+      isLoading,
+      setIsPlaying,
+      setIsLoading,
+      togglePlayPause
+  } = useRadioPlayer();
+
   const [error, setError] = useState<string | null>(null);
 
   const setupPlayer = useCallback(async (url: string) => {
@@ -31,7 +37,6 @@ export default function AudioPlayer({ radio, currentStreamUrl, onNext, onPrev, i
       setIsLoading(true);
       setError(null);
       
-      // Stop and detach any existing player instance
       if (hlsInstanceRef.current) {
         hlsInstanceRef.current.destroy();
         hlsInstanceRef.current = null;
@@ -57,7 +62,9 @@ export default function AudioPlayer({ radio, currentStreamUrl, onNext, onPrev, i
             hls.loadSource(url);
             hls.attachMedia(audio);
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
-              audio.play().catch(() => setIsPlaying(false));
+              if (isPlaying) {
+                audio.play().catch(() => setIsPlaying(false));
+              }
             });
             hls.on(Hls.Events.ERROR, (event, data) => {
               if (data.fatal) {
@@ -74,39 +81,32 @@ export default function AudioPlayer({ radio, currentStreamUrl, onNext, onPrev, i
           setError("Tu navegador no es compatible con esta transmisión.");
           setIsLoading(false);
         }
-      } else { // MP3 or other direct formats
+      } else {
         audio.src = url;
         audio.load();
-        audio.play().catch(() => setIsPlaying(false));
+         if (isPlaying) {
+            audio.play().catch(() => setIsPlaying(false));
+        }
       }
-    }, []);
+    }, [isPlaying, setIsLoading, setIsPlaying]);
 
 
-  const handlePlayPause = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio || error) return;
+  const handlePlayPauseClick = useCallback(() => {
+    if (error) return;
 
-    if (audio.paused) {
-      // If paused, reload the source to get the live stream instead of continuing
+    if (!isPlaying) {
+      // Re-setup player to get live stream
       setupPlayer(currentStreamUrl);
-    } else {
-      audio.pause();
     }
-  }, [error, currentStreamUrl, setupPlayer]);
+    togglePlayPause();
 
-  const handleMuteToggle = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.muted = !audioRef.current.muted;
-    }
-  }, []);
+  }, [error, currentStreamUrl, isPlaying, setupPlayer, togglePlayPause]);
 
   useEffect(() => {
     setupPlayer(currentStreamUrl);
-
     return () => {
       if (hlsInstanceRef.current) {
         hlsInstanceRef.current.destroy();
-        hlsInstanceRef.current = null;
       }
     };
   }, [currentStreamUrl, setupPlayer]);
@@ -114,13 +114,26 @@ export default function AudioPlayer({ radio, currentStreamUrl, onNext, onPrev, i
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
+    
+    if (isPlaying) {
+        audio.play().catch(() => {
+             // If play fails, likely because user hasn't interacted, update state.
+            setIsPlaying(false);
+        });
+    } else {
+        audio.pause();
+    }
+  }, [isPlaying, setIsPlaying]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
 
     const onPlay = () => { setIsPlaying(true); setIsLoading(false); setError(null); };
     const onPause = () => setIsPlaying(false);
-    const onVolumeChange = () => setIsMuted(audio.muted || audio.volume === 0);
     const onWaiting = () => setIsLoading(true);
     const onCanPlay = () => setIsLoading(false);
-    const onPlaying = () => { setIsLoading(false); };
+    const onPlaying = () => setIsLoading(false);
     const onError = () => {
         if (audio.error && !error) {
             setError("Ocurrió un error al reproducir el audio.");
@@ -130,7 +143,6 @@ export default function AudioPlayer({ radio, currentStreamUrl, onNext, onPrev, i
 
     audio.addEventListener("play", onPlay);
     audio.addEventListener("pause", onPause);
-    audio.addEventListener("volumechange", onVolumeChange);
     audio.addEventListener("waiting", onWaiting);
     audio.addEventListener("canplay", onCanPlay);
     audio.addEventListener("playing", onPlaying);
@@ -139,15 +151,12 @@ export default function AudioPlayer({ radio, currentStreamUrl, onNext, onPrev, i
     return () => {
       audio.removeEventListener("play", onPlay);
       audio.removeEventListener("pause", onPause);
-      audio.removeEventListener("volumechange", onVolumeChange);
       audio.removeEventListener("waiting", onWaiting);
       audio.removeEventListener("canplay", onCanPlay);
       audio.removeEventListener("playing", onPlaying);
       audio.removeEventListener("error", onError);
     };
-  }, [error]);
-
-  const VolumeIcon = isMuted ? VolumeX : Volume2;
+  }, [error, setIsLoading, setIsPlaying]);
 
   return (
     <div className="w-full max-w-md mx-auto rounded-xl bg-card text-card-foreground shadow-2xl shadow-primary/10 overflow-hidden">
@@ -219,7 +228,7 @@ export default function AudioPlayer({ radio, currentStreamUrl, onNext, onPrev, i
                 <SkipBack className="h-6 w-6" />
             </button>
             <button
-                onClick={handlePlayPause}
+                onClick={handlePlayPauseClick}
                 className="h-16 w-16 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg hover:bg-primary/90 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background disabled:bg-muted disabled:text-muted-foreground"
                 aria-label={isPlaying ? "Pausar" : "Reproducir"}
                 disabled={isLoading || !!error}
