@@ -11,11 +11,7 @@ type RadiosContextType = {
 const RadiosContext = createContext<RadiosContextType | undefined>(undefined);
 
 export const RadiosProvider = ({ children, radios }: { children: React.ReactNode; radios: Radio[] }) => {
-  return (
-    <RadiosContext.Provider value={{ radios }}>
-      {children}
-    </RadiosContext.Provider>
-  );
+  return React.createElement(RadiosContext.Provider, { value: { radios } }, children);
 };
 
 export const useRadios = () => {
