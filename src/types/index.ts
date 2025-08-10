@@ -1,9 +1,15 @@
 
+export type StreamSource = string | {
+  url: string;
+  k1?: string;
+  k2?: string;
+};
+
 export type Channel = {
   id: string;
   name: string;
   logoUrl: string[];
-  streamUrl: string[];
+  streamUrl: StreamSource[];
   category: string;
   description?: string;
   isHidden?: boolean;

@@ -9,7 +9,7 @@ import { useState, useMemo, memo, useEffect } from "react";
 import dynamic from 'next/dynamic';
 import { useTheme } from 'next-themes';
 
-import type { Channel } from "@/types";
+import type { Channel, StreamSource } from "@/types";
 import { useFavorites } from "@/hooks/use-favorites";
 import { useChannelHistory } from "@/hooks/use-channel-history";
 import { Button } from "@/components/ui/button";
@@ -24,13 +24,21 @@ const LivePlayer = dynamic(() => import('@/components/live-player'), {
   ssr: false
 });
 
+const AdvancedPlayer = dynamic(() => import('@/components/advanced-player'), {
+  loading: () => <div className="w-full h-full bg-black flex items-center justify-center"><Loader2 className="w-12 h-12 text-white animate-spin" /></div>,
+  ssr: false
+});
+
 /**
  * Converts various YouTube URL formats into a standard embeddable URL.
  * This allows using regular YouTube links in the database.
  * @param url The original URL from the database.
  * @returns A standardized YouTube embed URL or the original URL if not a YouTube link.
  */
-const getStreamableUrl = (url: string): string => {
+const getStreamableUrl = (source: StreamSource): string => {
+    if (typeof source !== 'string') return source.url;
+
+    const url = source;
     if (!url) return '';
     
     // Do not process m3u8 urls
@@ -83,12 +91,10 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
 
   const isFav = favoritesAreLoaded ? isFavorite(channel.id) : false;
   
-  const streamLinks = useMemo(
-    () => (channel.streamUrl || []).map(getStreamableUrl),
-    [channel.streamUrl]
+  const currentStreamSource = useMemo(
+    () => (channel.streamUrl || [])[currentStreamIndex],
+    [channel.streamUrl, currentStreamIndex]
   );
-  const currentStreamUrl = streamLinks[currentStreamIndex];
-  const isHls = currentStreamUrl?.includes('.m3u8');
   
   const logoUrl = useMemo(() => {
     const darkLogo = channel.logoUrl?.[0];
@@ -105,7 +111,7 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
   };
 
   const handleSwitchStream = () => {
-    const nextIndex = (currentStreamIndex + 1) % streamLinks.length;
+    const nextIndex = (currentStreamIndex + 1) % channel.streamUrl.length;
     setCurrentStreamIndex(nextIndex);
     toast({
       title: (
@@ -116,7 +122,7 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
           <div className="flex-grow">
             <p className="font-semibold text-foreground">Cambiando de señal</p>
             <p className="text-sm text-muted-foreground">
-              Viendo Opción <span className="font-bold text-foreground">{nextIndex + 1}</span> de <span className="font-bold text-foreground">{streamLinks.length}</span>
+              Viendo Opción <span className="font-bold text-foreground">{nextIndex + 1}</span> de <span className="font-bold text-foreground">{channel.streamUrl.length}</span>
             </p>
           </div>
         </div>
@@ -124,6 +130,42 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
       duration: 3000,
     });
   };
+  
+  const renderPlayer = () => {
+      if (!currentStreamSource) {
+        return (
+          <div className="flex h-full w-full flex-col items-center justify-center bg-card p-8 text-center">
+            <VideoOff className="h-20 w-20 text-muted-foreground/50 mb-4" />
+            <h3 className="text-xl font-bold">Transmisión no disponible</h3>
+            <p className="max-w-md text-muted-foreground">
+              Este canal no tiene una fuente de transmisión configurada.
+            </p>
+          </div>
+        );
+      }
+
+      if (typeof currentStreamSource === 'object') {
+        // New Advanced Player for DRM content
+        return <AdvancedPlayer source={currentStreamSource} />;
+      }
+      
+      // Legacy players for strings (HLS or Iframe)
+      const url = getStreamableUrl(currentStreamSource);
+      if (url.includes('.m3u8')) {
+        return <LivePlayer src={url} />;
+      }
+      
+      return (
+        <iframe
+          key={url}
+          src={url}
+          allow="autoplay; encrypted-media; picture-in-picture"
+          allowFullScreen
+          className="h-full w-full border-0"
+          title={`Reproductor de ${channel.name}`}
+        ></iframe>
+      );
+  }
 
   return (
     <div className="flex h-dvh w-full flex-col">
@@ -168,26 +210,7 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
          <div className="container mx-auto p-4 md:p-8">
             <main>
               <div className="aspect-video relative w-full overflow-hidden rounded-lg bg-black shadow-2xl shadow-primary/10">
-                 {isHls ? (
-                  <LivePlayer src={currentStreamUrl} />
-                 ) : currentStreamUrl ? (
-                  <iframe
-                    key={currentStreamUrl}
-                    src={currentStreamUrl}
-                    allow="autoplay; encrypted-media; picture-in-picture"
-                    allowFullScreen
-                    className="h-full w-full border-0"
-                    title={`Reproductor de ${channel.name}`}
-                  ></iframe>
-                ) : (
-                  <div className="flex h-full w-full flex-col items-center justify-center bg-card p-8 text-center">
-                    <VideoOff className="h-20 w-20 text-muted-foreground/50 mb-4" />
-                    <h3 className="text-xl font-bold">Transmisión no disponible</h3>
-                    <p className="max-w-md text-muted-foreground">
-                      Este canal no tiene una fuente de transmisión configurada.
-                    </p>
-                  </div>
-                )}
+                 {renderPlayer()}
               </div>
               <div className="mt-6 rounded-lg bg-card p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
@@ -195,7 +218,7 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
                     <h1 className="text-3xl font-bold tracking-tight">{channel.name}</h1>
                     <p className="mt-1 text-base text-primary">{channel.category}</p>
                   </div>
-                  {streamLinks.length > 1 && (
+                  {channel.streamUrl.length > 1 && (
                     <Button
                       variant="secondary"
                       size="sm"

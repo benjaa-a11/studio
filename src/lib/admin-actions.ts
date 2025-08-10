@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { db } from './firebase'; // Use the client-side db instance
 import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, getDoc, query, getDocs, Timestamp, deleteField, orderBy, writeBatch } from 'firebase/firestore';
 import { z } from 'zod';
-import type { AdminAgendaMatch, AppStatus } from '@/types';
+import type { AdminAgendaMatch, AppStatus, StreamSource } from '@/types';
 
 // Common state type for forms
 export type FormState = {
@@ -36,14 +36,36 @@ const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 
 // --- CHANNELS ---
 
+const StreamSourceSchema = z.union([
+  z.string().url({ message: 'URL no válida.' }),
+  z.object({
+    url: z.string().url({ message: 'URL de DRM no válida.' }),
+    k1: z.string().optional(),
+    k2: z.string().optional(),
+  })
+]);
+
+
 const ChannelSchema = z.object({
   name: z.string().min(1, { message: 'El nombre es requerido.' }),
   logoUrlDark: z.string().url({ message: 'Debe ser una URL de logo válida para tema oscuro.' }).optional().or(z.literal('')),
   logoUrlLight: z.string().url({ message: 'Debe ser una URL de logo válida para tema claro.' }).optional().or(z.literal('')),
   category: z.string().min(1, { message: 'La categoría es requerida.' }),
   description: z.string().optional(),
-  streamUrl: z.array(z.string().url({ message: 'URL no válida.' })).min(1, { message: 'Se requiere al menos una URL de stream.' })
-    .refine(urls => urls.every(url => url.trim().length > 0), { message: 'Ninguna URL puede estar vacía.' }),
+  streamUrl: z.string().transform((val, ctx) => {
+    try {
+      const parsed = JSON.parse(val);
+      const result = z.array(StreamSourceSchema).safeParse(parsed);
+      if (!result.success) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Las fuentes de stream no son válidas." });
+        return z.NEVER;
+      }
+      return result.data;
+    } catch (e) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Formato de streamUrl inválido." });
+      return z.NEVER;
+    }
+  }).refine(urls => urls.length > 0, { message: "Se requiere al menos una fuente de stream." }),
   isHidden: z.boolean().optional(),
 }).refine(data => data.logoUrlDark || data.logoUrlLight, {
   message: 'Se debe proporcionar al menos una URL de logo.',
@@ -59,7 +81,7 @@ export async function addChannel(prevState: FormState, formData: FormData): Prom
         logoUrlLight: formData.get('logoUrlLight'),
         category: formData.get('category'),
         description: formData.get('description'),
-        streamUrl: formData.getAll('streamUrl[]').filter(Boolean),
+        streamUrl: formData.get('streamUrl'), // This is now a JSON string
         isHidden: formData.get('isHidden') === 'on',
     };
 
@@ -108,7 +130,7 @@ export async function updateChannel(id: string, prevState: FormState, formData: 
         logoUrlLight: formData.get('logoUrlLight'),
         category: formData.get('category'),
         description: formData.get('description'),
-        streamUrl: formData.getAll('streamUrl[]').filter(Boolean),
+        streamUrl: formData.get('streamUrl'), // This is a JSON string
         isHidden: formData.get('isHidden') === 'on',
     };
 

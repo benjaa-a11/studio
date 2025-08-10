@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect, useActionState, useMemo } from 'react';
-import type { Channel } from '@/types';
+import type { Channel, StreamSource } from '@/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -42,7 +42,13 @@ function ChannelForm({ channel, onFormSubmit }: { channel?: Channel | null; onFo
   const { toast } = useToast();
 
   const initialUrls = useMemo(() => 
-    (channel?.streamUrl || ['']).map((url, index) => ({ id: `${index}-${Date.now()}`, value: url })),
+    (channel?.streamUrl || ['']).map((source, index) => {
+        const id = `${index}-${Date.now()}`;
+        if (typeof source === 'string') {
+            return { id, value: source, type: 'simple' };
+        }
+        return { id, value: source.url, k1: source.k1, k2: source.k2, type: 'drm' };
+    }),
     [channel]
   );
   const [urlItems, setUrlItems] = useState<UrlItem[]>(initialUrls);
@@ -81,9 +87,14 @@ function ChannelForm({ channel, onFormSubmit }: { channel?: Channel | null; onFo
   }, [state, onFormSubmit, toast]);
   
   const handleFormAction = (formData: FormData) => {
-    urlItems.forEach(item => {
-        formData.append('streamUrl[]', item.value);
+    const streamSources: StreamSource[] = urlItems.map(item => {
+        if (item.type === 'drm') {
+            return { url: item.value, k1: item.k1, k2: item.k2 };
+        }
+        return item.value;
     });
+
+    formData.append('streamUrl', JSON.stringify(streamSources));
     dispatch(formData);
   }
 
@@ -286,7 +297,7 @@ export default function ChannelDataTable({ data }: { data: Channel[] }) {
       </div>
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-xl max-h-[90dvh] flex flex-col">
+        <DialogContent className="sm:max-w-2xl max-h-[90dvh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{selectedChannel ? 'Editar Canal' : 'Añadir Nuevo Canal'}</DialogTitle>
             <DialogDescription>
