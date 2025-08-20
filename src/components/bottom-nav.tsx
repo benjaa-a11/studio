@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { Home, Heart, Settings, Newspaper, Radio } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
-import { useRadioPlayer } from "@/hooks/use-radio-player";
 
 const navItems = [
   { href: "/", label: "Inicio", icon: Home },
@@ -19,17 +18,13 @@ const navItems = [
 export default function BottomNav() {
   const pathname = usePathname();
   const [isClient, setIsClient] = useState(false);
-  const { currentRadio } = useRadioPlayer();
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
   return (
-    <div className={cn(
-        "fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-background/95 backdrop-blur-sm md:hidden pb-safe-bottom transition-transform duration-300",
-        currentRadio && "bottom-16"
-    )}>
+    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-background/95 backdrop-blur-sm md:hidden pb-safe-bottom">
       <nav className="flex h-16 items-center justify-around">
         {navItems.map((item) => {
           const isActive = isClient && ((pathname === '/' && item.href === '/') || (item.href !== '/' && pathname.startsWith(item.href)));

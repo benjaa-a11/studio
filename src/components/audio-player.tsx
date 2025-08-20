@@ -5,29 +5,22 @@ import { useRef, useEffect, useCallback, useState } from "react";
 import Image from "next/image";
 import { Play, Pause, Loader2, AlertCircle, Music4, SkipBack, SkipForward } from "lucide-react";
 import type { Radio } from "@/types";
-import { useRadioPlayer } from "@/hooks/use-radio-player";
 
 type AudioPlayerProps = {
   radio: Radio;
-  currentStreamUrl: string;
   onNext: () => void;
   onPrev: () => void;
   isFirst: boolean;
   isLast: boolean;
 };
 
-export default function AudioPlayer({ radio, currentStreamUrl, onNext, onPrev, isFirst, isLast }: AudioPlayerProps) {
+export default function AudioPlayer({ radio, onNext, onPrev, isFirst, isLast }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const hlsInstanceRef = useRef<any | null>(null);
 
-  const { 
-      isPlaying,
-      isLoading,
-      setIsPlaying,
-      setIsLoading,
-      togglePlayPause
-  } = useRadioPlayer();
-
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentStreamUrl, setCurrentStreamUrl] = useState(radio.streamUrl?.[0] || '');
   const [error, setError] = useState<string | null>(null);
 
   const setupPlayer = useCallback(async (url: string) => {
@@ -62,9 +55,7 @@ export default function AudioPlayer({ radio, currentStreamUrl, onNext, onPrev, i
             hls.loadSource(url);
             hls.attachMedia(audio);
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
-              if (isPlaying) {
                 audio.play().catch(() => setIsPlaying(false));
-              }
             });
             hls.on(Hls.Events.ERROR, (event, data) => {
               if (data.fatal) {
@@ -84,23 +75,24 @@ export default function AudioPlayer({ radio, currentStreamUrl, onNext, onPrev, i
       } else {
         audio.src = url;
         audio.load();
-         if (isPlaying) {
-            audio.play().catch(() => setIsPlaying(false));
-        }
+        audio.play().catch(() => setIsPlaying(false));
       }
-    }, [isPlaying, setIsLoading, setIsPlaying]);
+    }, []);
 
-
-  const handlePlayPauseClick = useCallback(() => {
+  const handlePlayPauseClick = () => {
     if (error) return;
+    const video = audioRef.current;
+    if (!video) return;
 
-    if (!isPlaying) {
-      // Re-setup player to get live stream
-      setupPlayer(currentStreamUrl);
+    if (video.paused) {
+        // Re-setup player to get live stream
+        setupPlayer(currentStreamUrl);
+        setIsPlaying(true);
+    } else {
+        video.pause();
+        setIsPlaying(false);
     }
-    togglePlayPause();
-
-  }, [error, currentStreamUrl, isPlaying, setupPlayer, togglePlayPause]);
+  };
 
   useEffect(() => {
     setupPlayer(currentStreamUrl);
@@ -109,21 +101,11 @@ export default function AudioPlayer({ radio, currentStreamUrl, onNext, onPrev, i
         hlsInstanceRef.current.destroy();
       }
     };
-  }, [currentStreamUrl, setupPlayer]);
+  }, [currentStreamUrl, setupPlayer, radio]);
 
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    
-    if (isPlaying) {
-        audio.play().catch(() => {
-             // If play fails, likely because user hasn't interacted, update state.
-            setIsPlaying(false);
-        });
-    } else {
-        audio.pause();
-    }
-  }, [isPlaying, setIsPlaying]);
+    setCurrentStreamUrl(radio.streamUrl?.[0] || '');
+  }, [radio]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -156,7 +138,7 @@ export default function AudioPlayer({ radio, currentStreamUrl, onNext, onPrev, i
       audio.removeEventListener("playing", onPlaying);
       audio.removeEventListener("error", onError);
     };
-  }, [error, setIsLoading, setIsPlaying]);
+  }, [error]);
 
   return (
     <div className="w-full max-w-md mx-auto rounded-xl bg-card text-card-foreground shadow-2xl shadow-primary/10 overflow-hidden">

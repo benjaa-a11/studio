@@ -10,8 +10,6 @@ import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/header';
 import BottomNav from '@/components/bottom-nav';
 import DataRefresher from './data-refresher';
-import { RadioPlayerProvider } from '@/hooks/use-radio-player';
-import RadioMiniPlayer from './radio-mini-player';
 
 type ProvidersProps = {
     children: React.ReactNode;
@@ -27,7 +25,6 @@ export function Providers({ children, channelCategories }: ProvidersProps) {
     const isRadioPlayerPage = pathname.startsWith('/radio/');
 
     const showMainLayout = !isPlayerPage && !isAdminPage && !isLoginPage && !isRadioPlayerPage;
-    const isMovieSection = pathname.startsWith('/peliculas');
     
     return (
         <ThemeProvider
@@ -36,9 +33,8 @@ export function Providers({ children, channelCategories }: ProvidersProps) {
             storageKey="plan-b-theme"
             enableSystem
         >
-          <RadioPlayerProvider>
             <ChannelFilterProvider initialCategories={channelCategories}>
-                    {showMainLayout && !isMovieSection && <DataRefresher />}
+                    {showMainLayout && <DataRefresher />}
                     
                     {showMainLayout && <Header />}
 
@@ -47,10 +43,8 @@ export function Providers({ children, channelCategories }: ProvidersProps) {
                     </main>
 
                     {showMainLayout && <BottomNav />}
-                    <RadioMiniPlayer />
                     <Toaster />
             </ChannelFilterProvider>
-          </RadioPlayerProvider>
         </ThemeProvider>
     );
 }
