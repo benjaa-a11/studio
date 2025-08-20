@@ -1,12 +1,11 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Tv, Film, Radio, Shield, Users, CalendarDays } from "lucide-react";
-import { getChannels, getMovies, getRadios, getTeams, getTournaments } from "@/lib/actions";
+import { Tv, Newspaper, Radio, Shield, Users, CalendarDays } from "lucide-react";
+import { getChannels, getRadios, getTeams, getTournaments } from "@/lib/actions";
 import { getAdminAgenda } from "@/lib/admin-actions";
 
 export default async function AdminDashboard() {
-  const [channels, movies, radios, teams, tournaments, agenda] = await Promise.all([
+  const [channels, radios, teams, tournaments, agenda] = await Promise.all([
     getChannels(true),
-    getMovies(true),
     getRadios(true),
     getTeams(true),
     getTournaments(true),
@@ -15,7 +14,7 @@ export default async function AdminDashboard() {
 
   const stats = [
     { title: "Canales", count: channels.length, icon: Tv, color: "text-sky-500" },
-    { title: "Películas", count: movies.length, icon: Film, color: "text-orange-500" },
+    { title: "Noticias", count: 0, icon: Newspaper, color: "text-orange-500" },
     { title: "Radios", count: radios.length, icon: Radio, color: "text-rose-500" },
     { title: "Partidos", count: agenda.length, icon: CalendarDays, color: "text-amber-500" },
     { title: "Torneos", count: tournaments.length, icon: Shield, color: "text-emerald-500" },

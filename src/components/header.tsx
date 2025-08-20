@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, ListFilter, Settings, Heart, Popcorn, Radio } from "lucide-react";
+import { Search, ListFilter, Settings, Heart, Newspaper, Radio } from "lucide-react";
 import { useChannelFilters } from "@/hooks/use-channel-filters";
 import { useState, useEffect } from "react";
 
@@ -75,6 +75,14 @@ const HeaderContent = () => {
   if (pathname === "/") {
     return <ChannelFilters />;
   }
+   if (pathname.startsWith('/noticias')) {
+    return (
+      <div className="flex items-center gap-3 w-full justify-center md:justify-start">
+        <Newspaper className="h-6 w-6 text-primary" />
+        <h1 className="text-xl font-semibold tracking-tight">Noticias</h1>
+      </div>
+    );
+  }
   if (pathname.startsWith('/radio')) {
     return (
       <div className="flex items-center gap-3 w-full justify-center md:justify-start">
@@ -110,12 +118,7 @@ export default function Header() {
     setIsClient(true);
   }, []);
 
-  const pagesWithLogo = ["/", "/radio"];
-
-  // The header is no longer rendered on /peliculas, as it has its own custom header.
-  if (pathname.startsWith('/peliculas')) {
-    return null;
-  }
+  const pagesWithLogo = ["/", "/radio", "/noticias"];
 
   if (!isClient) {
     return <header className="sticky top-0 z-40 w-full h-16 border-b border-border/40 bg-background/95 backdrop-blur-sm pt-safe-top" />;
@@ -136,10 +139,10 @@ export default function Header() {
         
         <div className="flex-none">
             <nav className="hidden items-center md:flex">
-               <Button asChild variant={pathname.startsWith('/peliculas') ? "secondary" : "ghost"}>
-                <Link href="/peliculas">
-                  <Popcorn className="h-5 w-5 mr-2" />
-                  Películas
+               <Button asChild variant={pathname.startsWith('/noticias') ? "secondary" : "ghost"}>
+                <Link href="/noticias">
+                  <Newspaper className="h-5 w-5 mr-2" />
+                  Noticias
                 </Link>
               </Button>
                <Button asChild variant={pathname.startsWith('/radio') ? "secondary" : "ghost"}>

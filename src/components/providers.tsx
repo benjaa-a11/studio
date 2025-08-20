@@ -6,11 +6,9 @@ import React from 'react';
 import { usePathname } from 'next/navigation';
 import { ThemeProvider } from "@/components/theme-provider";
 import { ChannelFilterProvider } from '@/hooks/use-channel-filters';
-import { MovieFilterProvider } from '@/hooks/use-movie-filters';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/header';
 import BottomNav from '@/components/bottom-nav';
-import MovieHeader from './movie-header';
 import DataRefresher from './data-refresher';
 import { RadioPlayerProvider } from '@/hooks/use-radio-player';
 import RadioMiniPlayer from './radio-mini-player';
@@ -18,10 +16,9 @@ import RadioMiniPlayer from './radio-mini-player';
 type ProvidersProps = {
     children: React.ReactNode;
     channelCategories: string[];
-    movieCategories: string[];
 };
 
-export function Providers({ children, channelCategories, movieCategories }: ProvidersProps) {
+export function Providers({ children, channelCategories }: ProvidersProps) {
     const pathname = usePathname();
     
     const isPlayerPage = pathname.startsWith('/canal/') || pathname.startsWith('/pelicula/');
@@ -41,21 +38,17 @@ export function Providers({ children, channelCategories, movieCategories }: Prov
         >
           <RadioPlayerProvider>
             <ChannelFilterProvider initialCategories={channelCategories}>
-                <MovieFilterProvider initialCategories={movieCategories}>
                     {showMainLayout && !isMovieSection && <DataRefresher />}
                     
-                    {showMainLayout && !isMovieSection && <Header />}
-                    
-                    {isMovieSection && <MovieHeader />}
+                    {showMainLayout && <Header />}
 
-                    <main className={`flex-1 ${showMainLayout || isMovieSection ? 'pb-24 md:pb-4' : ''}`}>
+                    <main className={`flex-1 ${showMainLayout ? 'pb-24 md:pb-4' : ''}`}>
                         {children}
                     </main>
 
                     {showMainLayout && <BottomNav />}
                     <RadioMiniPlayer />
                     <Toaster />
-                </MovieFilterProvider>
             </ChannelFilterProvider>
           </RadioPlayerProvider>
         </ThemeProvider>

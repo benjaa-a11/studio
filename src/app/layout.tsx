@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Poppins } from 'next/font/google';
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import { getCategories, getMovieCategories } from "@/lib/actions";
+import { getCategories } from "@/lib/actions";
 import { Providers } from "@/components/providers";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -51,10 +51,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [channelCategories, movieCategories] = await Promise.all([
-    getCategories(),
-    getMovieCategories()
-  ]);
+  const channelCategories = await getCategories();
 
   return (
     <html lang="es" suppressHydrationWarning>
@@ -67,7 +64,6 @@ export default async function RootLayout({
       >
         <Providers 
           channelCategories={channelCategories} 
-          movieCategories={movieCategories}
         >
           {children}
         </Providers>

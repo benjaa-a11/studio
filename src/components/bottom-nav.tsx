@@ -3,14 +3,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Heart, Settings, Popcorn, Radio } from "lucide-react";
+import { Home, Heart, Settings, Newspaper, Radio } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useRadioPlayer } from "@/hooks/use-radio-player";
 
 const navItems = [
   { href: "/", label: "Inicio", icon: Home },
-  { href: "/peliculas", label: "Películas", icon: Popcorn },
+  { href: "/noticias", label: "Noticias", icon: Newspaper },
   { href: "/radio", label: "Radio", icon: Radio },
   { href: "/favoritos", label: "Favoritos", icon: Heart },
   { href: "/ajustes", label: "Ajustes", icon: Settings },

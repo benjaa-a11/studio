@@ -1,9 +1,8 @@
 "use client";
 
 import FavoriteChannelGrid from "@/components/favorite-channel-grid";
-import FavoriteMovieGrid from "@/components/favorite-movie-grid";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tv, Popcorn } from "lucide-react";
+import { Tv, Newspaper } from "lucide-react";
 
 export default function FavoritesPage() {
   return (
@@ -14,16 +13,16 @@ export default function FavoritesPage() {
             <Tv className="mr-2 h-4 w-4" />
             Canales
           </TabsTrigger>
-          <TabsTrigger value="movies">
-            <Popcorn className="mr-2 h-4 w-4" />
-            Películas
+          <TabsTrigger value="news" disabled>
+            <Newspaper className="mr-2 h-4 w-4" />
+            Noticias
           </TabsTrigger>
         </TabsList>
         <TabsContent value="channels" className="mt-6 opacity-0 animate-fade-in-up">
           <FavoriteChannelGrid />
         </TabsContent>
-        <TabsContent value="movies" className="mt-6 opacity-0 animate-fade-in-up">
-          <FavoriteMovieGrid />
+        <TabsContent value="news" className="mt-6 opacity-0 animate-fade-in-up">
+          {/* News favorites grid will go here */}
         </TabsContent>
       </Tabs>
     </div>

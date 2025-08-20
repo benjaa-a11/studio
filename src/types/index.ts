@@ -51,31 +51,6 @@ export type AdminAgendaMatch = {
   tournamentName?: string;
 }
 
-export type Movie = {
-  id: string;
-  imdbID?: string;
-  tmdbID?: string;
-  title: string;
-  posterUrl: string;
-  backdropUrl?: string;
-  logoUrl?: string;
-  streamUrl: string;
-  trailerUrl?: string;
-  category: string[];
-  synopsis: string;
-  year?: number;
-  duration: string;
-  format?: 'mp4' | 'iframe';
-  director?: string;
-  actors?: string;
-  rating?: string;
-  isTrending?: boolean;
-  isTopRated?: boolean;
-  isHero?: boolean;
-  heroImageUrl?: string;
-  popularity?: number;
-};
-
 export type Radio = {
   id: string;
   name: string;
