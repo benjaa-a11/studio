@@ -4,15 +4,15 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Home, Tv, Newspaper, Radio, CalendarDays, Shield, Users } from "lucide-react";
+import { Home, Tv, Newspaper, Radio, CalendarDays, Shield, Users, Clapperboard } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 const navItems = [
     { href: "/admin", label: "Dashboard", icon: Home },
     { href: "/admin/channels", label: "Canales", icon: Tv },
-    { href: "/admin/news", label: "Noticias", icon: Newspaper, disabled: true },
     { href: "/admin/radios", label: "Radios", icon: Radio },
+    { href: "/admin/news", label: "Noticias", icon: Newspaper },
     { href: "/admin/agenda", label: "Agenda", icon: CalendarDays },
     { href: "/admin/tournaments", label: "Torneos", icon: Shield },
     { href: "/admin/teams", label: "Equipos", icon: Users },

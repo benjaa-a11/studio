@@ -74,6 +74,15 @@ export type Team = {
   country: string;
 };
 
+export type News = {
+  id: string;
+  title: string;
+  url: string;
+  imageUrl: string;
+  source: string;
+  date: string; // ISO 8601 string
+};
+
 export type AppStatus = {
   isMaintenanceMode: boolean;
   maintenanceMessage: string;

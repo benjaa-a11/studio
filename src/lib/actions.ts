@@ -3,9 +3,9 @@
 
 import { cache } from "react";
 import { db } from "./firebase";
-import { collection, getDocs, doc, getDoc, query, where, documentId, Timestamp, collectionGroup } from "firebase/firestore";
-import type { Channel, Match, ChannelOption, Radio, Tournament, Team, AppStatus } from "@/types";
-import { placeholderChannels, placeholderRadios, placeholderTournaments, placeholderTeams } from "./placeholder-data";
+import { collection, getDocs, doc, getDoc, query, where, documentId, Timestamp, collectionGroup, orderBy } from "firebase/firestore";
+import type { Channel, Match, ChannelOption, Radio, Tournament, Team, AppStatus, News } from "@/types";
+import { placeholderChannels, placeholderRadios, placeholderTournaments, placeholderTeams, placeholderNews } from "./placeholder-data";
 
 // Helper function to resolve .pls file to an actual stream URL
 const _resolvePlsUrl = async (url: string): Promise<string | null> => {
@@ -453,6 +453,72 @@ export const getTeams = async (includePlaceholders = false): Promise<Team[]> => 
     } catch (error) {
         console.error("Error al obtener equipos de Firebase:", error);
         return useTeamFallbackData(includePlaceholders);
+    }
+};
+
+// --- NEWS ---
+const useNewsFallbackData = (includePlaceholders: boolean): News[] => {
+  if (includePlaceholders) {
+    console.warn("Firebase no disponible o colección de noticias vacía. Usando datos de demostración.");
+    return placeholderNews;
+  }
+  return [];
+};
+
+
+export const getNews = async (includePlaceholders = false): Promise<News[]> => {
+  try {
+    const newsCollection = collection(db, "news");
+    const newsSnapshot = await getDocs(query(newsCollection, orderBy("date", "desc")));
+    
+    if (newsSnapshot.empty && includePlaceholders) {
+      return useNewsFallbackData(true);
+    }
+    
+    const newsItems = newsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            ...data,
+            date: (data.date as Timestamp).toDate().toISOString(),
+        } as News;
+    });
+    
+    return newsItems;
+  } catch (error) {
+    console.error("Error al obtener noticias de Firebase:", error);
+    return useNewsFallbackData(includePlaceholders);
+  }
+};
+
+export const getNewsById = async (id: string): Promise<News | null> => {
+    try {
+        const newsDocRef = doc(db, "news", id);
+        const newsSnapshot = await getDoc(newsDocRef);
+
+        if (newsSnapshot.exists()) {
+            const data = newsSnapshot.data();
+            return {
+                id: newsSnapshot.id,
+                ...data,
+                date: (data.date as Timestamp).toDate().toISOString(),
+            } as News;
+        }
+
+        const fallbackNews = (await getNews(true)).find(n => n.id === id);
+        if (fallbackNews) {
+            console.warn(`Noticia con id ${id} no encontrada en Firebase. Usando dato de demostración.`);
+            return fallbackNews;
+        }
+
+        return null;
+    } catch (error) {
+        console.error(`Error al obtener noticia con id ${id}:`, error);
+        const fallbackNews = (await getNews(true)).find(n => n.id === id);
+        if (fallbackNews) {
+            return fallbackNews;
+        }
+        return null;
     }
 };
 

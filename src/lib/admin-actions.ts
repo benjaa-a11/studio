@@ -1,12 +1,11 @@
 
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
 import { db } from './firebase'; // Use the client-side db instance
 import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, getDoc, query, getDocs, Timestamp, deleteField, orderBy, writeBatch } from 'firebase/firestore';
 import { z } from 'zod';
-import type { AdminAgendaMatch, AppStatus, StreamSource } from '@/types';
+import type { AdminAgendaMatch, AppStatus, News, StreamSource } from '@/types';
 
 // Common state type for forms
 export type FormState = {
@@ -524,4 +523,90 @@ export async function getAdminAgenda(): Promise<AdminAgendaMatch[]> {
         console.error("Error fetching admin agenda:", error);
         return [];
     }
+}
+
+// --- NEWS ---
+
+const NewsSchema = z.object({
+  title: z.string().min(1, { message: 'El título es requerido.' }),
+  url: z.string().url({ message: 'La URL del artículo no es válida.' }),
+  imageUrl: z.string().url({ message: 'La URL de la imagen no es válida.' }),
+  source: z.string().min(1, { message: 'La fuente es requerida.' }),
+  date: z.string().datetime({ message: 'La fecha no es válida.' }),
+});
+
+export async function addNews(prevState: FormState, formData: FormData): Promise<FormState> {
+  try {
+    const rawData = Object.fromEntries(formData.entries());
+    const validatedFields = NewsSchema.safeParse(rawData);
+
+    if (!validatedFields.success) {
+      return { message: 'Error de validación.', errors: validatedFields.error.flatten().fieldErrors, success: false };
+    }
+    
+    const { title, date, ...rest } = validatedFields.data;
+    const dataToSave = {
+      ...rest,
+      title,
+      date: Timestamp.fromDate(new Date(date)),
+    };
+    
+    const id = slugify(title);
+    const newsRef = doc(db, 'news', id);
+    const docSnap = await getDoc(newsRef);
+
+    if (docSnap.exists()) {
+      return { message: `Una noticia con el ID '${id}' ya existe.`, success: false };
+    }
+
+    await setDoc(newsRef, dataToSave);
+    revalidatePath('/admin/news');
+    revalidatePath('/noticias');
+    return { message: 'Noticia añadida exitosamente.', success: true, errors: {} };
+  } catch (error) {
+    console.error('Error adding news:', error);
+    return { message: 'Error del servidor al añadir la noticia.', success: false };
+  }
+}
+
+export async function updateNews(id: string, prevState: FormState, formData: FormData): Promise<FormState> {
+  if (!id) return { message: 'ID de noticia no proporcionado.', success: false };
+  
+  try {
+    const rawData = Object.fromEntries(formData.entries());
+    const validatedFields = NewsSchema.safeParse(rawData);
+    
+    if (!validatedFields.success) {
+      return { message: 'Error de validación.', errors: validatedFields.error.flatten().fieldErrors, success: false };
+    }
+
+    const { date, ...rest } = validatedFields.data;
+    const dataToSave = {
+      ...rest,
+      date: Timestamp.fromDate(new Date(date)),
+    };
+
+    await updateDoc(doc(db, 'news', id), dataToSave);
+    revalidatePath('/admin/news');
+    revalidatePath('/noticias');
+    revalidatePath(`/noticias/${id}`);
+    return { message: 'Noticia actualizada exitosamente.', success: true, errors: {} };
+  } catch (error) {
+    console.error('Error updating news:', error);
+    return { message: 'Error del servidor al actualizar la noticia.', success: false };
+  }
+}
+
+export async function deleteNews(id: string) {
+  if (!id) return { message: 'ID de noticia no proporcionado.', success: false };
+  
+  try {
+    await deleteDoc(doc(db, 'news', id));
+    revalidatePath('/admin/news');
+    revalidatePath('/noticias');
+    return { message: 'Noticia eliminada exitosamente.', success: true };
+  } catch (error) {
+    console.error('Error deleting news:', error);
+    return { message: 'Error del servidor al eliminar la noticia.', success: false };
+  }
 }
