@@ -87,6 +87,15 @@ export type News = {
   date: string; // ISO 8601 string
 };
 
+export type FeaturedImage = {
+  id: string;
+  title: string;
+  imageUrl: string;
+  category: string;
+  date: string; // ISO 8601 string
+};
+
+
 export type AppStatus = {
   isMaintenanceMode: boolean;
   maintenanceMessage: string;

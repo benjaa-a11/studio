@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useEffect } from 'react';
@@ -36,8 +35,9 @@ export function Providers({ children, channelCategories }: ProvidersProps) {
     const isLoginPage = pathname === '/login';
     const isRadioPlayerPage = pathname.startsWith('/radio/');
     const isNewsArticlePage = /^\/noticias\/[^/]+$/.test(pathname);
+    const isImageViewerPage = pathname.startsWith('/imagen/');
 
-    const showMainLayout = !isPlayerPage && !isAdminPage && !isLoginPage && !isRadioPlayerPage && !isNewsArticlePage;
+    const showMainLayout = !isPlayerPage && !isAdminPage && !isLoginPage && !isRadioPlayerPage && !isNewsArticlePage && !isImageViewerPage;
     
     return (
         <ThemeProvider

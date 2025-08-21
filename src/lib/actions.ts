@@ -3,9 +3,9 @@
 
 import { cache } from "react";
 import { db } from "./firebase";
-import { collection, getDocs, doc, getDoc, query, where, documentId, Timestamp, collectionGroup, orderBy } from "firebase/firestore";
-import type { Channel, Match, ChannelOption, Radio, Tournament, Team, AppStatus, News } from "@/types";
-import { placeholderChannels, placeholderRadios, placeholderTournaments, placeholderTeams, placeholderNews } from "./placeholder-data";
+import { collection, getDocs, doc, getDoc, query, where, documentId, Timestamp, collectionGroup, orderBy, limit } from "firebase/firestore";
+import type { Channel, Match, ChannelOption, Radio, Tournament, Team, AppStatus, News, FeaturedImage } from "@/types";
+import { placeholderChannels, placeholderRadios, placeholderTournaments, placeholderTeams, placeholderNews, placeholderImages } from "./placeholder-data";
 
 // Helper function to resolve .pls file to an actual stream URL
 const _resolvePlsUrl = async (url: string): Promise<string | null> => {
@@ -302,6 +302,8 @@ export const getAgendaMatches = cache(async (): Promise<Match[]> => {
             matchTimestamp: matchTimestamp,
             tournamentName: tournamentData?.name,
             tournamentLogo: tournamentLogo,
+            statusText: data.statusText,
+            imageUrl: data.imageUrl,
         };
     });
 
@@ -517,6 +519,94 @@ export const getNewsById = async (id: string): Promise<News | null> => {
         const fallbackNews = (await getNews(true)).find(n => n.id === id);
         if (fallbackNews) {
             return fallbackNews;
+        }
+        return null;
+    }
+};
+
+// --- FEATURED IMAGES ---
+const useImageFallbackData = (includePlaceholders: boolean): FeaturedImage[] => {
+    if (includePlaceholders) {
+        console.warn("Firebase no disponible o colección de imágenes vacía. Usando datos de demostración.");
+        return placeholderImages;
+    }
+    return [];
+};
+
+export const getFeaturedImages = async (count: number = 3, includePlaceholders = false): Promise<FeaturedImage[]> => {
+    try {
+        const imagesCollection = collection(db, "images");
+        const q = query(imagesCollection, orderBy("date", "desc"), limit(count));
+        const imageSnapshot = await getDocs(q);
+
+        if (imageSnapshot.empty && includePlaceholders) {
+            return useImageFallbackData(true).slice(0, count);
+        }
+
+        return imageSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                date: (data.date as Timestamp).toDate().toISOString(),
+            } as FeaturedImage;
+        });
+    } catch (error) {
+        console.error("Error al obtener imágenes de Firebase:", error);
+        return useImageFallbackData(includePlaceholders).slice(0, count);
+    }
+};
+
+export const getAllFeaturedImages = async (includePlaceholders = false): Promise<FeaturedImage[]> => {
+    try {
+        const imagesCollection = collection(db, "images");
+        const q = query(imagesCollection, orderBy("date", "desc"));
+        const imageSnapshot = await getDocs(q);
+
+        if (imageSnapshot.empty && includePlaceholders) {
+            return useImageFallbackData(true);
+        }
+
+        return imageSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                date: (data.date as Timestamp).toDate().toISOString(),
+            } as FeaturedImage;
+        });
+    } catch (error) {
+        console.error("Error al obtener todas las imágenes de Firebase:", error);
+        return useImageFallbackData(includePlaceholders);
+    }
+};
+
+export const getFeaturedImageById = async (id: string): Promise<FeaturedImage | null> => {
+    try {
+        const imageDocRef = doc(db, "images", id);
+        const imageSnapshot = await getDoc(imageDocRef);
+
+        if (imageSnapshot.exists()) {
+            const data = imageSnapshot.data();
+            return {
+                id: imageSnapshot.id,
+                ...data,
+                date: (data.date as Timestamp).toDate().toISOString(),
+            } as FeaturedImage;
+        }
+
+        const fallbackImage = (await getAllFeaturedImages(true)).find(i => i.id === id);
+        if (fallbackImage) {
+            console.warn(`Imagen con id ${id} no encontrada en Firebase. Usando dato de demostración.`);
+            return fallbackImage;
+        }
+
+        return null;
+    } catch (error) {
+        console.error(`Error al obtener imagen con id ${id}:`, error);
+        const fallbackImage = (await getAllFeaturedImages(true)).find(i => i.id === id);
+        if (fallbackImage) {
+            return fallbackImage;
         }
         return null;
     }

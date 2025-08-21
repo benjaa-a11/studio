@@ -4,7 +4,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Home, Tv, Newspaper, Radio, CalendarDays, Shield, Users, Clapperboard } from "lucide-react";
+import { Home, Tv, Newspaper, Radio, CalendarDays, Shield, Users, Image as ImageIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +13,7 @@ const navItems = [
     { href: "/admin/channels", label: "Canales", icon: Tv },
     { href: "/admin/radios", label: "Radios", icon: Radio },
     { href: "/admin/news", label: "Noticias", icon: Newspaper },
+    { href: "/admin/images", label: "Imágenes", icon: ImageIcon },
     { href: "/admin/agenda", label: "Agenda", icon: CalendarDays },
     { href: "/admin/tournaments", label: "Torneos", icon: Shield },
     { href: "/admin/teams", label: "Equipos", icon: Users },
@@ -53,8 +54,7 @@ export default function AdminSidebar({ className, isMobile = false, onLinkClick 
                             onClick={onLinkClick}
                             className={cn(
                                 "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                                isActive(item.href) && "bg-muted text-primary",
-                                item.disabled && "cursor-not-allowed opacity-50"
+                                isActive(item.href) && "bg-muted text-primary"
                             )}
                         >
                             <item.icon className="h-5 w-5" />
@@ -84,8 +84,7 @@ export default function AdminSidebar({ className, isMobile = false, onLinkClick 
                                     href={item.href}
                                     className={cn(
                                         "flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8",
-                                        isActive(item.href) && "bg-accent text-accent-foreground",
-                                        item.disabled && "pointer-events-none opacity-40"
+                                        isActive(item.href) && "bg-accent text-accent-foreground"
                                     )}
                                 >
                                     <item.icon className="h-5 w-5" />
