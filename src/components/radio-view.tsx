@@ -84,7 +84,7 @@ export default function RadioView({ radio: initialRadio, allRadios }: RadioViewP
                   <aside className="mt-12">
                       <h2 className="text-2xl font-bold tracking-tight">Otras Radios</h2>
                       <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                          {otherRadios.map((r, index) => <Link key={r.id} href={`/radio/${r.id}`}><RadioCard radio={r} index={index} /></Link>)}
+                          {otherRadios.map((r, index) => <RadioCard key={r.id} radio={r} index={index} />)}
                       </div>
                   </aside>
                   )}

@@ -33,7 +33,7 @@ export default async function NewsArticlePage({ params }: { params: { id: string
         src={article.url}
         className="h-full w-full border-0 flex-1"
         title={article.title}
-        sandbox="allow-scripts allow-same-origin allow-popups"
+        sandbox="allow-scripts allow-same-origin"
       ></iframe>
     </div>
   );
