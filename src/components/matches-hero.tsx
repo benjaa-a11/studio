@@ -1,9 +1,10 @@
+
 "use client";
 import type { Match } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { Clock, Tv, VideoOff, Clapperboard, Radio, ChevronDown } from "lucide-react";
+import { Clock, Tv, VideoOff, Clapperboard, Radio, ChevronDown, Table as TableIcon } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,14 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { cn } from "@/lib/utils";
 import React, { memo, useState, useEffect } from "react";
 import { useTheme } from "next-themes";
@@ -40,7 +49,7 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
         setMounted(true);
     }, []);
 
-    const renderButton = () => {
+    const renderWatchButton = () => {
         if (!match.isWatchable) {
             return (
                 <Button className="w-full" disabled>
@@ -77,7 +86,7 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
                  <Link key={channel.id} href={`/canal/${channel.id}`} className="flex items-center gap-4 w-full text-left px-6 py-4 transition-colors hover:bg-muted">
                     <div className="relative h-8 w-14 flex-shrink-0">
                         {channel.logoUrl ? (
-                            <Image unoptimized src={channel.logoUrl} alt={`Logo de ${channel.name}`} fill sizes="56px" className="object-contain" data-ai-hint="channel logo" />
+                            <Image unoptimized src={channel.logoUrl[0]} alt={`Logo de ${channel.name}`} fill sizes="56px" className="object-contain" data-ai-hint="channel logo" />
                         ) : (
                             <div className="flex h-full w-full items-center justify-center rounded-md bg-muted">
                                 <Clapperboard className="h-5 w-5 text-muted-foreground" />
@@ -94,7 +103,7 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
                         <Link href={`/canal/${channel.id}`} className="flex items-center gap-3 w-full px-2 py-1.5">
                             <div className="relative h-6 w-10 flex-shrink-0">
                                 {channel.logoUrl ? (
-                                    <Image unoptimized src={channel.logoUrl} alt={`Logo de ${channel.name}`} fill sizes="40px" className="object-contain" data-ai-hint="channel logo" />
+                                    <Image unoptimized src={channel.logoUrl[0]} alt={`Logo de ${channel.name}`} fill sizes="40px" className="object-contain" data-ai-hint="channel logo" />
                                 ) : (
                                     <div className="flex h-full w-full items-center justify-center rounded-sm bg-muted"><Clapperboard className="h-4 w-4 text-muted-foreground" /></div>
                                 )}
@@ -161,6 +170,46 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
             </Button>
         );
     }
+    
+    const renderImageButton = () => {
+        if (!match.imageUrl) return null;
+
+        const content = (
+            <div className="p-2">
+                <Image src={match.imageUrl} alt={`Imagen para ${match.tournamentName}`} width={600} height={800} className="rounded-lg object-contain" unoptimized />
+            </div>
+        );
+
+        return (
+            <>
+                {/* Desktop Dialog */}
+                 <Dialog>
+                    <DialogTrigger asChild>
+                         <Button variant="outline" size="icon" className="hidden md:inline-flex">
+                            <TableIcon className="h-5 w-5" />
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-xl p-2">
+                         {content}
+                    </DialogContent>
+                </Dialog>
+                
+                {/* Mobile Sheet */}
+                <Sheet>
+                    <SheetTrigger asChild>
+                         <Button variant="outline" size="icon" className="md:hidden">
+                            <TableIcon className="h-5 w-5" />
+                        </Button>
+                    </SheetTrigger>
+                    <SheetContent side="bottom" className="rounded-t-2xl max-h-[80dvh] p-2">
+                         <ScrollArea className="h-full w-full">
+                           {content}
+                         </ScrollArea>
+                    </SheetContent>
+                </Sheet>
+            </>
+        )
+    }
 
     const getTournamentLogo = () => {
         if (!match.tournamentLogo) return null;
@@ -175,25 +224,21 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
     
     const tournamentLogoUrl = getTournamentLogo();
 
-    // Función para dividir el nombre del equipo en dos líneas de forma inteligente
     function splitTeamName(name: string): [string, string?] {
         if (!name) return [""];
-
-        // Si es corto, no dividir
         if (name.length <= 14) return [name];
 
-        // Buscar el espacio más cercano al centro
         const middle = Math.floor(name.length / 2);
         let splitIndex = name.lastIndexOf(" ", middle);
 
         if (splitIndex === -1 || splitIndex < 4) splitIndex = name.indexOf(" ", middle);
-        if (splitIndex === -1 || splitIndex > name.length - 4) return [name]; // No dividir si no hay buen espacio
+        if (splitIndex === -1 || splitIndex > name.length - 4) return [name];
 
         return [name.slice(0, splitIndex), name.slice(splitIndex + 1)];
     }
 
     return (
-        <Card className="w-[340px] sm:w-[380px] h-[290px] sm:h-[310px] overflow-hidden shadow-lg flex-shrink-0 opacity-0 animate-fade-in-up flex flex-col">
+        <Card className="w-[340px] sm:w-[380px] h-auto overflow-hidden shadow-lg flex-shrink-0 opacity-0 animate-fade-in-up flex flex-col">
             <div className="p-3 bg-muted/40 border-b flex justify-between items-center gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                     {tournamentLogoUrl && (
@@ -206,7 +251,9 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
                         )}
                     </div>
                 </div>
-                {match.isLive ? (
+                 {match.statusText ? (
+                    <Badge variant="secondary" className="text-xs font-bold px-2 py-0.5">{match.statusText}</Badge>
+                ) : match.isLive ? (
                     <Badge variant="destructive" className="animate-pulse text-xs font-bold px-2 py-0.5">EN VIVO</Badge>
                 ) : (
                     <div className="flex items-center gap-1.5 text-primary text-sm font-bold flex-shrink-0">
@@ -273,8 +320,11 @@ const MatchCard = memo(function MatchCard({ match }: { match: Match }) {
                     </div>
                 </div>
             </CardContent>
-            <CardFooter className="bg-muted/40 px-6 py-4 mt-auto">
-                {renderButton()}
+            <CardFooter className="bg-muted/40 p-2 flex items-center justify-between gap-2">
+                <div className="flex-1">
+                    {renderWatchButton()}
+                </div>
+                {renderImageButton()}
             </CardFooter>
         </Card>
     );
@@ -286,10 +336,11 @@ export default function MatchesHero({ matches }: MatchesHeroProps) {
         return null;
     }
 
+    // For larger screens, we might show multiple cards. For smaller, a scroll area.
     return (
-        <div className="mb-8">
-            {matches.length > 1 ? (
-                <ScrollArea className="w-full whitespace-nowrap rounded-lg">
+        <div className="relative">
+            <div className="block xl:hidden">
+                 <ScrollArea className="w-full whitespace-nowrap rounded-lg">
                     <div className="flex w-max space-x-4 pb-4">
                         {matches.map((match, index) => (
                             <div key={match.id} style={{ animationDelay: `${index * 80}ms` }}>
@@ -299,11 +350,14 @@ export default function MatchesHero({ matches }: MatchesHeroProps) {
                     </div>
                     <ScrollBar orientation="horizontal" />
                 </ScrollArea>
-            ) : (
-                <div className="flex justify-center">
-                    <MatchCard match={matches[0]} />
-                </div>
-            )}
+            </div>
+             <div className="hidden xl:flex justify-center items-start gap-4">
+                {matches.slice(0, 3).map((match, index) => (
+                     <div key={match.id} style={{ animationDelay: `${index * 80}ms` }}>
+                        <MatchCard match={match} />
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }

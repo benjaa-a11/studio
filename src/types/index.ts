@@ -35,6 +35,8 @@ export type Match = {
   matchTimestamp: Date;
   tournamentName?: string;
   tournamentLogo?: string | { light: string; dark: string };
+  statusText?: string; // e.g., "Finalizado", "Entretiempo"
+  imageUrl?: string; // For league tables, results, etc.
 };
 
 export type AdminAgendaMatch = {
@@ -45,6 +47,8 @@ export type AdminAgendaMatch = {
   channels: string[];
   dates?: string;
   time: Date;
+  statusText?: string;
+  imageUrl?: string;
   // Enriched data for display
   team1Name?: string;
   team2Name?: string;

@@ -427,18 +427,41 @@ export async function deleteTeam(path: string) {
 
 // --- AGENDA ---
 
-const handleMatchAction = async (data: AdminAgendaMatch, existingId?: string) => {
-    // Basic validation
-    if (!data.tournamentId || !data.team1 || !data.team2 || !data.time) {
-        throw new Error('Faltan datos requeridos para guardar el partido.');
+const AgendaSchema = z.object({
+    tournamentId: z.string().min(1),
+    team1: z.string().min(1),
+    team2: z.string().min(1),
+    time: z.date(),
+    channels: z.array(z.string()),
+    dates: z.string().optional(),
+    statusText: z.string().optional(),
+    imageUrl: z.string().url().optional().or(z.literal('')),
+});
+
+const handleMatchAction = async (data: any, existingId?: string) => {
+    const validatedFields = AgendaSchema.safeParse({
+        ...data,
+        time: new Date(data.time),
+    });
+
+    if (!validatedFields.success) {
+        console.error("Validation errors:", validatedFields.error.flatten().fieldErrors);
+        throw new Error('Faltan datos requeridos o son inválidos para guardar el partido.');
     }
-    if (data.team1 === data.team2) {
+    
+    if (validatedFields.data.team1 === validatedFields.data.team2) {
         throw new Error('Los equipos no pueden ser iguales.');
     }
 
-    const { time, ...restOfData } = data;
+    const { time, ...restOfData } = validatedFields.data;
     const matchTimestamp = Timestamp.fromDate(time);
-    const dataToSave = { ...restOfData, time: matchTimestamp };
+    const dataToSave: Record<string, any> = { ...restOfData, time: matchTimestamp };
+
+    // Ensure optional fields are removed if empty to keep Firestore clean
+    if (!dataToSave.dates) dataToSave.dates = deleteField();
+    if (!dataToSave.statusText) dataToSave.statusText = deleteField();
+    if (!dataToSave.imageUrl) dataToSave.imageUrl = deleteField();
+
 
     if (existingId) {
         // Update existing match
@@ -447,7 +470,7 @@ const handleMatchAction = async (data: AdminAgendaMatch, existingId?: string) =>
     } else {
         // Create new match
         const dateString = time.toISOString().split('T')[0];
-        const id = `${slugify(data.team1)}-vs-${slugify(data.team2)}-${dateString}`;
+        const id = `${slugify(validatedFields.data.team1)}-vs-${slugify(validatedFields.data.team2)}-${dateString}`;
         const matchRef = doc(db, 'agenda', id);
 
         const docSnap = await getDoc(matchRef);
@@ -511,8 +534,10 @@ export async function getAdminAgenda(): Promise<AdminAgendaMatch[]> {
                 team1: data.team1,
                 team2: data.team2,
                 tournamentId: data.tournamentId,
-                channels: data.channels,
-                dates: data.dates,
+                channels: data.channels || [],
+                dates: data.dates || '',
+                statusText: data.statusText || '',
+                imageUrl: data.imageUrl || '',
                 time: time
             } as AdminAgendaMatch
         });
