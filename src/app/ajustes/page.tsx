@@ -117,7 +117,6 @@ export default function SettingsPage() {
   const handleClearData = () => {
     try {
       localStorage.removeItem('plan-b-favorites');
-      localStorage.removeItem('plan-b-movie-favorites');
       localStorage.removeItem('plan-b-channel-history');
       
       toast({
@@ -250,7 +249,7 @@ export default function SettingsPage() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>¿Estás completamente seguro?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Esta acción es irreversible. Todos tus favoritos (canales y películas) y tu historial de visualización de canales serán eliminados de este dispositivo.
+                      Esta acción es irreversible. Todos tus favoritos y tu historial de visualización de canales serán eliminados de este dispositivo.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -284,4 +283,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-

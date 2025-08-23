@@ -4,7 +4,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Home, Tv, Newspaper, Radio, CalendarDays, Shield, Users, Image as ImageIcon } from "lucide-react";
+import { Home, Tv, Newspaper, Radio, CalendarDays, Shield, Users, Image as ImageIcon, Film } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,7 @@ const navItems = [
     { href: "/admin", label: "Dashboard", icon: Home },
     { href: "/admin/channels", label: "Canales", icon: Tv },
     { href: "/admin/radios", label: "Radios", icon: Radio },
+    { href: "/admin/movies", label: "Películas", icon: Film },
     { href: "/admin/news", label: "Noticias", icon: Newspaper },
     { href: "/admin/images", label: "Imágenes", icon: ImageIcon },
     { href: "/admin/agenda", label: "Agenda", icon: CalendarDays },

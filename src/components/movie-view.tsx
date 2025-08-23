@@ -60,14 +60,17 @@ const ExpandableText = ({ text, lineClamp = 4 }: { text: string, lineClamp?: num
     );
 };
 
+type MovieViewProps = {
+  movie: Movie;
+  similarMovies: Movie[];
+};
+
 
 export default function MovieView({ movie, similarMovies }: MovieViewProps) {
   const { toast } = useToast();
   const { isFavorite, addFavorite, removeFavorite, isLoaded } = useMovieFavorites();
   const [showPlayer, setShowPlayer] = useState(false);
-  const playerRef = useRef<HTMLDivElement>(null);
-  const videoPlayerRef = useRef<{ play: () => void, enterFullscreen: () => void }>(null);
-
+  
   const isFav = isLoaded && isFavorite(movie.id);
 
   const handleToggleFavorite = () => {
@@ -107,7 +110,6 @@ export default function MovieView({ movie, similarMovies }: MovieViewProps) {
 
   const handleWatchClick = () => {
     setShowPlayer(true);
-    // The player itself will handle fullscreen on play
   }
 
   const backgroundImageUrl = movie.backdropUrl || movie.posterUrl;
@@ -135,27 +137,28 @@ export default function MovieView({ movie, similarMovies }: MovieViewProps) {
             "absolute inset-0 transition-opacity duration-500",
             showPlayer ? "opacity-100 z-20" : "opacity-0 z-0 pointer-events-none"
         )}>
-            {movie.streamUrl && movie.format === 'mp4' ? (
-              <div ref={playerRef} className="w-full h-full">
-                <VideoPlayer
-                    ref={videoPlayerRef}
-                    movieId={movie.id}
-                    src={movie.streamUrl}
-                    posterUrl={movie.posterUrl}
-                    backdropUrl={movie.backdropUrl}
-                    autoPlay={true}
-                />
-              </div>
-            ) : movie.streamUrl && movie.format === 'iframe' ? (
-                <iframe
-                    key={movie.id}
-                    src={movie.streamUrl}
-                    allow="autoplay; encrypted-media; picture-in-picture"
-                    allowFullScreen
-                    className="h-full w-full border-0"
-                    title={`Reproductor de ${movie.title}`}
-                ></iframe>
-            ) : null }
+            {showPlayer && (
+              <>
+                {movie.streamUrl && movie.format === 'mp4' ? (
+                  <VideoPlayer
+                      movieId={movie.id}
+                      src={movie.streamUrl}
+                      posterUrl={movie.posterUrl}
+                      backdropUrl={movie.backdropUrl}
+                      autoPlay={true}
+                  />
+                ) : movie.streamUrl && movie.format === 'iframe' ? (
+                    <iframe
+                        key={movie.id}
+                        src={movie.streamUrl}
+                        allow="autoplay; encrypted-media; picture-in-picture"
+                        allowFullScreen
+                        className="h-full w-full border-0"
+                        title={`Reproductor de ${movie.title}`}
+                    ></iframe>
+                ) : null }
+              </>
+            )}
         </div>
 
         <main className={cn("transition-opacity duration-300", showPlayer ? "opacity-0" : "opacity-100")}>
@@ -245,4 +248,3 @@ export default function MovieView({ movie, similarMovies }: MovieViewProps) {
     </div>
   );
 }
-
