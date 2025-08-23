@@ -141,63 +141,50 @@ export default function AudioPlayer({ radio, onNext, onPrev, isFirst, isLast }: 
   }, [error]);
 
   return (
-    <div className="w-full max-w-md mx-auto rounded-xl bg-card text-card-foreground shadow-2xl shadow-primary/10 overflow-hidden">
-        <div className="relative aspect-square w-full">
-            {radio.logoUrl && (
-                <Image 
-                    src={radio.logoUrl}
-                    alt={`Fondo para ${radio.name}`}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                    className="object-cover blur-xl scale-110 opacity-30"
-                    unoptimized
-                />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-card" />
-            <div className="absolute inset-0 flex items-center justify-center p-8">
-                <div className="relative h-48 w-48 sm:h-56 sm:w-56 rounded-lg overflow-hidden shadow-2xl">
-                    {radio.logoUrl ? (
-                        <Image 
-                            src={radio.logoUrl}
-                            alt={`Logo de ${radio.name}`}
-                            fill
-                            sizes="(max-width: 768px) 50vw, 25vw"
-                            className="object-contain"
-                            unoptimized
-                            priority
-                        />
-                    ) : (
-                        <div className="w-full h-full bg-muted flex items-center justify-center">
-                            <Music4 className="w-20 h-20 text-muted-foreground" />
-                        </div>
-                    )}
-                </div>
+    <div className="w-full max-w-xs mx-auto rounded-xl bg-card text-card-foreground shadow-2xl shadow-primary/10 overflow-hidden">
+        <div className="p-6 flex flex-col items-center">
+            <div className="relative h-40 w-40 rounded-lg overflow-hidden shadow-lg mb-6">
+                {radio.logoUrl ? (
+                    <Image 
+                        src={radio.logoUrl}
+                        alt={`Logo de ${radio.name}`}
+                        fill
+                        sizes="160px"
+                        className="object-contain"
+                        unoptimized
+                        priority
+                    />
+                ) : (
+                    <div className="w-full h-full bg-muted flex items-center justify-center">
+                        <Music4 className="w-20 h-20 text-muted-foreground" />
+                    </div>
+                )}
             </div>
-        </div>
 
-        <div className="p-6 text-center space-y-2">
-            <h1 className="text-2xl sm:text-3xl font-bold">{radio.name}</h1>
-            {radio.emisora && (
-                <p className="text-lg text-muted-foreground font-medium">{radio.emisora}</p>
-            )}
-             {isPlaying && !isLoading && (
-                <p className="text-sm text-primary animate-pulse font-medium">Transmitiendo en vivo</p>
-             )}
-             {!isPlaying && !isLoading && !error && (
-                <p className="text-sm text-muted-foreground">Pausado</p>
-             )}
-              {isLoading && !error && (
-                <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Conectando...
-                </p>
-             )}
-             {error && (
-                <p className="text-sm text-destructive flex items-center justify-center gap-2">
-                    <AlertCircle className="w-4 h-4" />
-                    {error}
-                </p>
-             )}
+            <div className="text-center space-y-1 mb-6">
+                <h1 className="text-2xl font-bold">{radio.name}</h1>
+                {radio.emisora && (
+                    <p className="text-md text-muted-foreground font-medium">{radio.emisora}</p>
+                )}
+                 {isPlaying && !isLoading && (
+                    <p className="text-sm text-primary animate-pulse font-medium">Transmitiendo en vivo</p>
+                 )}
+                 {!isPlaying && !isLoading && !error && (
+                    <p className="text-sm text-muted-foreground">Pausado</p>
+                 )}
+                  {isLoading && !error && (
+                    <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Conectando...
+                    </p>
+                 )}
+                 {error && (
+                    <p className="text-sm text-destructive flex items-center justify-center gap-2">
+                        <AlertCircle className="w-4 h-4" />
+                        {error}
+                    </p>
+                 )}
+            </div>
         </div>
 
         <div className="bg-muted/50 p-4 flex items-center justify-center gap-6">
