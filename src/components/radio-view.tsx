@@ -2,14 +2,14 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, SwitchCamera } from "lucide-react";
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { ArrowLeft } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 
 import type { Radio } from "@/types";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { RadiosProvider } from "@/hooks/use-radios";
 import RadioCard from "./radio-card";
 import { Skeleton } from "./ui/skeleton";
 
@@ -24,7 +24,6 @@ type RadioViewProps = {
 };
 
 export default function RadioView({ radio: initialRadio, allRadios }: RadioViewProps) {
-  const { toast } = useToast();
   const router = useRouter();
   const [currentRadio, setCurrentRadio] = useState(initialRadio);
   
@@ -58,10 +57,10 @@ export default function RadioView({ radio: initialRadio, allRadios }: RadioViewP
       setCurrentRadio(initialRadio);
   }, [initialRadio]);
 
-
-  const otherRadios = allRadios.filter(r => r.id !== currentRadio.id).slice(0, 4);
+  const otherRadios = allRadios.filter(r => r.id !== currentRadio.id).slice(0, 5);
 
   return (
+    <RadiosProvider radios={allRadios}>
       <div className="flex h-dvh flex-col bg-muted/20">
           <header className="flex h-16 shrink-0 items-center border-b bg-background px-4 md:px-6 pt-safe-top">
               <Button variant="outline" size="icon" asChild>
@@ -91,5 +90,6 @@ export default function RadioView({ radio: initialRadio, allRadios }: RadioViewP
               </div>
           </main>
       </div>
+    </RadiosProvider>
   );
 }
