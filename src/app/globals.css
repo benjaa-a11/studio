@@ -74,4 +74,34 @@
       @apply scrollbar-hide;
     }
   }
+
+  /* App-like security enhancements */
+  .secure-app-body {
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari, Chrome, Opera, Edge */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* Internet Explorer/Edge */
+    user-select: none; /* Non-prefixed version, currently supported by Chrome, Edge, Opera and Firefox */
+  }
+
+  /* Disable pointer events on images to prevent saving */
+  .secure-app-body img {
+    pointer-events: none;
+  }
+  
+  /* Re-enable pointer events on interactive elements within a protected body */
+  .secure-app-body a,
+  .secure-app-body button,
+  .secure-app-body input,
+  .secure-app-body textarea,
+  .secure-app-body select,
+  .secure-app-body [role="button"],
+  .secure-app-body [role="link"],
+  .secure-app-body [role="checkbox"],
+  .secure-app-body [role="radio"],
+  .secure-app-body [role="tab"] {
+    pointer-events: auto;
+    -webkit-user-select: auto;
+    user-select: auto;
+  }
 }
