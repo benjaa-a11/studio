@@ -18,20 +18,15 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, Plus, Key, Link2 } from 'lucide-react';
+import { GripVertical, Trash2, Plus, Link2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
-import { Label } from '../ui/label';
 
 export type UrlItem = {
   id: string;
   value: string;
-  k1?: string;
-  k2?: string;
-  type: 'simple' | 'drm';
 };
 
 // --- Single Sortable Item ---
@@ -39,10 +34,12 @@ function SortableItem({
   item,
   onRemove,
   onUpdate,
+  placeholder,
 }: {
   item: UrlItem;
   onRemove: (id: string) => void;
-  onUpdate: (id: string, field: keyof UrlItem, value: string) => void;
+  onUpdate: (id: string, value: string) => void;
+  placeholder: string;
 }) {
   const {
     attributes,
@@ -64,83 +61,41 @@ function SortableItem({
       ref={setNodeRef}
       style={style}
       className={cn(
-        'flex flex-col gap-2 p-3 rounded-md bg-muted/50 border transition-shadow',
+        'flex items-center gap-2 p-2 rounded-md bg-muted/50 border transition-shadow',
         isDragging && 'shadow-lg bg-background border-primary'
       )}
     >
-      <div className="flex items-center gap-2">
-        <button
-            type="button"
-            {...attributes}
-            {...listeners}
-            className="cursor-grab p-1.5 text-muted-foreground hover:text-foreground touch-none self-start"
-            aria-label="Reordenar opción"
-        >
-            <GripVertical size={18} />
-        </button>
-        <RadioGroup 
-            defaultValue={item.type} 
-            onValueChange={(value) => onUpdate(item.id, 'type', value)}
-            className="flex gap-4"
-        >
-            <div className="flex items-center space-x-2">
-                <RadioGroupItem value="simple" id={`simple-${item.id}`} />
-                <Label htmlFor={`simple-${item.id}`}>Simple</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-                <RadioGroupItem value="drm" id={`drm-${item.id}`} />
-                <Label htmlFor={`drm-${item.id}`}>DRM</Label>
-            </div>
-        </RadioGroup>
+      <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="cursor-grab p-1.5 text-muted-foreground hover:text-foreground touch-none"
+          aria-label="Reordenar opción"
+      >
+          <GripVertical size={18} />
+      </button>
 
-         <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="text-muted-foreground hover:text-destructive shrink-0 ml-auto"
-            onClick={() => onRemove(item.id)}
-            aria-label="Eliminar opción"
-        >
-            <Trash2 size={16} />
-        </Button>
+      <div className="relative flex-grow">
+          <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="url"
+            value={item.value}
+            onChange={(e) => onUpdate(item.id, e.target.value)}
+            placeholder={placeholder}
+            className="flex-grow bg-background pl-9"
+          />
       </div>
-
-       <div className="pl-8 space-y-2">
-          <div className="relative">
-             <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-             <Input
-                type="url"
-                value={item.value}
-                onChange={(e) => onUpdate(item.id, 'value', e.target.value)}
-                placeholder="https://ejemplo.com/stream.m3u8"
-                className="flex-grow bg-background pl-9"
-            />
-          </div>
-          {item.type === 'drm' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <div className="relative">
-                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        type="text"
-                        value={item.k1 || ''}
-                        onChange={(e) => onUpdate(item.id, 'k1', e.target.value)}
-                        placeholder="Key ID (k1)"
-                        className="flex-grow bg-background pl-9"
-                    />
-                </div>
-                 <div className="relative">
-                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        type="text"
-                        value={item.k2 || ''}
-                        onChange={(e) => onUpdate(item.id, 'k2', e.target.value)}
-                        placeholder="Key (k2)"
-                        className="flex-grow bg-background pl-9"
-                    />
-                </div>
-            </div>
-          )}
-       </div>
+      
+      <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="text-muted-foreground hover:text-destructive shrink-0"
+          onClick={() => onRemove(item.id)}
+          aria-label="Eliminar opción"
+      >
+          <Trash2 size={16} />
+      </Button>
     </div>
   );
 }
@@ -164,7 +119,7 @@ export function SortableUrlList({
   );
 
   const handleAddItem = () => {
-    const newItem: UrlItem = { id: `${Date.now()}`, value: '', type: 'simple' };
+    const newItem: UrlItem = { id: `${Date.now()}`, value: '' };
     setItems([...items, newItem]);
   };
 
@@ -173,12 +128,12 @@ export function SortableUrlList({
       setItems(items.filter((item) => item.id !== id));
     } else {
       // If it's the last one, just clear it instead of removing
-      setItems([{ id: items[0].id, value: '', type: 'simple' }]);
+      setItems([{ id: items[0].id, value: '' }]);
     }
   };
 
-  const handleUpdateItem = (id: string, field: keyof UrlItem, value: string) => {
-    setItems(items.map((item) => (item.id === id ? { ...item, [field]: value } : item)));
+  const handleUpdateItem = (id: string, value: string) => {
+    setItems(items.map((item) => (item.id === id ? { ...item, value } : item)));
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -200,12 +155,13 @@ export function SortableUrlList({
       >
         <SortableContext items={items} strategy={verticalListSortingStrategy}>
           <div className="space-y-2">
-            {items.map((item, index) => (
+            {items.map((item) => (
               <SortableItem
                 key={item.id}
                 item={item}
                 onRemove={handleRemoveItem}
                 onUpdate={handleUpdateItem}
+                placeholder={placeholder}
               />
             ))}
           </div>

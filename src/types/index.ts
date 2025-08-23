@@ -1,9 +1,5 @@
 
-export type StreamSource = string | {
-  url: string;
-  k1?: string;
-  k2?: string;
-};
+export type StreamSource = string;
 
 export type Channel = {
   id: string;

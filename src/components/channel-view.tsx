@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import Link from "next/link";
@@ -9,7 +8,7 @@ import { useState, useMemo, memo, useEffect } from "react";
 import dynamic from 'next/dynamic';
 import { useTheme } from 'next-themes';
 
-import type { Channel, StreamSource } from "@/types";
+import type { Channel } from "@/types";
 import { useFavorites } from "@/hooks/use-favorites";
 import { useChannelHistory } from "@/hooks/use-channel-history";
 import { Button } from "@/components/ui/button";
@@ -24,21 +23,13 @@ const LivePlayer = dynamic(() => import('@/components/live-player'), {
   ssr: false
 });
 
-const AdvancedPlayer = dynamic(() => import('@/components/advanced-player'), {
-  loading: () => <div className="w-full h-full bg-black flex items-center justify-center"><Loader2 className="w-12 h-12 text-white animate-spin" /></div>,
-  ssr: false
-});
-
 /**
  * Converts various YouTube URL formats into a standard embeddable URL.
  * This allows using regular YouTube links in the database.
  * @param url The original URL from the database.
  * @returns A standardized YouTube embed URL or the original URL if not a YouTube link.
  */
-const getStreamableUrl = (source: StreamSource): string => {
-    if (typeof source !== 'string') return source.url;
-
-    const url = source;
+const getStreamableUrl = (url: string): string => {
     if (!url) return '';
     
     // Do not process m3u8 urls
@@ -91,7 +82,7 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
 
   const isFav = favoritesAreLoaded ? isFavorite(channel.id) : false;
   
-  const currentStreamSource = useMemo(
+  const currentStreamUrl = useMemo(
     () => (channel.streamUrl || [])[currentStreamIndex],
     [channel.streamUrl, currentStreamIndex]
   );
@@ -132,7 +123,7 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
   };
   
   const renderPlayer = () => {
-      if (!currentStreamSource) {
+      if (!currentStreamUrl) {
         return (
           <div className="flex h-full w-full flex-col items-center justify-center bg-card p-8 text-center">
             <VideoOff className="h-20 w-20 text-muted-foreground/50 mb-4" />
@@ -144,13 +135,7 @@ const ChannelView = memo(function ChannelView({ channel, relatedChannels }: Chan
         );
       }
 
-      if (typeof currentStreamSource === 'object') {
-        // New Advanced Player for DRM content
-        return <AdvancedPlayer source={currentStreamSource} />;
-      }
-      
-      // Legacy players for strings (HLS or Iframe)
-      const url = getStreamableUrl(currentStreamSource);
+      const url = getStreamableUrl(currentStreamUrl);
       if (url.includes('.m3u8')) {
         return <LivePlayer src={url} />;
       }
