@@ -4,8 +4,8 @@
 import { cache } from "react";
 import { db } from "./firebase";
 import { collection, getDocs, doc, getDoc, query, where, documentId, Timestamp, collectionGroup, orderBy, limit } from "firebase/firestore";
-import type { Channel, Match, ChannelOption, Radio, Tournament, Team, AppStatus, News, FeaturedImage } from "@/types";
-import { placeholderChannels, placeholderRadios, placeholderTournaments, placeholderTeams, placeholderNews, placeholderImages } from "./placeholder-data";
+import type { Channel, Match, ChannelOption, Radio, Tournament, Team, AppStatus, News, FeaturedImage, Movie } from "@/types";
+import { placeholderChannels, placeholderRadios, placeholderTournaments, placeholderTeams, placeholderNews, placeholderImages, placeholderMovies } from "./placeholder-data";
 
 // Helper function to resolve .pls file to an actual stream URL
 const _resolvePlsUrl = async (url: string): Promise<string | null> => {
@@ -632,3 +632,180 @@ export const getAppStatus = cache(async (): Promise<AppStatus | null> => {
       };
   }
 });
+
+// --- MOVIES ---
+
+const fetchTMDbData = async (tmdbID: string) => {
+    const apiKey = process.env.TMDB_API_KEY;
+    if (!apiKey) {
+        console.warn("TMDB_API_KEY no está configurada. Faltarán detalles de la película.");
+        return {};
+    }
+    try {
+        const res = await fetch(`https://api.themoviedb.org/3/movie/${tmdbID}?api_key=${apiKey}&language=es-MX&append_to_response=videos,images`);
+        if (!res.ok) {
+            console.error(`Error fetching TMDb data for ID ${tmdbID}: ${res.statusText}`);
+            return {};
+        }
+        const data = await res.json();
+        const videos = data.videos?.results || [];
+        const trailer = videos.find((v: any) => v.type === 'Trailer' && v.site === 'YouTube');
+
+        return {
+            title: data.title,
+            year: data.release_date ? new Date(data.release_date).getFullYear() : undefined,
+            synopsis: data.overview,
+            posterUrl: data.poster_path ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : 'https://placehold.co/500x750.png',
+            backdropUrl: data.backdrop_path ? `https://image.tmdb.org/t/p/w1280${data.backdrop_path}` : undefined,
+            heroImageUrl: data.backdrop_path ? `https://image.tmdb.org/t/p/original${data.backdrop_path}` : undefined,
+            rating: data.vote_average ? data.vote_average.toFixed(1) : undefined,
+            duration: data.runtime ? `${Math.floor(data.runtime / 60)}h ${data.runtime % 60}m` : 'N/A',
+            trailerUrl: trailer ? `https://www.youtube.com/embed/${trailer.key}` : undefined,
+            category: data.genres?.map((g: any) => g.name) || [],
+        };
+    } catch (error) {
+        console.error("Error fetching TMDb data:", error);
+        return {};
+    }
+};
+
+const useMovieFallbackData = async (includePlaceholders: boolean): Promise<Movie[]> => {
+    if (includePlaceholders) {
+        console.warn("Firebase no disponible o colección de películas vacía. Usando datos de demostración.");
+        return Promise.all(placeholderMovies.map(async (movie) => {
+            const tmdbData = await fetchTMDbData(movie.tmdbID);
+            return {
+                id: movie.id,
+                ...tmdbData,
+                ...movie,
+                posterUrl: movie.posterUrl || tmdbData.posterUrl,
+                title: movie.title || tmdbData.title,
+                synopsis: movie.synopsis || tmdbData.synopsis,
+            } as Movie;
+        }));
+    }
+    return [];
+};
+
+
+export const getMovies = async (includePlaceholders = false): Promise<Movie[]> => {
+    try {
+        const moviesCollection = collection(db, "peliculas");
+        const movieSnapshot = await getDocs(query(moviesCollection));
+
+        if (movieSnapshot.empty && includePlaceholders) {
+            return useMovieFallbackData(true);
+        }
+
+        const movies = await Promise.all(movieSnapshot.docs.map(async (doc) => {
+            const data = doc.data();
+            const tmdbData = await fetchTMDbData(data.tmdbID);
+            
+            return {
+                id: doc.id,
+                tmdbID: data.tmdbID,
+                streamUrl: data.streamUrl,
+                format: data.format,
+                isHero: data.isHero || false,
+                ...tmdbData,
+                posterUrl: data.posterUrl || tmdbData.posterUrl,
+                heroImageUrl: data.heroImageUrl || tmdbData.heroImageUrl,
+                title: data.title || tmdbData.title,
+                synopsis: data.synopsis || tmdbData.synopsis,
+            } as Movie;
+        }));
+
+        return movies;
+    } catch (error) {
+        console.error("Error al obtener películas de Firebase:", error);
+        return useMovieFallbackData(includePlaceholders);
+    }
+};
+
+export const getMovieById = async (id: string): Promise<Movie | null> => {
+    try {
+        const movieDocRef = doc(db, "peliculas", id);
+        const movieSnapshot = await getDoc(movieDocRef);
+
+        if (movieSnapshot.exists()) {
+            const data = movieSnapshot.data();
+            const tmdbData = await fetchTMDbData(data.tmdbID);
+            return {
+                id: movieSnapshot.id,
+                ...data,
+                ...tmdbData,
+                 posterUrl: data.posterUrl || tmdbData.posterUrl,
+                 heroImageUrl: data.heroImageUrl || tmdbData.heroImageUrl,
+                 title: data.title || tmdbData.title,
+                 synopsis: data.synopsis || tmdbData.synopsis,
+            } as Movie;
+        }
+        
+        const fallbackMovie = (await getMovies(true)).find(m => m.id === id);
+        if (fallbackMovie) {
+            console.warn(`Película con id ${id} no encontrada en Firebase. Usando dato de demostración.`);
+            return fallbackMovie;
+        }
+
+        return null;
+    } catch (error) {
+        console.error(`Error al obtener película con id ${id}:`, error);
+        const fallbackMovie = (await getMovies(true)).find(m => m.id === id);
+        if (fallbackMovie) return fallbackMovie;
+        return null;
+    }
+};
+
+export const getMoviesByIds = async (ids: string[]): Promise<Movie[]> => {
+  if (!ids || ids.length === 0) {
+    return [];
+  }
+
+  try {
+    const chunks: string[][] = [];
+    for (let i = 0; i < ids.length; i += 30) {
+        chunks.push(ids.slice(i, i + 30));
+    }
+
+    let firestoreMoviesData: any[] = [];
+    for (const chunk of chunks) {
+        const q = query(collection(db, "peliculas"), where(documentId(), "in", chunk));
+        const snapshot = await getDocs(q);
+        snapshot.forEach(doc => {
+            firestoreMoviesData.push({ id: doc.id, ...doc.data() });
+        });
+    }
+
+    const firestoreMovies = await Promise.all(firestoreMoviesData.map(async (data) => {
+        const tmdbData = await fetchTMDbData(data.tmdbID);
+        return {
+            ...data,
+            ...tmdbData,
+            posterUrl: data.posterUrl || tmdbData.posterUrl,
+            title: data.title || tmdbData.title,
+            synopsis: data.synopsis || tmdbData.synopsis,
+        } as Movie;
+    }));
+    
+    const firestoreMovieMap = new Map(firestoreMovies.map(m => [m.id, m]));
+    return ids.map(id => firestoreMovieMap.get(id)).filter((m): m is Movie => !!m);
+
+  } catch (error) {
+    console.error("Error fetching movies by IDs:", error);
+    const allPlaceholderMovies = await useMovieFallbackData(true);
+    const placeholderMap = new Map(allPlaceholderMovies.map(m => [m.id, m]));
+    return ids.map(id => placeholderMap.get(id)).filter((m): m is Movie => !!m);
+  }
+};
+
+
+export const getSimilarMovies = async (movieId: string, categories?: string[]): Promise<Movie[]> => {
+  if (!categories || categories.length === 0) return [];
+  const allMovies = await getMovies(true);
+  
+  return allMovies.filter(movie => {
+    return movie.id !== movieId && movie.category?.some(cat => categories.includes(cat));
+  }).slice(0, 10); // Return a max of 10 similar movies
+};
+
+    

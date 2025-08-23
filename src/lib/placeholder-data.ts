@@ -1,5 +1,5 @@
 
-import type { Channel, Radio, Team, Tournament, AdminAgendaMatch, News, FeaturedImage } from "@/types";
+import type { Channel, Radio, Team, Tournament, AdminAgendaMatch, News, FeaturedImage, Movie } from "@/types";
 
 // Placeholder data is now empty. The application will show a professional
 // empty state if the database has no content.
@@ -10,3 +10,4 @@ export const placeholderTeams: Team[] = [];
 export const placeholderAgenda: AdminAgendaMatch[] = [];
 export const placeholderNews: News[] = [];
 export const placeholderImages: FeaturedImage[] = [];
+export const placeholderMovies: Movie[] = [];

@@ -97,3 +97,26 @@ export type AppStatus = {
   maintenanceMessage: string;
   disabledSections: string[];
 }
+
+export type Movie = {
+  id: string;
+  tmdbID: string;
+  streamUrl: string;
+  format: 'mp4' | 'iframe';
+  isHero?: boolean;
+  // Overridable fields
+  title: string;
+  posterUrl: string;
+  heroImageUrl?: string;
+  synopsis: string;
+  // Fields from TMDb
+  year?: number;
+  backdropUrl?: string;
+  rating?: string;
+  duration?: string;
+  trailerUrl?: string;
+  category: string[];
+  logoUrl?: string;
+}
+
+    
