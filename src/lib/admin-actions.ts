@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { db } from './firebase'; // Use the client-side db instance
 import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, getDoc, query, getDocs, Timestamp, deleteField, orderBy, writeBatch } from 'firebase/firestore';
 import { z } from 'zod';
-import type { AdminAgendaMatch, AppStatus, News, FeaturedImage } from '@/types';
+import type { AdminAgendaMatch, AppStatus, News, FeaturedImage, Movie } from '@/types';
 
 // Common state type for forms
 export type FormState = {
@@ -694,3 +694,88 @@ export async function deleteImage(id: string) {
     return { message: 'Error del servidor al eliminar la imagen.', success: false };
   }
 }
+
+// --- MOVIES ---
+
+const MovieSchema = z.object({
+    tmdbID: z.string().min(1, 'El ID de TMDb es requerido.'),
+    streamUrl: z.string().url('La URL del stream no es válida.'),
+    format: z.enum(['mp4', 'iframe'], { message: 'Formato no válido.' }),
+    title: z.string().optional(),
+    posterUrl: z.string().url('URL de póster no válida.').optional().or(z.literal('')),
+    heroImageUrl: z.string().url('URL de imagen para hero no válida.').optional().or(z.literal('')),
+    synopsis: z.string().optional(),
+    isHero: z.boolean().optional(),
+});
+
+export async function addMovie(prevState: FormState, formData: FormData): Promise<FormState> {
+    try {
+        const rawData = {
+            ...Object.fromEntries(formData.entries()),
+            isHero: formData.get('isHero') === 'on',
+        };
+        const validatedFields = MovieSchema.safeParse(rawData);
+
+        if (!validatedFields.success) {
+            return { message: 'Error de validación.', errors: validatedFields.error.flatten().fieldErrors, success: false };
+        }
+        
+        const { title, ...dataToSave } = validatedFields.data;
+        const finalTitle = title || `movie-${validatedFields.data.tmdbID}`;
+        const id = slugify(finalTitle);
+        const movieRef = doc(db, 'peliculas', id);
+        
+        const docSnap = await getDoc(movieRef);
+        if (docSnap.exists()) {
+            return { message: `Una película con el ID '${id}' ya existe.`, success: false };
+        }
+
+        await setDoc(movieRef, dataToSave);
+        revalidatePath('/admin/movies');
+        revalidatePath('/peliculas');
+        return { message: 'Película añadida exitosamente.', success: true, errors: {} };
+
+    } catch (error) {
+        console.error('Error adding movie:', error);
+        return { message: 'Error del servidor al añadir la película.', success: false };
+    }
+}
+
+export async function updateMovie(id: string, prevState: FormState, formData: FormData): Promise<FormState> {
+    if (!id) return { message: 'ID de película no proporcionado.', success: false };
+    try {
+         const rawData = {
+            ...Object.fromEntries(formData.entries()),
+            isHero: formData.get('isHero') === 'on',
+        };
+        const validatedFields = MovieSchema.safeParse(rawData);
+
+        if (!validatedFields.success) {
+            return { message: 'Error de validación.', errors: validatedFields.error.flatten().fieldErrors, success: false };
+        }
+
+        await updateDoc(doc(db, 'peliculas', id), validatedFields.data);
+        revalidatePath('/admin/movies');
+        revalidatePath('/peliculas');
+        revalidatePath(`/pelicula/${id}`);
+        return { message: 'Película actualizada exitosamente.', success: true, errors: {} };
+
+    } catch (error) {
+        console.error('Error updating movie:', error);
+        return { message: 'Error del servidor al actualizar la película.', success: false };
+    }
+}
+
+export async function deleteMovie(id: string) {
+    if (!id) return { message: 'ID de película no proporcionado.', success: false };
+    try {
+        await deleteDoc(doc(db, 'peliculas', id));
+        revalidatePath('/admin/movies');
+        revalidatePath('/peliculas');
+        return { message: 'Película eliminada exitosamente.', success: true };
+    } catch (error) {
+        console.error('Error deleting movie:', error);
+        return { message: 'Error del servidor al eliminar la película.', success: false };
+    }
+}
+
