@@ -1,11 +1,12 @@
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
 import { db } from './firebase'; // Use the client-side db instance
 import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, getDoc, query, getDocs, Timestamp, deleteField, orderBy, writeBatch } from 'firebase/firestore';
 import { z } from 'zod';
-import type { AdminAgendaMatch, AppStatus, News, FeaturedImage, Movie } from '@/types';
+import type { AdminAgendaMatch, AppStatus } from '@/types';
 
 // Common state type for forms
 export type FormState = {
@@ -29,6 +30,9 @@ const slugify = (text: string) => {
     .replace(/^-+/, '') // Trim - from start of text
     .replace(/-+$/, '') // Trim - from end of text
 }
+
+const TMDB_API_KEY = process.env.TMDB_API_KEY;
+const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 
 // --- CHANNELS ---
 
@@ -249,6 +253,142 @@ export async function deleteRadio(id: string) {
   }
 }
 
+// --- MOVIES ---
+
+const MovieSchema = z.object({
+  tmdbID: z.string().min(1, 'El ID de TMDb es requerido.'),
+  streamUrl: z.string().url('Debe ser una URL válida.'),
+  format: z.enum(['mp4', 'iframe'], { required_error: 'Debe seleccionar un formato.' }),
+  title: z.string().optional(),
+  posterUrl: z.string().url('URL de póster no válida').optional().or(z.literal('')),
+  heroImageUrl: z.string().url('URL de imagen para hero no válida').optional().or(z.literal('')),
+  synopsis: z.string().optional(),
+  isHero: z.boolean().optional(),
+});
+
+
+export async function addMovie(prevState: FormState, formData: FormData): Promise<FormState> {
+    try {
+        const rawData = {
+          ...Object.fromEntries(formData.entries()),
+          isHero: formData.get('isHero') === 'on',
+        };
+        const validatedFields = MovieSchema.safeParse(rawData);
+
+        if (!validatedFields.success) {
+            return {
+                message: 'Error de validación.',
+                errors: validatedFields.error.flatten().fieldErrors,
+                success: false,
+            };
+        }
+        
+        let { tmdbID, streamUrl, format, title, posterUrl, synopsis, isHero, heroImageUrl } = validatedFields.data;
+        let finalTitle = title; 
+
+        if (!finalTitle) {
+            if (!TMDB_API_KEY) {
+                return { message: 'La clave de API de TMDb no está configurada. Se requiere un título.', success: false };
+            }
+            try {
+                const response = await fetch(`${TMDB_BASE_URL}/movie/${tmdbID}?api_key=${TMDB_API_KEY}&language=es-ES`);
+                if (!response.ok) throw new Error('Failed to fetch movie title from TMDb');
+                const movieData = await response.json();
+                finalTitle = movieData.title;
+                if (!finalTitle) throw new Error('No se pudo obtener el título de TMDb');
+            } catch (error) {
+                console.error("Error fetching title from TMDb:", error);
+                return { message: 'No se pudo obtener el título de TMDb. Por favor, añádelo manualmente.', success: false };
+            }
+        }
+        
+        const id = slugify(finalTitle);
+        const movieRef = doc(db, 'peliculas', id);
+
+        const docSnap = await getDoc(movieRef);
+        if (docSnap.exists()) {
+          return { message: `Una película con el ID '${id}' (del título '${finalTitle}') ya existe.`, success: false };
+        }
+        
+        const dataToSave: { [key: string]: any } = {
+            tmdbID,
+            streamUrl,
+            format,
+            isHero,
+        };
+        
+        if (title) dataToSave.title = title;
+        if (posterUrl) dataToSave.posterUrl = posterUrl;
+        if (synopsis) dataToSave.synopsis = synopsis;
+        if (heroImageUrl) dataToSave.heroImageUrl = heroImageUrl;
+
+        await setDoc(movieRef, dataToSave);
+        revalidatePath('/admin/movies');
+        revalidatePath('/peliculas');
+        return { message: 'Película añadida exitosamente.', success: true, errors: {} };
+    } catch (error) {
+        console.error('Error adding movie:', error);
+        const message = error instanceof Error ? error.message : 'Error del servidor al intentar añadir la película.';
+        return { message, success: false };
+    }
+}
+
+export async function updateMovie(id: string, prevState: FormState, formData: FormData): Promise<FormState> {
+    if (!id) return { message: 'ID de película no proporcionado.', success: false };
+    try {
+        const rawData = {
+          ...Object.fromEntries(formData.entries()),
+          isHero: formData.get('isHero') === 'on',
+        };
+        const validatedFields = MovieSchema.safeParse(rawData);
+
+        if (!validatedFields.success) {
+            return {
+                message: 'Error de validación.',
+                errors: validatedFields.error.flatten().fieldErrors,
+                success: false,
+            };
+        }
+
+        const { tmdbID, streamUrl, format, title, posterUrl, synopsis, isHero, heroImageUrl } = validatedFields.data;
+        
+        const dataToUpdate: { [key: string]: any } = {
+            tmdbID,
+            streamUrl,
+            format,
+            isHero,
+            title: title || deleteField(),
+            posterUrl: posterUrl || deleteField(),
+            synopsis: synopsis || deleteField(),
+            heroImageUrl: heroImageUrl || deleteField(),
+        };
+
+        const movieRef = doc(db, 'peliculas', id);
+        await updateDoc(movieRef, dataToUpdate);
+        revalidatePath('/admin/movies');
+        revalidatePath('/peliculas');
+        revalidatePath(`/pelicula/${id}`);
+        return { message: 'Película actualizada exitosamente.', success: true, errors: {} };
+    } catch (error) {
+        console.error('Error updating movie:', error);
+        const message = error instanceof Error ? error.message : 'Error del servidor al intentar actualizar la película.';
+        return { message, success: false };
+    }
+}
+
+export async function deleteMovie(id: string) {
+    if (!id) return { message: 'ID de película no proporcionado.', success: false };
+    try {
+        await deleteDoc(doc(db, 'peliculas', id));
+        revalidatePath('/admin/movies');
+        revalidatePath('/peliculas');
+        return { message: 'Película eliminada exitosamente.', success: true };
+    } catch (error) {
+        console.error('Error deleting movie:', error);
+        const message = error instanceof Error ? error.message : 'Error del servidor al intentar eliminar la película.';
+        return { message, success: false };
+    }
+}
 
 // --- TOURNAMENTS ---
 
@@ -405,41 +545,18 @@ export async function deleteTeam(path: string) {
 
 // --- AGENDA ---
 
-const AgendaSchema = z.object({
-    tournamentId: z.string().min(1),
-    team1: z.string().min(1),
-    team2: z.string().min(1),
-    time: z.date(),
-    channels: z.array(z.string()),
-    dates: z.string().optional(),
-    statusText: z.string().optional(),
-    imageUrl: z.string().url().optional().or(z.literal('')),
-});
-
-const handleMatchAction = async (data: any, existingId?: string) => {
-    const validatedFields = AgendaSchema.safeParse({
-        ...data,
-        time: new Date(data.time),
-    });
-
-    if (!validatedFields.success) {
-        console.error("Validation errors:", validatedFields.error.flatten().fieldErrors);
-        throw new Error('Faltan datos requeridos o son inválidos para guardar el partido.');
+const handleMatchAction = async (data: AdminAgendaMatch, existingId?: string) => {
+    // Basic validation
+    if (!data.tournamentId || !data.team1 || !data.team2 || !data.time) {
+        throw new Error('Faltan datos requeridos para guardar el partido.');
     }
-    
-    if (validatedFields.data.team1 === validatedFields.data.team2) {
+    if (data.team1 === data.team2) {
         throw new Error('Los equipos no pueden ser iguales.');
     }
 
-    const { time, ...restOfData } = validatedFields.data;
+    const { time, ...restOfData } = data;
     const matchTimestamp = Timestamp.fromDate(time);
-    const dataToSave: Record<string, any> = { ...restOfData, time: matchTimestamp };
-
-    // Ensure optional fields are removed if empty to keep Firestore clean
-    if (!dataToSave.dates) dataToSave.dates = deleteField();
-    if (!dataToSave.statusText) dataToSave.statusText = deleteField();
-    if (!dataToSave.imageUrl) dataToSave.imageUrl = deleteField();
-
+    const dataToSave = { ...restOfData, time: matchTimestamp };
 
     if (existingId) {
         // Update existing match
@@ -448,7 +565,7 @@ const handleMatchAction = async (data: any, existingId?: string) => {
     } else {
         // Create new match
         const dateString = time.toISOString().split('T')[0];
-        const id = `${slugify(validatedFields.data.team1)}-vs-${slugify(validatedFields.data.team2)}-${dateString}`;
+        const id = `${slugify(data.team1)}-vs-${slugify(data.team2)}-${dateString}`;
         const matchRef = doc(db, 'agenda', id);
 
         const docSnap = await getDoc(matchRef);
@@ -512,10 +629,8 @@ export async function getAdminAgenda(): Promise<AdminAgendaMatch[]> {
                 team1: data.team1,
                 team2: data.team2,
                 tournamentId: data.tournamentId,
-                channels: data.channels || [],
-                dates: data.dates || '',
-                statusText: data.statusText || '',
-                imageUrl: data.imageUrl || '',
+                channels: data.channels,
+                dates: data.dates,
                 time: time
             } as AdminAgendaMatch
         });
@@ -527,255 +642,3 @@ export async function getAdminAgenda(): Promise<AdminAgendaMatch[]> {
         return [];
     }
 }
-
-// --- NEWS ---
-
-const NewsSchema = z.object({
-  title: z.string().min(1, { message: 'El título es requerido.' }),
-  url: z.string().url({ message: 'La URL del artículo no es válida.' }),
-  imageUrl: z.string().url({ message: 'La URL de la imagen no es válida.' }),
-  source: z.string().min(1, { message: 'La fuente es requerida.' }),
-  date: z.string().datetime({ message: 'La fecha no es válida.' }),
-});
-
-export async function addNews(prevState: FormState, formData: FormData): Promise<FormState> {
-  try {
-    const rawData = Object.fromEntries(formData.entries());
-    const validatedFields = NewsSchema.safeParse(rawData);
-
-    if (!validatedFields.success) {
-      return { message: 'Error de validación.', errors: validatedFields.error.flatten().fieldErrors, success: false };
-    }
-    
-    const { title, date, ...rest } = validatedFields.data;
-    const dataToSave = {
-      ...rest,
-      title,
-      date: Timestamp.fromDate(new Date(date)),
-    };
-    
-    const id = slugify(title);
-    const newsRef = doc(db, 'news', id);
-    const docSnap = await getDoc(newsRef);
-
-    if (docSnap.exists()) {
-      return { message: `Una noticia con el ID '${id}' ya existe.`, success: false };
-    }
-
-    await setDoc(newsRef, dataToSave);
-    revalidatePath('/admin/news');
-    revalidatePath('/noticias');
-    return { message: 'Noticia añadida exitosamente.', success: true, errors: {} };
-  } catch (error) {
-    console.error('Error adding news:', error);
-    return { message: 'Error del servidor al añadir la noticia.', success: false };
-  }
-}
-
-export async function updateNews(id: string, prevState: FormState, formData: FormData): Promise<FormState> {
-  if (!id) return { message: 'ID de noticia no proporcionado.', success: false };
-  
-  try {
-    const rawData = Object.fromEntries(formData.entries());
-    const validatedFields = NewsSchema.safeParse(rawData);
-    
-    if (!validatedFields.success) {
-      return { message: 'Error de validación.', errors: validatedFields.error.flatten().fieldErrors, success: false };
-    }
-
-    const { date, ...rest } = validatedFields.data;
-    const dataToSave = {
-      ...rest,
-      date: Timestamp.fromDate(new Date(date)),
-    };
-
-    await updateDoc(doc(db, 'news', id), dataToSave);
-    revalidatePath('/admin/news');
-    revalidatePath('/noticias');
-    revalidatePath(`/noticias/${id}`);
-    return { message: 'Noticia actualizada exitosamente.', success: true, errors: {} };
-  } catch (error) {
-    console.error('Error updating news:', error);
-    return { message: 'Error del servidor al actualizar la noticia.', success: false };
-  }
-}
-
-export async function deleteNews(id: string) {
-  if (!id) return { message: 'ID de noticia no proporcionado.', success: false };
-  
-  try {
-    await deleteDoc(doc(db, 'news', id));
-    revalidatePath('/admin/news');
-    revalidatePath('/noticias');
-    return { message: 'Noticia eliminada exitosamente.', success: true };
-  } catch (error) {
-    console.error('Error deleting news:', error);
-    return { message: 'Error del servidor al eliminar la noticia.', success: false };
-  }
-}
-
-// --- IMAGES ---
-
-const ImageSchema = z.object({
-  title: z.string().min(1, { message: 'El título es requerido.' }),
-  category: z.string().min(1, { message: 'La categoría es requerida.' }),
-  imageUrl: z.string().url({ message: 'La URL de la imagen no es válida.' }),
-});
-
-export async function addImage(prevState: FormState, formData: FormData): Promise<FormState> {
-  try {
-    const rawData = Object.fromEntries(formData.entries());
-    const validatedFields = ImageSchema.safeParse(rawData);
-
-    if (!validatedFields.success) {
-      return { message: 'Error de validación.', errors: validatedFields.error.flatten().fieldErrors, success: false };
-    }
-    
-    const { title, ...rest } = validatedFields.data;
-    const dataToSave = {
-      ...rest,
-      title,
-      date: Timestamp.now(), // Set current date on creation
-    };
-    
-    const id = slugify(title);
-    const imageRef = doc(db, 'images', id);
-    const docSnap = await getDoc(imageRef);
-
-    if (docSnap.exists()) {
-      return { message: `Una imagen con el ID '${id}' ya existe.`, success: false };
-    }
-
-    await setDoc(imageRef, dataToSave);
-    revalidatePath('/admin/images');
-    revalidatePath('/noticias');
-    return { message: 'Imagen añadida exitosamente.', success: true, errors: {} };
-  } catch (error) {
-    console.error('Error adding image:', error);
-    return { message: 'Error del servidor al añadir la imagen.', success: false };
-  }
-}
-
-export async function updateImage(id: string, prevState: FormState, formData: FormData): Promise<FormState> {
-  if (!id) return { message: 'ID de imagen no proporcionado.', success: false };
-  
-  try {
-    const rawData = Object.fromEntries(formData.entries());
-    const validatedFields = ImageSchema.safeParse(rawData);
-    
-    if (!validatedFields.success) {
-      return { message: 'Error de validación.', errors: validatedFields.error.flatten().fieldErrors, success: false };
-    }
-
-    // Date is not updated on edit
-    const dataToSave = validatedFields.data;
-
-    await updateDoc(doc(db, 'images', id), dataToSave);
-    revalidatePath('/admin/images');
-    revalidatePath('/noticias');
-    revalidatePath(`/imagen/${id}`);
-    return { message: 'Imagen actualizada exitosamente.', success: true, errors: {} };
-  } catch (error) {
-    console.error('Error updating image:', error);
-    return { message: 'Error del servidor al actualizar la imagen.', success: false };
-  }
-}
-
-export async function deleteImage(id: string) {
-  if (!id) return { message: 'ID de imagen no proporcionado.', success: false };
-  
-  try {
-    await deleteDoc(doc(db, 'images', id));
-    revalidatePath('/admin/images');
-    revalidatePath('/noticias');
-    return { message: 'Imagen eliminada exitosamente.', success: true };
-  } catch (error) {
-    console.error('Error deleting image:', error);
-    return { message: 'Error del servidor al eliminar la imagen.', success: false };
-  }
-}
-
-// --- MOVIES ---
-
-const MovieSchema = z.object({
-    tmdbID: z.string().min(1, 'El ID de TMDb es requerido.'),
-    streamUrl: z.string().url('La URL del stream no es válida.'),
-    format: z.enum(['mp4', 'iframe'], { message: 'Formato no válido.' }),
-    title: z.string().optional(),
-    posterUrl: z.string().url('URL de póster no válida.').optional().or(z.literal('')),
-    heroImageUrl: z.string().url('URL de imagen para hero no válida.').optional().or(z.literal('')),
-    synopsis: z.string().optional(),
-    isHero: z.boolean().optional(),
-});
-
-export async function addMovie(prevState: FormState, formData: FormData): Promise<FormState> {
-    try {
-        const rawData = {
-            ...Object.fromEntries(formData.entries()),
-            isHero: formData.get('isHero') === 'on',
-        };
-        const validatedFields = MovieSchema.safeParse(rawData);
-
-        if (!validatedFields.success) {
-            return { message: 'Error de validación.', errors: validatedFields.error.flatten().fieldErrors, success: false };
-        }
-        
-        const { title, ...dataToSave } = validatedFields.data;
-        const finalTitle = title || `movie-${validatedFields.data.tmdbID}`;
-        const id = slugify(finalTitle);
-        const movieRef = doc(db, 'peliculas', id);
-        
-        const docSnap = await getDoc(movieRef);
-        if (docSnap.exists()) {
-            return { message: `Una película con el ID '${id}' ya existe.`, success: false };
-        }
-
-        await setDoc(movieRef, dataToSave);
-        revalidatePath('/admin/movies');
-        revalidatePath('/peliculas');
-        return { message: 'Película añadida exitosamente.', success: true, errors: {} };
-
-    } catch (error) {
-        console.error('Error adding movie:', error);
-        return { message: 'Error del servidor al añadir la película.', success: false };
-    }
-}
-
-export async function updateMovie(id: string, prevState: FormState, formData: FormData): Promise<FormState> {
-    if (!id) return { message: 'ID de película no proporcionado.', success: false };
-    try {
-         const rawData = {
-            ...Object.fromEntries(formData.entries()),
-            isHero: formData.get('isHero') === 'on',
-        };
-        const validatedFields = MovieSchema.safeParse(rawData);
-
-        if (!validatedFields.success) {
-            return { message: 'Error de validación.', errors: validatedFields.error.flatten().fieldErrors, success: false };
-        }
-
-        await updateDoc(doc(db, 'peliculas', id), validatedFields.data);
-        revalidatePath('/admin/movies');
-        revalidatePath('/peliculas');
-        revalidatePath(`/pelicula/${id}`);
-        return { message: 'Película actualizada exitosamente.', success: true, errors: {} };
-
-    } catch (error) {
-        console.error('Error updating movie:', error);
-        return { message: 'Error del servidor al actualizar la película.', success: false };
-    }
-}
-
-export async function deleteMovie(id: string) {
-    if (!id) return { message: 'ID de película no proporcionado.', success: false };
-    try {
-        await deleteDoc(doc(db, 'peliculas', id));
-        revalidatePath('/admin/movies');
-        revalidatePath('/peliculas');
-        return { message: 'Película eliminada exitosamente.', success: true };
-    } catch (error) {
-        console.error('Error deleting movie:', error);
-        return { message: 'Error del servidor al eliminar la película.', success: false };
-    }
-}
-
